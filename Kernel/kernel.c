@@ -4,7 +4,7 @@
 #include <moduleLoader.h>
 #include <naiveConsole.h>
 #include <videoDriver.h>
-
+#include "../font8x8/font8x8_basic.h"
 extern uint8_t text;
 extern uint8_t rodata;
 extern uint8_t data;
@@ -13,6 +13,10 @@ extern uint8_t endOfKernelBinary;
 extern uint8_t endOfKernel;
 
 static const uint64_t PageSize = 0x1000;
+
+extern void putPixel(uint32_t hexColor, uint64_t x, uint64_t y);
+
+extern char font8x8_basic[128][8];
 
 static void * const sampleCodeModuleAddress = (void*)0x400000;
 static void * const sampleDataModuleAddress = (void*)0x500000;
@@ -101,5 +105,27 @@ int main()
 	ncNewline();
 
 	ncPrint("[Finished]");
+
+
+	char * str = "Hola";
+        int preoffset = 0;
+        for(int i = 0; i < 4; i++){
+                int ascii = str[i];
+                char * bmp = font8x8_basic[ascii];
+                preoffset+= 8;
+                for(int j = 0; j < 64; j++){
+                        int fil = j / 8;
+                        int col = j % 8;
+                        int isOn = bmp[col] & (1 << (7 - fil));
+                        int color = isOn ? 0xFFFFFF : 0x000000;
+                        putPixel(color, fil + preoffset, col);
+		}
+	}		
+
+
 	return 0;
+}
+int __stack_chk_fail(void) {
+    // Retorna -13333 cuando se detecta un error de stack
+    return -13333;
 }
