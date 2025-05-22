@@ -1,4 +1,6 @@
 #include <videoDriver.h>
+#include <string.h>
+#include "./include/font8x8/font8x8.h"
 
 struct vbe_mode_info_structure {
 	uint16_t attributes;		// deprecated, only bit 7 should be of interest to you, and it indicates the mode supports a linear frame buffer.
@@ -42,6 +44,8 @@ typedef struct vbe_mode_info_structure * VBEInfoPtr;
 
 VBEInfoPtr VBE_mode_info = (VBEInfoPtr) 0x0000000000005C00;
 
+
+// Cambia el color del pixel (x,y) a hexColor</b></font>
 void putPixel(uint32_t hexColor, uint64_t x, uint64_t y) {
     uint8_t * framebuffer = (uint8_t *) VBE_mode_info->framebuffer;
     uint64_t offset = (x * ((VBE_mode_info->bpp)/8)) + (y * VBE_mode_info->pitch);
@@ -49,3 +53,47 @@ void putPixel(uint32_t hexColor, uint64_t x, uint64_t y) {
     framebuffer[offset+1]   =  (hexColor >> 8) & 0xFF; 
     framebuffer[offset+2]   =  (hexColor >> 16) & 0xFF;
 }
+
+
+// Escribe el string str en la posición (x,y)
+void putText(char* str, uint32_t hexColor, uint32_t backColor, uint64_t x, uint64_t y, uint64_t size){
+	size_t len = 0;
+    	while (str[len]) len++;
+        for(int i = 0; i < len; i++){
+                int ascii = str[i];
+                char * bmp = font8x8_basic[ascii];
+                for(int j = 0; j < 64; j++){
+                        int fil = j / 8;
+                        int col = j % 8;
+                        int isOn = bmp[col] & (1 << (7 - fil));
+                        int color = isOn ? hexColor : backColor;
+                        for (int dx = 0; dx < size; dx++) {
+                		for (int dy = 0; dy < size; dy++) {
+                    			putPixel(color, (7 - fil + x) * size + dx, (col + y) * size + dy);
+                		}
+            		}
+                }
+		x+= 8;
+        }
+
+}
+
+// Dibuja un rectángulo de w pixeles por h pixeles en la posición (x,y)
+// Siendo x,y la esquina inferior del rectángulo
+void drawRectangle(uint32_t hexColor, uint64_t x, uint64_t y, uint64_t w, uint64_t h){
+
+}
+
+
+// Dibuja un círculo de r píxeles de radio en la posición (x,y)
+void drawCircle(uint32_t hexColor, uint64_t x, uint64_t y, uint64_t r){
+
+}
+
+
+
+// Cambia todos los píxeles a hexColor
+void fillScreen(uint32_t hexColor){
+
+}
+

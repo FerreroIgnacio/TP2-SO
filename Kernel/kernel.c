@@ -4,7 +4,7 @@
 #include <moduleLoader.h>
 #include <naiveConsole.h>
 #include <videoDriver.h>
-#include "../font8x8/font8x8_basic.h"
+//#include "./include/font8x8/font8x8.h"
 extern uint8_t text;
 extern uint8_t rodata;
 extern uint8_t data;
@@ -107,20 +107,12 @@ int main()
 	ncPrint("[Finished]");
 
 
-	char * str = "Hola";
-        int preoffset = 0;
-        for(int i = 0; i < 4; i++){
-                int ascii = str[i];
-                char * bmp = font8x8_basic[ascii];
-                preoffset+= 8;
-                for(int j = 0; j < 64; j++){
-                        int fil = j / 8;
-                        int col = j % 8;
-                        int isOn = bmp[col] & (1 << (7 - fil));
-                        int color = isOn ? 0xFFFFFF : 0x000000;
-                        putPixel(color, fil + preoffset, col);
-		}
-	}		
+	putText("Hola"  , 0xFFFF00, 0xA3A3A3, 10, 10, 1);
+	putText("Esto"  , 0x00FFFF, 0x070707, 15, 20, 2);
+        putText("Es"    , 0xFF00FF, 0x111111, 5, 30, 3);
+        putText("Una"   , 0x00FF00, 0x370707, 2, 40, 4);
+        putText("Prueba", 0xFF0000, 0x07A707, 30, 50, 5);
+        putText(":D"    , 0xFFFFFF, 0x0707F7, 14, 60, 6);
 
 
 	return 0;
