@@ -77,7 +77,27 @@ void putText(char* str, uint32_t hexColor, uint32_t backColor, uint64_t x, uint6
         }
 
 }
+// Escribe el char str en la posición (x,y)
+ void putChar(char ascii, uint32_t hexColor, uint32_t backColor, uint64_t x, uint64_t y, uint64_t size){
+    char * bmp = font8x8_basic[ascii];
 
+    for(int j = 0; j < 64; j++){
+        int fil = j / 8;    // fila (0-7)
+        int col = j % 8;    // columna (0-7)
+
+        // Acceder al byte de la fila y verificar el bit de la columna
+        int isOn = bmp[fil] & (1 << col);  // Sin invertir el bit
+        int color = isOn ? hexColor : backColor;
+
+        for (int dx = 0; dx < size; dx++) {
+            for (int dy = 0; dy < size; dy++) {
+                putPixel(color,
+                        x + col * size + dx,     // X: posición + columna
+                        y + fil * size + dy);    // Y: posición + fila
+            }
+        }
+    }
+}
 // Dibuja un rectángulo de w pixeles por h pixeles en la posición (x,y)
 // Siendo x,y la esquina inferior del rectángulo
 void drawRectangle(uint32_t hexColor, uint64_t x, uint64_t y, uint64_t w, uint64_t h){

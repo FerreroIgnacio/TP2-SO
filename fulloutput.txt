@@ -1,0 +1,27 @@
+cd Bootloader; make all
+make[1]: Entering directory '/home/arb/x64BareBones/Bootloader'
+cd BMFS; make all
+make[2]: Entering directory '/home/arb/x64BareBones/Bootloader/BMFS'
+gcc -ansi -std=c99 -Wall -pedantic -o bmfs.bin bmfs.c
+make[2]: Leaving directory '/home/arb/x64BareBones/Bootloader/BMFS'
+cd Pure64; make all
+make[2]: Entering directory '/home/arb/x64BareBones/Bootloader/Pure64'
+nasm src/bootsectors/bmfs_mbr.asm -o bmfs_mbr.sys
+nasm src/bootsectors/pxestart.asm -o pxestart.sys
+cd src; nasm pure64.asm -o ../pure64.sys
+make[2]: Leaving directory '/home/arb/x64BareBones/Bootloader/Pure64'
+make[1]: Leaving directory '/home/arb/x64BareBones/Bootloader'
+cd Kernel; make all
+make[1]: Entering directory '/home/arb/x64BareBones/Kernel'
+nasm -felf64 loader.asm -o loader.o
+x86_64-linux-gnu-gcc -m64 -fno-exceptions -fno-asynchronous-unwind-tables -mno-mmx -mno-sse -mno-sse2 -fno-builtin-malloc -fno-builtin-free -fno-builtin-realloc -mno-red-zone -Wall -ffreestanding -nostdlib -fno-common -std=c99 -fno-pie -I./include -c idtLoader.c -o idtLoader.o
+x86_64-linux-gnu-gcc -m64 -fno-exceptions -fno-asynchronous-unwind-tables -mno-mmx -mno-sse -mno-sse2 -fno-builtin-malloc -fno-builtin-free -fno-builtin-realloc -mno-red-zone -Wall -ffreestanding -nostdlib -fno-common -std=c99 -fno-pie -I./include -c kernel.c -o kernel.o
+x86_64-linux-gnu-gcc -m64 -fno-exceptions -fno-asynchronous-unwind-tables -mno-mmx -mno-sse -mno-sse2 -fno-builtin-malloc -fno-builtin-free -fno-builtin-realloc -mno-red-zone -Wall -ffreestanding -nostdlib -fno-common -std=c99 -fno-pie -I./include -c keyboardDriver.c -o keyboardDriver.o
+x86_64-linux-gnu-gcc -m64 -fno-exceptions -fno-asynchronous-unwind-tables -mno-mmx -mno-sse -mno-sse2 -fno-builtin-malloc -fno-builtin-free -fno-builtin-realloc -mno-red-zone -Wall -ffreestanding -nostdlib -fno-common -std=c99 -fno-pie -I./include -c lib.c -o lib.o
+x86_64-linux-gnu-gcc -m64 -fno-exceptions -fno-asynchronous-unwind-tables -mno-mmx -mno-sse -mno-sse2 -fno-builtin-malloc -fno-builtin-free -fno-builtin-realloc -mno-red-zone -Wall -ffreestanding -nostdlib -fno-common -std=c99 -fno-pie -I./include -c moduleLoader.c -o moduleLoader.o
+x86_64-linux-gnu-gcc -m64 -fno-exceptions -fno-asynchronous-unwind-tables -mno-mmx -mno-sse -mno-sse2 -fno-builtin-malloc -fno-builtin-free -fno-builtin-realloc -mno-red-zone -Wall -ffreestanding -nostdlib -fno-common -std=c99 -fno-pie -I./include -c naiveConsole.c -o naiveConsole.o
+x86_64-linux-gnu-gcc -m64 -fno-exceptions -fno-asynchronous-unwind-tables -mno-mmx -mno-sse -mno-sse2 -fno-builtin-malloc -fno-builtin-free -fno-builtin-realloc -mno-red-zone -Wall -ffreestanding -nostdlib -fno-common -std=c99 -fno-pie -I./include -c videoDriver.c -o videoDriver.o
+nasm -felf64 asm/interrupts.asm -o asm/interrupts.o
+nasm -felf64 asm/libasm.asm -o asm/libasm.o
+x86_64-linux-gnu-ld --warn-common -z max-page-size=0x1000 -T kernel.ld -o kernel.bin loader.o idtLoader.o kernel.o keyboardDriver.o lib.o moduleLoader.o naiveConsole.o videoDriver.o asm/interrupts.o asm/libasm.o 
+make[1]: Leaving directory '/home/arb/x64BareBones/Kernel'

@@ -4,6 +4,7 @@
 #include <moduleLoader.h>
 #include <naiveConsole.h>
 #include <videoDriver.h>
+#include <keyboardDriver.h>
 //#include "./include/font8x8/font8x8.h"
 extern uint8_t text;
 extern uint8_t rodata;
@@ -105,16 +106,7 @@ int main()
 	ncNewline();
 
 	ncPrint("[Finished]");
-
-
-	putText("Hola"  , 0xFFFF00, 0xA3A3A3, 10, 10, 1);
-	putText("Esto"  , 0x00FFFF, 0x070707, 15, 20, 2);
-        putText("Es"    , 0xFF00FF, 0x111111, 5, 30, 3);
-        putText("Una"   , 0x00FF00, 0x370707, 2, 40, 4);
-        putText("Prueba", 0xFF0000, 0x07A707, 30, 50, 5);
-        putText(":D"    , 0xFFFFFF, 0x0707F7, 14, 60, 6);
-
-
+	keyboard_init();
 	return 0;
 }
 int __stack_chk_fail(void) {

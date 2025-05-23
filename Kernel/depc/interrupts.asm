@@ -2,8 +2,6 @@ GLOBAL irq01Handler
 EXTERN keyPressedAction
 
 
-SECTION .text
-
 irq01Handler:			; Keyboard irq
 	push rax
 	push rdi

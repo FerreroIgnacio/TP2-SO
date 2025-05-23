@@ -4,4 +4,6 @@
 
 //char getPressedKey();
 
+void keyboard_init(void);
+
 #endif
