@@ -44,7 +44,6 @@ typedef struct vbe_mode_info_structure * VBEInfoPtr;
 
 VBEInfoPtr VBE_mode_info = (VBEInfoPtr) 0x0000000000005C00;
 
-
 // Cambia el color del pixel (x,y) a hexColor</b></font>
 void putPixel(uint32_t hexColor, uint64_t x, uint64_t y) {
     uint8_t * framebuffer = (uint8_t *) VBE_mode_info->framebuffer;
@@ -97,23 +96,49 @@ void putText(char* str, uint32_t hexColor, uint32_t backColor, uint64_t x, uint6
             }
         }
     }
-}
-// Dibuja un rectángulo de w pixeles por h pixeles en la posición (x,y)
-// Siendo x,y la esquina inferior del rectángulo
-void drawRectangle(uint32_t hexColor, uint64_t x, uint64_t y, uint64_t w, uint64_t h){
-
-}
-
+ }
 
 // Dibuja un círculo de r píxeles de radio en la posición (x,y)
-void drawCircle(uint32_t hexColor, uint64_t x, uint64_t y, uint64_t r){
+void drawCircle(uint32_t hexColor, uint64_t x, uint64_t y, uint64_t radius){
+    uint32_t screenWidth = VBE_mode_info->width;
+    uint32_t screenHeight = VBE_mode_info->height;
+
+    for(int dx = -r; dx <= r; dx++){
+        for(int dy = -r; dy <= r; dy++){
+            // Verificar si el punto está dentro del círculo usando la ecuación x² + y² <= r²
+            if(dx * dx + dy * dy <= r * r){
+                int64_t pixelX = x + dx;
+                int64_t pixelY = y + dy;
+                if(pixelX >= 0 && pixelY >= 0 && pixelX < screenWidth && pixelY < screenHeight) {
+                    putPixel(hexColor, pixelX, pixelY);
+                }
+	    }
+            
+	}
+   }
 
 }
+// Dibuja un rectángulo de w pixeles por h pixeles en la posición (x,y)
+void drawRectangle(uint32_t hexColor, uint64_t x, uint64_t y, uint64_t w, uint64_t h){
+    uint32_t screenWidth = VBE_mode_info->width;
+    uint32_t screenHeight = VBE_mode_info->height;
 
+    for(uint64_t i = 0; i < h; i++){
+        for(uint64_t j = 0; j < w; j++){
+            uint64_t pixelX = x + j;
+            uint64_t pixelY = y + i;
 
-
-// Cambia todos los píxeles a hexColor
+            // Verificar límites de pantalla
+            if(pixelX < screenWidth && pixelY < screenHeight) {
+                putPixel(hexColor, pixelX, pixelY);
+            }
+        }
+    }
+}
 void fillScreen(uint32_t hexColor){
-
+	uint32_t screenWidth = VBE_mode_info->width;
+	uint32_t screenHeight = VBE_mode_info->height;
+	drawRectangle(hexColor,0,0,width,height);
 }
+
 
