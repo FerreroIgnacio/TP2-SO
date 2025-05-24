@@ -1,4 +1,5 @@
 #include <idtLoader.h>
+#include <videoDriver.h>
 
 #define IDTSIZE 256 
 
@@ -12,11 +13,11 @@ typedef struct IDTEntry {
     uint32_t zero;
 } __attribute__((packed)) IDTEntry;
 
-static IDTEntry IDTTable[IDTSIZE] = {0}; 
-int IDTinited = 0;
+IDTEntry idtTable[IDTSIZE] = {0}; 
+int idtInited = 0;
 
 //funcion para inicializar la tabla en idtLoader.asm
-extern void IDTinit(void);
+extern void idtInit();
 
 /*
  *	Agrega una funcion declarada en asm que no toma ningun parametro de llamada (importante) a la IDT
@@ -24,11 +25,10 @@ extern void IDTinit(void);
  *	@flags flags
  */
 void IDTadd(uint8_t id, void (*handler)(void), uint8_t flags) {
-    if (!IDTinited) {
-        IDTinit();
-        IDTinited = 1;
+    if (!idtInited) {
+        idtInit();
+        idtInited = 1;
     }
-
     if (id >= IDTSIZE) return;
 
     uint64_t addr = (uint64_t)handler;
@@ -42,6 +42,5 @@ void IDTadd(uint8_t id, void (*handler)(void), uint8_t flags) {
         .offset_high = (addr >> 32) & 0xFFFFFFFF,
         .zero = 0
     };
-
-    IDTTable[id] = entry;
+    idtTable[id] = entry;
 }

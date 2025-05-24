@@ -5,7 +5,7 @@
 #include <naiveConsole.h>
 #include <videoDriver.h>
 #include <keyboardDriver.h>
-//#include "./include/font8x8/font8x8.h"
+#include <shell.h>
 extern uint8_t text;
 extern uint8_t rodata;
 extern uint8_t data;
@@ -85,7 +85,7 @@ void * initializeKernelBinary()
 	ncNewline();
 	return getStackBase();
 }
-
+extern void pic_init();
 int main()
 {
 	ncPrint("[Kernel Main]");
@@ -105,8 +105,15 @@ int main()
 	ncPrint((char*)sampleDataModuleAddress);
 	ncNewline();
 
+
+
+
 	ncPrint("[Finished]");
+	
+	
 	keyboard_init();
+	start_shell();
+	while(1);
 	return 0;
 }
 int __stack_chk_fail(void) {

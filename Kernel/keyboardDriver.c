@@ -1,69 +1,43 @@
 #include <keyboardDriver.h>
+#include <idtLoader.h>   
 #include <stdint.h>
 #include <videoDriver.h>
+
 #define KB_BUFFER_SIZE 128
 
 
 static char buffer[KB_BUFFER_SIZE];
-
+char keysDown[256] = {0};
 /*
  * funcion declarada en keyboardIH.asm
  */
+keyboard_handler_t current_handler = 0;
 extern void keyboard_interrupt_handler(void);
 void keyboard_init(){
-	IDTadd(0x21, keyboard_interrupt_handler, 0x8E);
+    IDTadd(0x21, keyboard_interrupt_handler, 0x8E);  // Standard
 }
- char scancodeToAscii(uint8_t scancode);
 
- int index = 0;
-void keyPressedAction (char scancode){
-	if (scancode & 0x80)
-        return;  // Ignorar break code (tecla soltada)
 
-    static uint32_t nextPos = 0;
-    buffer[nextPos++] = scancode;
-    if (nextPos >= KB_BUFFER_SIZE) nextPos = 0;
-    buffer[nextPos] = 0;
+    void setKeyboardHandler(keyboard_handler_t new_handler) {
+    current_handler = new_handler;
+}
 
-    char ascii = scancodeToAscii(scancode);
-    if (ascii){
-        putChar(ascii, 0xFF0000, 0x000000, 30 + (index * 8 * 5), 50, 5);
-    	index++;
+void keyPressedAction(uint8_t scancode) {
+	uint8_t keycode = scancode & 0x7F;
+    
+    // 0x80 si se suelta una tecla
+    if (scancode & 0x80) {
+        keysDown[keycode] = 0;  // Se suelta tecla
+    } else {
+        keysDown[keycode] = 1;  // Se apreta tecla
     }
-
+    
+    // Paso la key a lo que sea que tenga el control (si hay)
+    if (current_handler != 0) {
+        current_handler(scancode); 
+    }
 }
-
 static int shiftPressed = 0;
-
-char scancodeToAscii(uint8_t scancode) {
-    static const char sc_ascii[] = {
-        0, 27, '1','2','3','4','5','6','7','8','9','0','-','=', '\b',     // 0x00-0x0E
-       '\t','q','w','e','r','t','y','u','i','o','p','[',']','\n',         // 0x0F-0x1C
-        0,  'a','s','d','f','g','h','j','k','l',';','\'','`',              // 0x1D-0x29
-        0,  '\\','z','x','c','v','b','n','m',',','.','/', 0, '*', 0, ' '   // 0x2A-0x39
-    };
-
-    static const char sc_ascii_shift[] = {
-        0, 27, '!','@','#','$','%','^','&','*','(',')','_','+', '\b',
-       '\t','Q','W','E','R','T','Y','U','I','O','P','{','}','\n',
-        0,  'A','S','D','F','G','H','J','K','L',':','"','~',
-        0,  '|','Z','X','C','V','B','N','M','<','>','?', 0, '*', 0, ' '
-    };
-
-    // Manejo de Shift Pressed / Released
-    if (scancode == 0x2A || scancode == 0x36) {  // Left or Right Shift press
-        shiftPressed = 1;
-        return 0;
-    } else if (scancode == 0xAA || scancode == 0xB6) { // Shift release
-        shiftPressed = 1;
-        return 0;
-    }
-
-    if (scancode > 0x39)
-        return 0;
-
-    return shiftPressed ? sc_ascii_shift[scancode] : sc_ascii[scancode];
-}
 
 char KB_getNextCode(){
 	static uint32_t nextKey = 0;

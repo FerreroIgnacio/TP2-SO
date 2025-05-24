@@ -19,5 +19,5 @@ void drawCircle(uint32_t hexColor, uint64_t x, uint64_t y, uint64_t r);
 // Cambia todos los píxeles a hexColor
 void fillScreen(uint32_t hexColor);
 
-
+ void putChar(char ascii, uint32_t hexColor, uint32_t backColor, uint64_t x, uint64_t y, uint64_t size);
 #endif
