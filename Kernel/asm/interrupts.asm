@@ -1,8 +1,8 @@
-section .text
-global keyboard_interrupt_handler
-extern keyPressedAction
+GLOBAL irq01Handler
+EXTERN keyPressedAction
 
-keyboard_interrupt_handler:
+section .text
+irq01Handler:			; Keyboard irq
     push rax
     push rdi
     
@@ -17,3 +17,6 @@ keyboard_interrupt_handler:
     pop rdi
     pop rax
     iretq
+
+
+

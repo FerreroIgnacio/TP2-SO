@@ -14,21 +14,26 @@ typedef struct __attribute__((packed)) {
 } IDTEntry;
 
 IDTEntry idtTable[IDTSIZE] = {0}; 
-int idtInited = 0;
 
-//funcion para inicializar la tabla en idtLoader.asm
-extern void idtInit();
+// Funcion para inicializar la tabla en idtLoader.asm
+extern void idtStart();
+
+// HANDLERS
+extern void irq01Handler();
+
+
+// Inicializador de la IDT
+void idtInit(){
+	idtStart();
+	idtAdd(0x21, irq01Handler, 0x8E);
+}
 
 /*
  *	Agrega una funcion declarada en asm que no toma ningun parametro de llamada (importante) a la IDT
  *	@param id indice de la interrupcion
  *	@flags flags
  */
-void IDTadd(uint8_t id, void (*handler)(void), uint8_t flags) {
-    if (!idtInited) {
-        idtInit();
-        idtInited = 1;
-    }
+void idtAdd(uint8_t id, void (*handler)(void), uint8_t flags) {
     if (id >= IDTSIZE) return;
 
     uint64_t addr = (uint64_t)handler;

@@ -1,30 +1,26 @@
 include Makefile.inc
+KERNEL = kernel.bin
+SOURCES = $(wildcard c/*.c)
+SOURCES_ASM = $(filter-out asm/loader.asm, $(wildcard asm/*.asm))
 
-KERNEL=kernel.bin
-SOURCES=$(wildcard *.c)
-SOURCES_ASM=$(wildcard asm/*.asm)
-OBJECTS=$(SOURCES:.c=.o)
-OBJECTS_ASM=$(SOURCES_ASM:.asm=.o)
-LOADERSRC=loader.asm
-
-LOADEROBJECT=$(LOADERSRC:.asm=.o)
-STATICLIBS=
+OBJECTS = $(SOURCES:.c=.o)
+OBJECTS_ASM = $(SOURCES_ASM:.asm=.o)
+LOADEROBJECT = asm/loader.o
+STATICLIBS =
 
 all: $(KERNEL)
 
-$(KERNEL): $(LOADEROBJECT) $(OBJECTS) $(STATICLIBS) $(OBJECTS_ASM)
-	$(LD) $(LDFLAGS) -T kernel.ld -o $(KERNEL) $(LOADEROBJECT) $(OBJECTS) $(OBJECTS_ASM) $(STATICLIBS)
+$(KERNEL): $(LOADEROBJECT) $(OBJECTS) $(OBJECTS_ASM) $(STATICLIBS)
+	$(LD) $(LDFLAGS) -T kernel.ld -o $@ $^
 
-%.o: %.c
+c/%.o: c/%.c
 	$(GCC) $(GCCFLAGS) -I./include -c $< -o $@
 
-%.o : %.asm
+asm/%.o: asm/%.asm
 	$(ASM) $(ASMFLAGS) $< -o $@
 
-$(LOADEROBJECT):
-	$(ASM) $(ASMFLAGS) $(LOADERSRC) -o $(LOADEROBJECT)
+asm/loader.o: asm/loader.asm
+	$(ASM) $(ASMFLAGS) $< -o $@
 
 clean:
-	rm -rf asm/*.o *.o *.bin
-
-.PHONY: all clean
+	rm -f c/*.o asm/*.o *.bin

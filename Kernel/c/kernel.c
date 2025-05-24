@@ -6,6 +6,7 @@
 #include <videoDriver.h>
 #include <keyboardDriver.h>
 #include <shell.h>
+#include <idtLoader.h>
 extern uint8_t text;
 extern uint8_t rodata;
 extern uint8_t data;
@@ -105,13 +106,9 @@ int main()
 	ncPrint((char*)sampleDataModuleAddress);
 	ncNewline();
 
-
-
-
 	ncPrint("[Finished]");
-	
-	
-	keyboard_init();
+
+	idtInit();
 	start_shell();
 	while(1);
 	return 0;
