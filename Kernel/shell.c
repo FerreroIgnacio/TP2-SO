@@ -95,5 +95,6 @@ void start_shell(void) {
 	setKeyboardHandler(shellKeyboardHandler);
 	fillScreen(0x000055);
 	putChar('>', 0x000000, 0xFFFFFF, X_PADDING, Y_PADDING, FONTSIZE); 
-	putText("HOLA", 0xFF00FF, 0xAA0000, 500, 500, 5);
+	putText("HOLA", 0xFF00FF, 0xAA0000, 50, 50, 5);
+	
 }
