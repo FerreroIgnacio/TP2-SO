@@ -1,5 +1,5 @@
 #include <shell.h>
-
+#include <util.h>
 #define MAXLENGTH 4098
 
 const unsigned char scan_code_to_ascii_es[] = {
@@ -75,28 +75,128 @@ const unsigned char scan_code_to_ascii_es[] = {
 #define X_PADDING 5
 #define BLACK 0x000000
 #define WHITE 0xFFFFFF
-#define SHELLCOLOR 0x000022
+#define SHELLCOLOR 0x00000A
+#define FONTCOLOR 0xFFFFFF
+			//padding + '>' * fontsize
+#define WRITESTART X_PADDING * 2 + 8 * FONTSIZE
 char buffer[MAXLENGTH] = {0};
 int index = 0;
 
 int cursorX = X_PADDING * 2;
-int cursorY = 0;
+static int cursorY = Y_PADDING;
 
-void shellKeyboardHandler(uint8_t scancode){
-	//no manejar cuando sueltan
-	if(scancode == 0)
-		scancode = '_';
-	if(scancode & 0x80)
-		return;
-	buffer[index] = scan_code_to_ascii_es[scancode & 0x7F];
-	putText(buffer, WHITE, SHELLCOLOR, X_PADDING * 2 + (8 * FONTSIZE /*skipear el primer >*/), cursorY, FONTSIZE); 	
-	index++;
+#include <stdint.h>
+
+// Solo símbolos explícitos
+char validSymbols[256] = {
+    ['('] = 1,
+    [')'] = 1,
+    ['{'] = 1,
+    ['}'] = 1,
+    ['['] = 1,
+    [']'] = 1,
+    ['|'] = 1,
+    ['&'] = 1,
+    [';'] = 1,
+    ['<'] = 1,
+    ['>'] = 1,
+    ['!'] = 1,
+    ['='] = 1,
+    ['+'] = 1,
+    ['-'] = 1,
+    ['*'] = 1,
+    ['/'] = 1,
+    ['%'] = 1,
+    [':'] = 1,
+    ['_'] = 1,
+    ['.'] = 1,
+    [','] = 1,
+    ['?'] = 1,
+    ['\''] = 1,
+    ['"'] = 1,
+    ['#'] = 1,
+    ['\\'] = 1,
+    ['`'] = 1
+};
+
+// Verifica si c es símbolo válido: letra, dígito, espacio o símbolo especial
+int isValidSymbol(char c) {
+    // Letras mayúsculas o minúsculas
+    if ((c >= 'a' && c <= 'z') || (c >= 'A' && c <= 'Z'))
+        return 1;
+
+    // Dígitos
+    if (c >= '0' && c <= '9')
+        return 1;
+
+    // Espacio
+    if (c == ' ')
+        return 1;
+
+    // Símbolos especiales en arr
+    return validSymbols[(uint8_t)c];
 }
 
+void shellKeyboardHandler(uint8_t scancode) {
+    if (scancode & 0x80) // Ignorar key releases
+        return;
 
+    int ascii = scan_code_to_ascii_es[scancode];
+    
+    //int index = 0;
+    
+    if (isValidSymbol(ascii) ) {
+        if (index < MAXLENGTH) {
+            buffer[index++] = (char)ascii;
+        }
+    } else {
+        // Formato <NUM> directamente en el buffer
+        if (index + 3 < MAXLENGTH) { // Espacio para <XX>
+            buffer[index++] = '<';
+            
+            char numBuf[12] = {0};
+            char *str = stringFromInt(ascii, numBuf);
+            
+            // Copiar dígitos
+            for (int i = 0; str[i] != 0 && index < MAXLENGTH; i++) {
+                buffer[index++] = str[i];
+            }
+            
+            if (index < MAXLENGTH) {
+                buffer[index++] = '>';
+            }
+        }
+    }
+	putText(buffer, WHITE, SHELLCOLOR, X_PADDING * 2 + 8 * FONTSIZE, cursorY, FONTSIZE);
+    	
+	int i = 0;
+	while(buffer[i] != 0){
+		if(getWidth() - X_PADDING < i * 8 * FONTSIZE){
+			cursorX = 0;
+			char buf[256] = {0};
+			cursorY += 8 * FONTSIZE;
+			putText(stringInt(cursorY), 0xFF0000, 0xFFFFFF, 0, 0, 4);
+		}
+		putChar(buffer[i], FONTCOLOR, SHELLCOLOR, WRITESTART + cursorX, cursorY, FONTSIZE);
+
+	}
+    // Dibujar el contenido actual del buffer
+  /*  for (int i = 0; i < index; i++) {
+        if ((i + 1) * 8 * FONTSIZE > getWidth() - X_PADDING * 2) {
+            cursorY += 8 * FONTSIZE;
+            // Aquí deberías implementar el scroll si llega al final
+            i = -1; // Reiniciar en nueva línea
+            continue;
+        }
+        
+        putChar(buffer[i], WHITE, SHELLCOLOR,
+                X_PADDING * 2 + i * 8 * FONTSIZE,
+                cursorY, FONTSIZE);
+    }*/
+}
 void start_shell(void) {
 	setKeyboardHandler(shellKeyboardHandler);
-	fillScreen(0x000055);
-	putChar('>', 0x000000, 0x000055, X_PADDING, Y_PADDING, FONTSIZE); 
+	fillScreen(SHELLCOLOR);
+	putChar('>', FONTCOLOR, SHELLCOLOR, X_PADDING, Y_PADDING, FONTSIZE); 
 	
 }

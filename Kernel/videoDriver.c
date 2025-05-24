@@ -66,7 +66,7 @@ void putText(char* str, uint32_t hexColor, uint32_t backColor, uint64_t x, uint6
 }
 // Escribe el char str en la posición (x,y)
  void putChar(char ascii, uint32_t hexColor, uint32_t backColor, uint64_t x, uint64_t y, uint64_t size){
-    if(ascii < 0) 
+    if(ascii < 0 || ascii > 128) 
 	    return;
 	char * bmp = font8x8_basic[ascii];
 

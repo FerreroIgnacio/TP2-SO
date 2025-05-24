@@ -21,5 +21,8 @@ void fillScreen(uint32_t hexColor);
 
 void drawInt(int num, uint32_t hexColor, uint32_t backColor, uint64_t x, uint64_t y, uint64_t size);
 
+uint16_t getWidth();
+uint16_t getHeight();
+
  void putChar(char ascii, uint32_t hexColor, uint32_t backColor, uint64_t x, uint64_t y, uint64_t size);
 #endif
