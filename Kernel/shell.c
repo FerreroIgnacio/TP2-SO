@@ -175,24 +175,11 @@ void shellKeyboardHandler(uint8_t scancode) {
 			cursorX = 0;
 			char buf[256] = {0};
 			cursorY += 8 * FONTSIZE;
-			putText(stringInt(cursorY), 0xFF0000, 0xFFFFFF, 0, 0, 4);
+			putText(stringFromInt(cursorY, buf), 0xFF0000, 0xFFFFFF, 0, 0, 4);
 		}
 		putChar(buffer[i], FONTCOLOR, SHELLCOLOR, WRITESTART + cursorX, cursorY, FONTSIZE);
 
 	}
-    // Dibujar el contenido actual del buffer
-  /*  for (int i = 0; i < index; i++) {
-        if ((i + 1) * 8 * FONTSIZE > getWidth() - X_PADDING * 2) {
-            cursorY += 8 * FONTSIZE;
-            // Aquí deberías implementar el scroll si llega al final
-            i = -1; // Reiniciar en nueva línea
-            continue;
-        }
-        
-        putChar(buffer[i], WHITE, SHELLCOLOR,
-                X_PADDING * 2 + i * 8 * FONTSIZE,
-                cursorY, FONTSIZE);
-    }*/
 }
 void start_shell(void) {
 	setKeyboardHandler(shellKeyboardHandler);

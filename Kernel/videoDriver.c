@@ -41,8 +41,18 @@ struct vbe_mode_info_structure {
 } __attribute__ ((packed));
 
 typedef struct vbe_mode_info_structure * VBEInfoPtr;
-
 VBEInfoPtr VBE_mode_info = (VBEInfoPtr) 0x0000000000005C00;
+
+
+uint16_t getWidth() {
+    return VBE_mode_info->width;
+}
+
+uint16_t getHeight() {
+    return VBE_mode_info->height;
+}
+
+
 
 // Cambia el color del pixel (x,y) a hexColor</b></font>
 void putPixel(uint32_t hexColor, uint64_t x, uint64_t y) {

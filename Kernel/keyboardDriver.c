@@ -13,12 +13,11 @@ char keysDown[256] = {0};
  */
 keyboard_handler_t current_handler = 0;
 extern void keyboard_interrupt_handler(void);
+
 void keyboard_init(){
     IDTadd(0x21, keyboard_interrupt_handler, 0x8E);  // Standard
 }
-
-
-    void setKeyboardHandler(keyboard_handler_t new_handler) {
+void setKeyboardHandler(keyboard_handler_t new_handler) {
     current_handler = new_handler;
 }
 
@@ -34,21 +33,37 @@ void keyPressedAction(uint8_t scancode) {
     
     // Paso la key a lo que sea que tenga el control (si hay)
     if (current_handler != 0) {
-        current_handler(scancode); 
+	current_handler(scancode); 
     }
+//    putChar(scancode, 0xFFFFFF, 0x000000, 0, 0, 5);
+   // while(1);
 }
-static int shiftPressed = 0;
+int areKeysDown(char * asciiVec){
+	/*
+	 * Implementar aca :)
+	 */
+  if (asciiVec == 0) {
+        return 0;
+    }
 
-char KB_getNextCode(){
-	static uint32_t nextKey = 0;
-	uint32_t toRet = buffer[nextKey++];
-	if (nextKey >= KB_BUFFER_SIZE){
-		nextKey = 0;
-	}
-	return toRet;
+    // Iterar a través del vector hasta encontrar un 0 (terminador)
+    for (int i = 0; asciiVec[i] != 0; i++) {
+        int ascii = asciiVec[i];
+
+        // Verificar si la tecla NO está presionada
+        if (!isKeyDown(ascii)) {
+            return 0;  // Si cualquier tecla no está presionada, retornar false
+        }
+    }
+
+    return 1;  // Todas las teclas están presionadas
 }
-
-char KB_getNextAscii(){
-	char toRet = 'a'; //TODO
-	return toRet;
+int isKeyDown(int ascii){
+	return keysDown[ascii];
+}
+void setKeyDown(int ascii){
+	keysDown[ascii] = 1;
+}
+void setKeyUp(int ascii){
+        keysDown[ascii] = 0;
 }
