@@ -3,7 +3,7 @@
 
 #define IDTSIZE 256 
 
-typedef struct IDTEntry {
+typedef struct __attribute__((packed)) {
     uint16_t offset_low;
     uint16_t selector;
     uint8_t ist;
@@ -11,7 +11,7 @@ typedef struct IDTEntry {
     uint16_t offset_mid;
     uint32_t offset_high;
     uint32_t zero;
-} __attribute__((packed)) IDTEntry;
+} IDTEntry;
 
 IDTEntry idtTable[IDTSIZE] = {0}; 
 int idtInited = 0;
@@ -33,7 +33,7 @@ void IDTadd(uint8_t id, void (*handler)(void), uint8_t flags) {
 
     uint64_t addr = (uint64_t)handler;
 
-    struct IDTEntry entry = {
+    IDTEntry entry = {
         .offset_low = addr & 0xFFFF,
         .selector = 0x08,
         .ist = 0,

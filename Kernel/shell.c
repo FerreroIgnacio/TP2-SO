@@ -70,11 +70,12 @@ const unsigned char scan_code_to_ascii_es[] = {
     // ... (continuar según necesidad)
 };
 
-#define FONTSIZE 3
+#define FONTSIZE 1
 #define Y_PADDING 5
 #define X_PADDING 5
 #define BLACK 0x000000
 #define WHITE 0xFFFFFF
+#define SHELLCOLOR 0x000022
 char buffer[MAXLENGTH] = {0};
 int index = 0;
 
@@ -83,18 +84,19 @@ int cursorY = 0;
 
 void shellKeyboardHandler(uint8_t scancode){
 	//no manejar cuando sueltan
+	if(scancode == 0)
+		scancode = '_';
 	if(scancode & 0x80)
 		return;
 	buffer[index] = scan_code_to_ascii_es[scancode & 0x7F];
-	putText(buffer, WHITE, BLACK, X_PADDING * 2, cursorY, FONTSIZE); 	
-
+	putText(buffer, WHITE, SHELLCOLOR, X_PADDING * 2 + (8 * FONTSIZE /*skipear el primer >*/), cursorY, FONTSIZE); 	
+	index++;
 }
 
 
 void start_shell(void) {
 	setKeyboardHandler(shellKeyboardHandler);
 	fillScreen(0x000055);
-	putChar('>', 0x000000, 0xFFFFFF, X_PADDING, Y_PADDING, FONTSIZE); 
-	putText("HOLA", 0xFF00FF, 0xAA0000, 50, 50, 5);
+	putChar('>', 0x000000, 0x000055, X_PADDING, Y_PADDING, FONTSIZE); 
 	
 }

@@ -66,7 +66,9 @@ void putText(char* str, uint32_t hexColor, uint32_t backColor, uint64_t x, uint6
 }
 // Escribe el char str en la posición (x,y)
  void putChar(char ascii, uint32_t hexColor, uint32_t backColor, uint64_t x, uint64_t y, uint64_t size){
-    char * bmp = font8x8_basic[ascii];
+    if(ascii < 0) 
+	    return;
+	char * bmp = font8x8_basic[ascii];
 
     for(int j = 0; j < 64; j++){
         int fil = j / 8;    // fila (0-7)
@@ -123,10 +125,44 @@ void drawRectangle(uint32_t hexColor, uint64_t x, uint64_t y, uint64_t w, uint64
         }
     }
 }
+/*
+ * :D
+ */
 void fillScreen(uint32_t hexColor){
 	uint32_t screenWidth = VBE_mode_info->width;
 	uint32_t screenHeight = VBE_mode_info->height;
 	drawRectangle(hexColor,0,0,screenWidth,screenHeight);
 }
 
-
+// Dibuja un número entero en la pantalla en la posición (x,y)
+void drawInt(int num, uint32_t hexColor, uint32_t backColor, uint64_t x, uint64_t y, uint64_t size) {
+    char buffer[12];
+    int i = 0;
+    
+    // Manejo numeros negativos
+    if (num < 0) {
+        buffer[i++] = '-';
+        num = -num;
+    }
+    
+    // Caso especial: 0
+    if (num == 0) {
+        buffer[i++] = '0';
+    } else {
+        // Extraer dígitos en orden inverso
+        int start = i;
+        while (num > 0) {
+            buffer[i++] = (num % 10) + '0';
+            num /= 10;
+        }
+        // Invertir solo los dígitos
+        for (int j = start; j < (start + i) / 2; j++) {
+            char temp = buffer[j];
+            buffer[j] = buffer[i - 1 - (j - start)];
+            buffer[i - 1 - (j - start)] = temp;
+        }
+    }
+    
+    buffer[i] = '\0';
+    putText(buffer, hexColor, backColor, x, y, size);
+}
