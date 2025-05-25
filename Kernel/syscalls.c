@@ -1,4 +1,4 @@
-
+#include <videoDriver.h>
 #include <syscalls.h>
 
 
@@ -8,6 +8,8 @@ int syscallHandler(int syscall_num, uint64_t arg1, uint64_t arg2, uint64_t arg3)
             return sys_read((int)arg1, (char*)arg2, (uint64_t)arg3);
         case SYSCALL_WRITE: // write  
             return sys_write((int)arg1, (const char*)arg2, (uint64_t)arg3);
+	case SYSCALL_PUT_PIXEL:
+	    return sys_put_pixel((uint32_t)arg1, (uint64_t)arg2, (uint64_t)arg3);
         default:
             return -1;
     }
@@ -36,8 +38,7 @@ int sys_write(int fd, const char* buffer, uint64_t count) {
     switch(fd) {
         case STDOUT: // stdout
         case STDERR: // stderr
-            // Escribir directamente a pantalla usando tu videoDriver
-	   
+            // Escribir directamente a pantalla usando tu videoDrive
             for(uint64_t i = 0; i < count; i++) {
                 putChar(buffer[i], 0xFF0000, 0x00FF00, 0 + (i * 8 * 5), 0, 5); // Asumiendo que tienes esta función
             }
@@ -46,3 +47,11 @@ int sys_write(int fd, const char* buffer, uint64_t count) {
             return -1; // Error: fd no válido
     }
 }
+
+int sys_put_pixel(uint32_t hexColor, uint64_t x, uint64_t y){
+	putPixel(hexColor,x,y);
+	return -1;
+}
+
+
+
