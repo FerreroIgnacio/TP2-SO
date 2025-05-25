@@ -261,9 +261,9 @@ void handle_keyboard_input() {
             if (buffer_pos > 0) {
                 buffer_pos--;
                 command_buffer[buffer_pos] = '\0';
-                if (cursor_x >= FONT_SIZE) {
-                    cursor_x -= FONT_SIZE;
-                    drawChar(' ', FONT_COLOR, SHELL_COLOR, cursor_x, cursor_y, 1);
+                if (cursor_x >= FONT_SIZE * FONT_BMP_SIZE) {
+                    cursor_x -= FONT_SIZE * FONT_BMP_SIZE;
+                    drawChar(' ', FONT_COLOR, SHELL_COLOR, cursor_x, cursor_y, FONT_SIZE);
                 }
             }
             return;
