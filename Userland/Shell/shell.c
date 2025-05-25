@@ -1,25 +1,25 @@
 
 #include "../standard.h"
 
-#define CHAR_PER_LINE 100
-#define FONT_BMP_SIZE 8 ;no se usa actualmente
-#define FONT_SIZE 8
-#define BUFFER_SIZE 256
-#define LINES_PER_SCREEN 75
-
-#define SHELL_COLOR 0x00000F
-#define FONT_COLOR 0xFFFFFF
-#define ERROR_COLOR 0xFF0000
-#define PROMPT_COLOR 0x44DDFF
 #define SCREEN_WIDTH 800
 #define SCREEN_HEIGHT 600
 
+#define CHAR_PER_LINE SCREEN_WIDTH / (FONT_SIZE * FONT_BMP_SIZE)
+#define FONT_BMP_SIZE 8 
+#define FONT_SIZE 2
+#define BUFFER_SIZE 256
+#define LINE_Y_PADDING 4
+#define LINES_PER_SCREEN SCREEN_HEIGHT / ((FONT_SIZE * FONT_BMP_SIZE) + LINE_Y_PADDING)
+
+#define SHELL_COLOR 0x000008
+#define FONT_COLOR 0xAAAAAA
+#define ERROR_COLOR 0xAA4444
+#define PROMPT_COLOR 0x44AAA4
 // Variables globales
 static char command_buffer[BUFFER_SIZE];
 static int buffer_pos = 0;
 static int cursor_x = 0;
 static int cursor_y = 0;
-static int shift_pressed = 0;
 
 // Prototipos de funciones
 void shell_main();
@@ -77,11 +77,6 @@ char* find_args(char* cmd) {
     return cmd;
 }
 
-// Conversión de scancode a ASCII usando la librería
-char scan_to_ascii(uint8_t scancode) {
-    return getAsciiFromMakeCode(scancode, shift_pressed);
-}
-
 // Función para imprimir un carácter
 void shell_putchar(char c) {
     if (c == '\n') {
@@ -89,10 +84,10 @@ void shell_putchar(char c) {
         return;
     }
     
-    drawChar(c, FONT_COLOR, SHELL_COLOR, cursor_x, cursor_y, 1);
-    cursor_x += FONT_SIZE;
+    drawChar(c, FONT_COLOR, SHELL_COLOR, cursor_x, cursor_y, FONT_SIZE);
+    cursor_x += FONT_SIZE * FONT_BMP_SIZE;
     
-    if (cursor_x >= CHAR_PER_LINE * FONT_SIZE) {
+    if (cursor_x >= CHAR_PER_LINE * FONT_SIZE * FONT_BMP_SIZE) {
         shell_newline();
     }
 }
@@ -108,9 +103,9 @@ void shell_print_colored(const char* str, uint32_t color) {
         if (*str == '\n') {
             shell_newline();
         } else {
-            drawChar(*str, color, SHELL_COLOR, cursor_x, cursor_y, 1);
-            cursor_x += FONT_SIZE;
-            if (cursor_x >= CHAR_PER_LINE * FONT_SIZE) {
+            drawChar(*str, color, SHELL_COLOR, cursor_x, cursor_y, FONT_SIZE);
+            cursor_x += FONT_SIZE * FONT_BMP_SIZE;
+            if (cursor_x >= CHAR_PER_LINE * FONT_SIZE * FONT_BMP_SIZE) {
                 shell_newline();
             }
         }
@@ -121,20 +116,19 @@ void shell_print_colored(const char* str, uint32_t color) {
 // Nueva línea
 void shell_newline() {
     cursor_x = 0;
-    cursor_y += FONT_SIZE;
+    cursor_y += FONT_SIZE * FONT_BMP_SIZE + LINE_Y_PADDING;
     
     // Si llegamos al final de la pantalla, hacer scroll
     if (cursor_y >= SCREEN_HEIGHT - FONT_SIZE) {
         clear_screen();
         cursor_y = 0;
-        shell_print_colored("--- Pantalla limpiada (scroll) ---\n", PROMPT_COLOR);
+        shell_print_colored("--- Se limpio la pantalla (scroll) ---\n", PROMPT_COLOR);
     }
 }
 
 // Mostrar prompt
 void shell_print_prompt() {
-    shell_print_colored("shell", PROMPT_COLOR);
-    shell_print_colored("$ ", FONT_COLOR);
+    shell_print_colored("> ", PROMPT_COLOR);
 }
 
 // Limpiar buffer de comandos
@@ -152,57 +146,6 @@ void clear_screen() {
     }
     cursor_x = cursor_y = 0;
 }
-/*
-// Agregar comando al historial
-void add_to_history() {
-    if (buffer_pos == 0) return;
-    
-    // Evitar duplicados consecutivos
-    if (history.count > 0 && 
-        str_equals(command_buffer, history.commands[(history.count - 1) % MAX_HISTORY])) {
-        return;
-    }
-    
-    str_copy(history.commands[history.count % MAX_HISTORY], command_buffer);
-    history.count++;
-    history.current = history.count;
-}
-
-// Navegar por el historial
-void navigate_history(int direction) {
-    if (history.count == 0) return;
-    
-    if (direction > 0 && history.current < history.count) {
-        history.current++;
-    } else if (direction < 0 && history.current > 0) {
-        history.current--;
-    } else {
-        return;
-    }
-    
-    // Borrar línea actual
-    int chars_to_clear = buffer_pos + 2; // +2 para "$ "
-    for (int i = 0; i < chars_to_clear; i++) {
-        if (cursor_x >= FONT_SIZE) {
-            cursor_x -= FONT_SIZE;
-            drawChar(' ', FONT_COLOR, SHELL_COLOR, cursor_x, cursor_y, 1);
-        }
-    }
-    
-    // Mostrar comando del historial
-    if (history.current < history.count) {
-        int idx = (history.current < MAX_HISTORY) ? history.current : 
-                  (history.current % MAX_HISTORY);
-        str_copy(command_buffer, history.commands[idx]);
-        buffer_pos = str_length(command_buffer);
-        shell_print_prompt();
-        shell_print(command_buffer);
-    } else {
-        clear_buffer();
-        shell_print_prompt();
-    }
-}
-*/
 // Comandos disponibles
 void cmd_help() {
     shell_print("Comandos disponibles:\n");
@@ -260,7 +203,7 @@ void cmd_amongus() {
     // Dibujar cada línea usando la función Unicode
     for (int i = 0; amongus_lines[i] != 0; i++) {
         drawTextUnicode(amongus_lines[i], FONT_COLOR, SHELL_COLOR, 
-                       start_x, start_y + i * FONT_SIZE, 1);
+                       start_x, start_y + i * FONT_SIZE * FONT_BMP_SIZE, FONT_SIZE);
     }
     shell_print(".                             Nachito is sus       		\n");		 
     
@@ -300,9 +243,7 @@ void execute_command() {
     // Manejar entrada del teclado usando syscalls
 void handle_keyboard_input() {
     // Actualizar estado de shift usando syscall_isKeyDown
-       shift_pressed = syscall_isKeyDown(0x2A) || syscall_isKeyDown(0x36); // Left/Right Shift
- //	 char * msj = syscall_isKeyDown(0x2A) ? "Algun shift down :)" : "Ningun shift down :(";
-   //     drawText(msj, 0xFFFFFF, 0x000000, 0, SCREEN_HEIGHT, 3);   
+      int shift_pressed = syscall_isKeyDown(LSHIFT_SCANCODE) || syscall_isKeyDown(RSHIFT_SCANCODE); // Left/Right Shift
     // Leer scancode del buffer usando syscall_read
     uint8_t scancode;
     if (syscall_read(0, (char*)&scancode, 1) > 0) {
@@ -346,7 +287,7 @@ void shell_main() {
     
     // Mensaje de bienvenida
     shell_print_colored("=======================================\n", PROMPT_COLOR);
-    shell_print_colored("    SHELL MEJORADO 14.3\n", PROMPT_COLOR);
+    shell_print_colored("    SHELL v14.4\n", PROMPT_COLOR);
     shell_print_colored("=======================================\n", PROMPT_COLOR);
     shell_print("Escribe 'help' para ver comandos disponibles.\n\n");
     
@@ -355,8 +296,6 @@ void shell_main() {
     // Loop principal
     while (1) {
         handle_keyboard_input();
-        // Pequeña pausa para evitar saturar la CPU
-        for (int i = 0; i < 1000; i++);
     }
 }
 
