@@ -1,7 +1,7 @@
 GLOBAL putPixel
 global syscall_write
 global syscall_read
-
+global syscall_isKeyDown
 SECTION .text
 
 putPixel:
@@ -23,3 +23,7 @@ syscall_read:
     ; rdi, rsi, rdx ya tienen fd, buf, count por convención de llamada
     int 0x80
     ret
+syscall_isKeyDown:
+	mov rax, 2
+	int 0x80
+	ret

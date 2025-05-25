@@ -1,6 +1,6 @@
 #include <videoDriver.h>
 #include <syscalls.h>
-
+#include <keyboardDriver.h>
 
 int syscallHandler(int syscall_num, uint64_t arg1, uint64_t arg2, uint64_t arg3) {
     switch(syscall_num) {
@@ -9,8 +9,11 @@ int syscallHandler(int syscall_num, uint64_t arg1, uint64_t arg2, uint64_t arg3)
         case SYSCALL_WRITE: // write  
             return sys_write((int)arg1, (const char*)arg2, (uint64_t)arg3);
 	case SYSCALL_PUT_PIXEL:
-	    return sys_put_pixel((uint32_t)arg1, (uint64_t)arg2, (uint64_t)arg3);
-        default:
+	    sys_put_pixel((uint32_t)arg1, (uint64_t)arg2, (uint64_t)arg3);
+        	return 1;
+	case SYSCALL_ISKEYDOWN:
+		return sys_isKeyDown((int)arg1);
+	default:
             return -1;
     }
 }
@@ -23,16 +26,15 @@ int sys_read(int fd, char* buffer, uint64_t count) {
     switch (fd) {
         case STDIN: {
             uint64_t i = 0;
-            while (i < count) {
+            while (i < count && stdin_has_data()) {  // Solo leer si hay datos
                 buffer[i++] = consumeKey();
             }
-            return i;
+            return i;  // Retorna cuántos caracteres se leyeron (puede ser 0)
         }
         default:
             return -1;
     }
 }
-
 
 /*
  * ID 1
@@ -51,11 +53,18 @@ int sys_write(int fd, const char* buffer, uint64_t count) {
             return -1; // Error: fd no válido
     }
 }
-
-int sys_put_pixel(uint32_t hexColor, uint64_t x, uint64_t y){
+/*
+ * ID 10 
+ */
+void sys_put_pixel(uint32_t hexColor, uint64_t x, uint64_t y){
 	putPixel(hexColor,x,y);
-	return -1;
 }
 
+/*
+ * ID 2
+ */
+int sys_isKeyDown(int scancode) {
+	return isKeyPressed(scancode);
+}
 
 

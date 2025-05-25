@@ -18,6 +18,7 @@ void drawText(char* str, uint32_t hexColor, uint32_t backColor, uint64_t x, uint
 
 void drawInt(int num, uint32_t hexColor, uint32_t backColor, uint64_t x, uint64_t y, uint64_t size);
 
+char getAsciiFromMakeCode(uint8_t makeCode, int shifted);
 
 // Dibuja un rectángulo de w pixeles por h pixeles en la posición (x,y)
 // Siendo x,y la esquina inferior del rectángulo
@@ -31,7 +32,7 @@ void drawInt(int num, uint32_t hexColor, uint32_t backColor, uint64_t x, uint64_
 
 extern int syscall_write(int fd, const char *buf, unsigned long count);
 extern int syscall_read(int fd, char *buf, unsigned long count);
-
+extern int syscall_isKeyDown(int scancode);
 
 
 #endif
