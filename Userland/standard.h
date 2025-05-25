@@ -33,6 +33,6 @@ char getAsciiFromMakeCode(uint8_t makeCode, int shifted);
 extern int syscall_write(int fd, const char *buf, unsigned long count);
 extern int syscall_read(int fd, char *buf, unsigned long count);
 extern int syscall_isKeyDown(int scancode);
-
+extern int syscall_time();
 
 #endif

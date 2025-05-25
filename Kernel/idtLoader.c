@@ -19,14 +19,18 @@ IDTEntry idtTable[IDTSIZE] = {0};
 extern void idtStart();
 
 // HANDLERS
+extern void irq00Handler();
 extern void irq01Handler();
 extern void syscallInterruptHandler();
-
+extern void enableTimerIRQ();
 // Inicializador de la IDT
 void idtInit(){
 	idtStart();
+	idtAdd(0x20, irq00Handler, 0x8E); 
 	idtAdd(0x21, irq01Handler, 0x8E);
 	idtAdd(0x80, syscallInterruptHandler, 0x8E); 
+	enableTimerIRQ();             // Configure PIC
+	enableInterrupts();  
 }
 
 /*

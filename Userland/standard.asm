@@ -2,6 +2,7 @@ GLOBAL putPixel
 global syscall_write
 global syscall_read
 global syscall_isKeyDown
+global syscall_time
 SECTION .text
 
 putPixel:
@@ -27,3 +28,7 @@ syscall_isKeyDown:
 	mov rax, 2
 	int 0x80
 	ret
+syscall_time:
+    mov rax, 3          ; ID de syscall para time (3)
+    int 0x80
+    ret

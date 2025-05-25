@@ -5,7 +5,6 @@
 #include <naiveConsole.h>
 #include <videoDriver.h>
 #include <keyboardDriver.h>
-#include <shell.h>
 #include <idtLoader.h>
 extern uint8_t text;
 extern uint8_t rodata;
@@ -109,9 +108,7 @@ int main()
 	ncPrint("[Finished]");
 	
 	idtInit();
-//	putText("  Hola desde userspace >:) tengo mi codigo: ", 0xFFFFFF, 0x000000, 0, 0, 3);
 	drawInt(((EntryPoint)sampleCodeModuleAddress)(), 0xFF0000, 0x111111, 0,8 * 3, 3);
-	//start_shell();
 	while(1);
 	return 0;
 }

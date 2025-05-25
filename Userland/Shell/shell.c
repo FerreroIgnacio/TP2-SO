@@ -11,7 +11,7 @@
 #define LINE_Y_PADDING 4
 #define LINES_PER_SCREEN SCREEN_HEIGHT / ((FONT_SIZE * FONT_BMP_SIZE) + LINE_Y_PADDING)
 
-#define SHELL_COLOR 0x000008
+#define SHELL_COLOR 0x00000A
 #define FONT_COLOR 0xAAAAAA
 #define ERROR_COLOR 0xAA4444
 #define PROMPT_COLOR 0x44AAA4
@@ -115,7 +115,8 @@ void shell_print_colored(const char* str, uint32_t color) {
 
 // Nueva línea
 void shell_newline() {
-    cursor_x = 0;
+    hide_cursor();
+	cursor_x = 0;
     cursor_y += FONT_SIZE * FONT_BMP_SIZE + LINE_Y_PADDING;
     
     // Si llegamos al final de la pantalla, hacer scroll
@@ -214,8 +215,11 @@ void cmd_amongus() {
 
 // Ejecutar comando
 void execute_command() {
-    if (buffer_pos == 0) return;
-    
+  hide_cursor(); 
+     	if (buffer_pos == 0) return;
+    // Borro el cursor antes de ejecutar comando
+    drawChar(' ', PROMPT_COLOR, SHELL_COLOR, cursor_x, cursor_y, FONT_SIZE);
+
     command_buffer[buffer_pos] = '\0';
     
     char cmd_copy[BUFFER_SIZE];
@@ -238,10 +242,54 @@ void execute_command() {
         shell_print("Escribe 'help' para ver comandos disponibles.\n");
     }
 }
+
+static int cursor_visible = 1;
+static int last_cursor_time = 0;
+static int cursor_drawn = 0; 
+#define CURSOR_BLINK_INTERVAL 80  //en ticks
+
+void update_cursor() {
+    int current_time = syscall_time();
+    int should_blink = (current_time - last_cursor_time >= CURSOR_BLINK_INTERVAL);
+    
+    if (should_blink) {
+        cursor_visible = !cursor_visible;
+        last_cursor_time = current_time;
+    }
+    
+    // Solo actualizar la pantalla si el estado visual cambió
+    int should_be_drawn = cursor_visible;
+    if (cursor_drawn != should_be_drawn) {
+        char cursor_char = should_be_drawn ? '_' : ' ';
+        drawChar(cursor_char, PROMPT_COLOR, SHELL_COLOR, cursor_x, cursor_y, FONT_SIZE);
+        cursor_drawn = should_be_drawn;
+    }
+}
+
+// Función para forzar cursor visible (llamar después de escribir)
+void reset_cursor() {
+    cursor_visible = 1;
+    last_cursor_time = syscall_time();
+    if (!cursor_drawn) {
+        drawChar('_', PROMPT_COLOR, SHELL_COLOR, cursor_x, cursor_y, FONT_SIZE);
+        cursor_drawn = 1;
+    }
+}
+
+// Función para ocultar cursor (llamar antes de escribir texto)
+void hide_cursor() {
+    if (cursor_drawn) {
+        drawChar(' ', SHELL_COLOR, SHELL_COLOR, cursor_x, cursor_y, FONT_SIZE);
+        cursor_drawn = 0;
+    }
+}
+
 #define LSHIFT_SCANCODE 0x2A
 #define RSHIFT_SCANCODE 0x36
     // Manejar entrada del teclado usando syscalls
 void handle_keyboard_input() {
+	update_cursor();  
+
     // Actualizar estado de shift usando syscall_isKeyDown
       int shift_pressed = syscall_isKeyDown(LSHIFT_SCANCODE) || syscall_isKeyDown(RSHIFT_SCANCODE); // Left/Right Shift
     // Leer scancode del buffer usando syscall_read
@@ -251,8 +299,9 @@ void handle_keyboard_input() {
         if (scancode == 0x1C) { // Enter
             shell_newline();
             execute_command();
-            clear_buffer();
-            shell_newline();
+	    clear_buffer();
+         
+	    shell_newline();
             shell_print_prompt();
             return;
         }
@@ -260,6 +309,7 @@ void handle_keyboard_input() {
         if (scancode == 0x0E) { // Backspace
             if (buffer_pos > 0) {
                 buffer_pos--;
+		hide_cursor();
                 command_buffer[buffer_pos] = '\0';
                 if (cursor_x >= FONT_SIZE * FONT_BMP_SIZE) {
                     cursor_x -= FONT_SIZE * FONT_BMP_SIZE;

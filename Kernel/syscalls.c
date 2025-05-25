@@ -13,6 +13,8 @@ int syscallHandler(int syscall_num, uint64_t arg1, uint64_t arg2, uint64_t arg3)
         	return 1;
 	case SYSCALL_ISKEYDOWN:
 		return sys_isKeyDown((int)arg1);
+	case SYSCALL_GETTIME:
+		return sys_getTime();
 	default:
             return -1;
     }
@@ -67,4 +69,19 @@ int sys_isKeyDown(int scancode) {
 	return isKeyPressed(scancode);
 }
 
+static uint64_t system_ticks = 0;  // Contador de ticks global
 
+// Handler interno, hay que moverlo
+// Handler del timer (IRQ0)
+void timerTickHandler() {
+    system_ticks++;  // Incrementa el contador en cada tick
+	drawInt((int)system_ticks, 0x00FF00, 0x000000, 0, 0, 3);
+       // putText((int)system_ticks, 0xFFFFFF, 0x000000, 0, getHeight() - 8 * 3 - 8 * 3, 3);
+}
+
+/*
+ * ID 3
+ */
+uint64_t sys_getTime() {
+    return system_ticks * 10;  // 100 Hz → 10 ms por tick
+}

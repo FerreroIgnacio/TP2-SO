@@ -1,8 +1,31 @@
 GLOBAL irq01Handler
+GLOBAL irq00Handler
 GLOBAL syscallInterruptHandler
+
+GLOBAL enableTimerIRQ
+
 EXTERN keyPressedAction
 EXTERN syscallHandler
+EXTERN timerTickHandler
 section .text
+
+enableTimerIRQ:
+    in al, 0x21        ; Read current PIC mask
+    and al, 0xFE       ; Clear bit 0 (enable IRQ0/timer) - 0xFE = 11111110
+    out 0x21, al       ; Write back the mask
+    ret
+
+irq00Handler:
+    push rax
+    
+    call timerTickHandler   
+    
+    mov al, 0x20
+    out 0x20, al
+    
+    pop rax
+    iretq
+
 irq01Handler:			; Keyboard irq
     push rax
     push rdi
