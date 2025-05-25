@@ -20,12 +20,13 @@ extern void idtStart();
 
 // HANDLERS
 extern void irq01Handler();
-
+extern void syscallInterruptHandler();
 
 // Inicializador de la IDT
 void idtInit(){
 	idtStart();
 	idtAdd(0x21, irq01Handler, 0x8E);
+	idtAdd(0x80, syscallInterruptHandler, 0x8E); 
 }
 
 /*
