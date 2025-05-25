@@ -200,34 +200,30 @@ static int shiftPressed = 0;
 // Handler de la interrupción irq01
 void keyPressedAction(uint8_t scancode) {
     uint8_t keycode = scancode & 0x7F;
-
-    // Check if shift is pressed BEFORE processing the key
-    // (left shift = 0x2A, right shift = 0x36)
+    
+    // Detectar shift
     int shiftPressed = keysDown[0x2A] || keysDown[0x36];
-
-    // Get ASCII character from make code
+    
+    // Obtener ASCII (puede ser 0 si no es imprimible)
     char asciiChar = getAsciiFromMakeCode(keycode, shiftPressed);
-
-    // 0x80 si se suelta una tecla
+    
+    // Manejar key up / key down
     if (scancode & 0x80) {
-        keysDown[keycode] = 0;  // FIXED: use keycode for array indexing
+        keysDown[keycode] = 0;
     } else {
-        keysDown[keycode] = 1;  // FIXED: use keycode for array indexing
-    }
-
-    // Paso la key a lo que sea que tenga el control (si hay)
-    if (current_handler != 0) {
-        //current_handler(scancode);
-    }
-
-    // Only draw on key press (not release)
-    if (!(scancode & 0x80)) {
-        // Draw ASCII character if printable, otherwise draw make code
+        keysDown[keycode] = 1;
+        
+        // Procesar solo key press - SIN FILTROS
         if (asciiChar != 0) {
+            queueKey(asciiChar);
             putChar(asciiChar, 0xFFFFFF, 0x000000, 0, getHeight() - 8 * 3, 3);
         } else {
             drawInt(keycode, 0xFFFFFF, 0x000000, 0, getHeight() - 8 * 3, 3);
         }
+    }
+    
+    if (current_handler != 0) {
+        //current_handler(scancode);
     }
 }
 int areKeysPressed(uint8_t * scanCodeVec){

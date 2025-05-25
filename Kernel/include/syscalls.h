@@ -2,7 +2,6 @@
 #define SYSCALLS_H
 #include <stdint.h>
 
-#define STDIN_ADDR 0xFFFFAA
 #define STDIN 0
 #define STDOUT 1
 #define STDERR 2

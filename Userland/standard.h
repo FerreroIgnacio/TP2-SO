@@ -2,7 +2,8 @@
 #define STANDARD_H
 
 #include <stdint.h>
-#include "./font8x8/font8x8.h"
+//#include "font8x8/font8x8_basic.h"
+extern char font8x8_basic[128][8];
 
 // Cambia el color del pixel (x,y) a hexColor
 void putPixel(uint32_t hexColor, uint64_t x, uint64_t y);
@@ -28,7 +29,8 @@ void drawInt(int num, uint32_t hexColor, uint32_t backColor, uint64_t x, uint64_
 // Cambia todos los píxeles a hexColor
 //void fillScreen(uint32_t hexColor);
 
-
+extern int syscall_write(int fd, const char *buf, unsigned long count);
+extern int syscall_read(int fd, char *buf, unsigned long count);
 
 
 

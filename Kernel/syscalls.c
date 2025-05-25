@@ -20,15 +20,19 @@ int syscallHandler(int syscall_num, uint64_t arg1, uint64_t arg2, uint64_t arg3)
  * ID 0
  */
 int sys_read(int fd, char* buffer, uint64_t count) {
-    switch(fd) {
-        case STDIN: // stdin
-            // Leer del buffer del teclado
-            // Podrías implementar un buffer circular para las teclas
-          //  return readFromKeyboard(buffer, count);
+    switch (fd) {
+        case STDIN: {
+            uint64_t i = 0;
+            while (i < count) {
+                buffer[i++] = consumeKey();
+            }
+            return i;
+        }
         default:
             return -1;
     }
 }
+
 
 /*
  * ID 1

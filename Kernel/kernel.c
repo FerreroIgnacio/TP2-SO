@@ -95,7 +95,7 @@ int main()
 	ncPrintHex((uint64_t)sampleCodeModuleAddress);
 	ncNewline();
 	ncPrint("  Calling the sample code module returned: ");
-	ncPrintHex(((EntryPoint)sampleCodeModuleAddress)());
+//	ncPrintHex(((EntryPoint)sampleCodeModuleAddress)());
 	ncNewline();
 	ncNewline();
 
@@ -107,9 +107,11 @@ int main()
 	ncNewline();
 
 	ncPrint("[Finished]");
-
+	
 	idtInit();
-	start_shell();
+//	putText("  Hola desde userspace >:) tengo mi codigo: ", 0xFFFFFF, 0x000000, 0, 0, 3);
+	drawInt(((EntryPoint)sampleCodeModuleAddress)(), 0xFF0000, 0x111111, 0,8 * 3, 3);
+	//start_shell();
 	while(1);
 	return 0;
 }
