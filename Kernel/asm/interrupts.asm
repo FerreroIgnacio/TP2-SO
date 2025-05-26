@@ -50,7 +50,10 @@ syscallInterruptHandler:
 	push r9
 	push r10  	
 	push r11    
-	; Set up parameters for syscallHandler(syscall_num, arg1, arg2, arg3)
+	; Set up parameters for syscallHandler(syscall_num, arg1, arg2, arg3, arg4, arg5)
+
+    mov r9 , r8     ; arg5 (original r8 ) -> r9
+    mov r8 , rcx    ; arg4 (original rcx) -> r8
 	mov rcx, rdx    ; arg3 (original rdx) -> rcx
 	mov rdx, rsi    ; arg2 (original rsi) -> rdx  
 	mov rsi, rdi    ; arg1 (original rdi) -> rsi

@@ -108,6 +108,7 @@ int main()
 	ncPrint("[Finished]");
 	
 	idtInit();
+	//((EntryPoint)sampleCodeModuleAddress)();
 	drawInt(((EntryPoint)sampleCodeModuleAddress)(), 0xFF0000, 0x111111, 0,8 * 3, 3);
 	while(1);
 	return 0;

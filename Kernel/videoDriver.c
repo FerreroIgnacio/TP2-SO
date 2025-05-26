@@ -44,6 +44,14 @@ typedef struct vbe_mode_info_structure * VBEInfoPtr;
 VBEInfoPtr VBE_mode_info = (VBEInfoPtr) 0x0000000000005C00;
 
 
+void setFrameBuffer(uint8_t * fb){
+    uint64_t size = VBE_mode_info->pitch * VBE_mode_info->height;
+    uint8_t * dest = (uint8_t *) VBE_mode_info->framebuffer;
+    for (uint64_t i = 0; i < size; i++) {
+        dest[i] = fb[i];
+    }
+}
+
 uint16_t getWidth() {
     return VBE_mode_info->width;
 }
@@ -51,7 +59,13 @@ uint16_t getWidth() {
 uint16_t getHeight() {
     return VBE_mode_info->height;
 }
+uint16_t getBpp() {
+    return (uint16_t)VBE_mode_info->bpp;
+}
 
+uint16_t getPitch() {
+    return VBE_mode_info->pitch;
+}
 
 
 // Cambia el color del pixel (x,y) a hexColor</b></font>
@@ -62,6 +76,10 @@ void putPixel(uint32_t hexColor, uint64_t x, uint64_t y) {
     framebuffer[offset+1]   =  (hexColor >> 8) & 0xFF; 
     framebuffer[offset+2]   =  (hexColor >> 16) & 0xFF;
 }
+
+
+// A PARTIR DE ACÁ NO NECESITARÍAMOS LAS SIGUIENTES FUNCIONES
+
 
 
 // Escribe el string str en la posición (x,y)

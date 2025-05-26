@@ -1,14 +1,12 @@
 GLOBAL putPixel
+GLOBAL getVideoData
+GLOBAL setFramebuffer
 global syscall_write
 global syscall_read
 global syscall_isKeyDown
 global syscall_time
 SECTION .text
 
-putPixel:
-    mov     rax, 0xA      ; syscall número 10
-    int     0x80          ; llamar a syscall
-    ret
 
 
 ; int syscall_write(int fd, const char *buf, unsigned long count)
@@ -32,3 +30,21 @@ syscall_time:
     mov rax, 3          ; ID de syscall para time (3)
     int 0x80
     ret
+
+
+getVideoData:
+    mov     rax, 0x9
+    int     0x80
+    ret
+
+putPixel:
+    mov     rax, 0xA      ; syscall número 10
+    int     0x80          ; llamar a syscall
+    ret
+
+setFramebuffer:
+    mov     rax, 0xB
+    int     0x80
+    ret
+
+

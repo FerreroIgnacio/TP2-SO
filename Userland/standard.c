@@ -104,7 +104,6 @@ char makeCodeToAscii[128] = {
 
 // Shifted characters mapping - Layout Argentino
 char makeCodeToAsciiShifted[128] = {
-
     0,      // 0x00 - unused
     0,      // 0x01 - ESC
     '!',    // 0x02 - Shift+1
@@ -198,13 +197,128 @@ char makeCodeToAsciiShifted[128] = {
     0, 0, 0, 0, 0, 0, 0, 0, 0, 0,  // 0x72-0x7B unused
     0, 0, 0, 0                     // 0x7C-0x7F unused
 };
+
 char getAsciiFromMakeCode(uint8_t makeCode, int shifted) {
     if (makeCode >= 128) return 0;
     return shifted ? makeCodeToAsciiShifted[makeCode] : makeCodeToAscii[makeCode];
 }
 
+uint64_t getFramebufferSize (){
+    uint16_t height, pitch;
+    getVideoData(0, &height, 0, &pitch);
+    return pitch * height;
+}
+
+
+void fbPutPixel(uint8_t * fb, uint32_t hexColor, uint64_t x, uint64_t y, uint64_t bpp, uint64_t pitch) {
+    uint64_t offset = (x * (bpp/8)) + (y * pitch);
+    fb[offset]     =  (hexColor) & 0xFF;
+    fb[offset+1]   =  (hexColor >> 8) & 0xFF; 
+    fb[offset+2]   =  (hexColor >> 16) & 0xFF;
+}
+
+void fbDrawChar(uint8_t * fb, char ascii, uint32_t hexColor, uint32_t backColor, uint64_t x, uint64_t y, uint64_t size){
+    
+    if(ascii < 0 || ascii > 128) 
+	    return;
+	char * bmp = font8x8_basic[ascii];
+
+    uint16_t bpp, pitch;
+    getVideoData(0, 0, &bpp, &pitch);   
+
+    for(int j = 0; j < 64; j++){
+        int fil = j / 8;    // fila (0-7)
+        int col = j % 8;    // columna (0-7)
+
+        // Acceder al byte de la fila y verificar el bit de la columna
+        //int isOn = bmp[fil] & (1 << col);  // Sin invertir el bit
+        int color = (bmp[fil] & (1 << col)) ? hexColor : backColor;
+        
+    
+        for (int dx = 0; dx < size; dx++) {
+            for (int dy = 0; dy < size; dy++) {
+                fbPutPixel(fb, color, 
+                        x + col * size + dx,     // X: posición + columna
+                        y + fil * size + dy,    // Y: posición + fila
+                        bpp, pitch);
+            }
+        }
+    }
+}
+
+void fbDrawText(uint8_t * fb, char* str, uint32_t hexColor, uint32_t backColor, uint64_t x, uint64_t y, uint64_t size){
+	int i = 0;
+	while(str[i] != 0){
+		fbDrawChar(fb, str[i], hexColor, backColor, x, y, size);
+		x+= 8 * size;
+		i++;
+	}
+}
+
+void fbDrawInt(uint8_t * fb, int num, uint32_t hexColor, uint32_t backColor, uint64_t x, uint64_t y, uint64_t size){
+    char buffer[12];
+    int i = 0;
+    
+    // Manejo numeros negativos
+    if (num < 0) {
+        buffer[i++] = '-';
+        num = -num;
+    }
+    
+    // Caso especial: 0
+    if (num == 0) {
+        buffer[i++] = '0';
+    } else {
+        // Extraer dígitos en orden inverso
+        int start = i;
+        while (num > 0) {
+            buffer[i++] = (num % 10) + '0';
+            num /= 10;
+        }
+        // Invertir solo los dígitos
+        for (int j = start; j < (start + i) / 2; j++) {
+            char temp = buffer[j];
+            buffer[j] = buffer[i - 1 - (j - start)];
+            buffer[i - 1 - (j - start)] = temp;
+        }
+    }
+    
+    buffer[i] = '\0';
+    fbDrawText(fb, buffer, hexColor, backColor, x, y, size);
+}
+
+void fbFill (uint8_t * fb, uint32_t hexColor){
+    uint16_t bpp, pitch, width, height;
+    getVideoData(&width, &height, &bpp, &pitch);
+
+    uint8_t r = (hexColor >> 16) & 0xFF;
+    uint8_t g = (hexColor >> 8) & 0xFF;
+    uint8_t b = hexColor & 0xFF;
+    uint8_t bytesPerPixel = bpp / 8;
+
+    for (uint16_t y = 0; y < height; y++) {
+        for (uint16_t x = 0; x < width; x++) {
+            uint64_t offset = y * pitch + x * bytesPerPixel;
+            fb[offset]     = b;
+            fb[offset + 1] = g;
+            fb[offset + 2] = r;
+        }
+    }
+
+}
+
+
+
+
+
+// OBSOLETO, NO USAR
+
+
+
+
+
 // Escribe el char str en la posición (x,y)
- void drawChar(char ascii, uint32_t hexColor, uint32_t backColor, uint64_t x, uint64_t y, uint64_t size){
+void drawChar(char ascii, uint32_t hexColor, uint32_t backColor, uint64_t x, uint64_t y, uint64_t size){
     if(ascii < 0 || ascii > 128) 
 	    return;
 	char * bmp = font8x8_basic[ascii];
@@ -225,7 +339,7 @@ char getAsciiFromMakeCode(uint8_t makeCode, int shifted) {
             }
         }
     }
- }
+}
 
 // Escribe el string str en la posición (x,y)
 void drawText(char* str, uint32_t hexColor, uint32_t backColor, uint64_t x, uint64_t y, uint64_t size){
