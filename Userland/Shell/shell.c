@@ -1,21 +1,20 @@
-
 #include "../standard.h"
 
-#define SCREEN_WIDTH 800
-#define SCREEN_HEIGHT 600
-
-#define CHAR_PER_LINE SCREEN_WIDTH / (FONT_SIZE * FONT_BMP_SIZE)
+#define CHAR_PER_LINE width / (FONT_SIZE * FONT_BMP_SIZE)
 #define FONT_BMP_SIZE 8 
 #define FONT_SIZE 2
 #define BUFFER_SIZE 256
 #define LINE_Y_PADDING 4
-#define LINES_PER_SCREEN SCREEN_HEIGHT / ((FONT_SIZE * FONT_BMP_SIZE) + LINE_Y_PADDING)
+#define LINES_PER_SCREEN height / ((FONT_SIZE * FONT_BMP_SIZE) + LINE_Y_PADDING)
 
 #define SHELL_COLOR 0x00000A
 #define FONT_COLOR 0xAAAAAA
 #define ERROR_COLOR 0xAA4444
 #define PROMPT_COLOR 0x44AAA4
+
 // Variables globales
+uint8_t * fb;
+uint16_t width=0, height=0, bpp=0, pitch=0;
 static char command_buffer[BUFFER_SIZE];
 static int buffer_pos = 0;
 static int cursor_x = 0;
@@ -84,7 +83,7 @@ void shell_putchar(char c) {
         return;
     }
     
-    drawChar(c, FONT_COLOR, SHELL_COLOR, cursor_x, cursor_y, FONT_SIZE);
+    fbDrawChar(fb, c, FONT_COLOR, SHELL_COLOR, cursor_x, cursor_y, FONT_SIZE);
     cursor_x += FONT_SIZE * FONT_BMP_SIZE;
     
     if (cursor_x >= CHAR_PER_LINE * FONT_SIZE * FONT_BMP_SIZE) {
@@ -103,7 +102,7 @@ void shell_print_colored(const char* str, uint32_t color) {
         if (*str == '\n') {
             shell_newline();
         } else {
-            drawChar(*str, color, SHELL_COLOR, cursor_x, cursor_y, FONT_SIZE);
+            fbDrawChar(fb, *str, color, SHELL_COLOR, cursor_x, cursor_y, FONT_SIZE);
             cursor_x += FONT_SIZE * FONT_BMP_SIZE;
             if (cursor_x >= CHAR_PER_LINE * FONT_SIZE * FONT_BMP_SIZE) {
                 shell_newline();
@@ -120,7 +119,7 @@ void shell_newline() {
     cursor_y += FONT_SIZE * FONT_BMP_SIZE + LINE_Y_PADDING;
     
     // Si llegamos al final de la pantalla, hacer scroll
-    if (cursor_y >= SCREEN_HEIGHT - FONT_SIZE) {
+    if (cursor_y >= height - FONT_SIZE) {
         clear_screen();
         cursor_y = 0;
         shell_print_colored("--- Se limpio la pantalla (scroll) ---\n", PROMPT_COLOR);
@@ -140,11 +139,7 @@ void clear_buffer() {
 
 // Limpiar pantalla
 void clear_screen() {
-    for (int y = 0; y < SCREEN_HEIGHT; y++) {
-        for (int x = 0; x < SCREEN_WIDTH; x++) {
-            putPixel(SHELL_COLOR, x, y);
-        }
-    }
+    fbFill (fb, SHELL_COLOR);
     cursor_x = cursor_y = 0;
 }
 // Comandos disponibles
@@ -218,7 +213,7 @@ void execute_command() {
   hide_cursor(); 
      	if (buffer_pos == 0) return;
     // Borro el cursor antes de ejecutar comando
-    drawChar(' ', PROMPT_COLOR, SHELL_COLOR, cursor_x, cursor_y, FONT_SIZE);
+    fbDrawChar(fb,' ', PROMPT_COLOR, SHELL_COLOR, cursor_x, cursor_y, FONT_SIZE);
 
     command_buffer[buffer_pos] = '\0';
     
@@ -261,7 +256,7 @@ void update_cursor() {
     int should_be_drawn = cursor_visible;
     if (cursor_drawn != should_be_drawn) {
         char cursor_char = should_be_drawn ? '_' : ' ';
-        drawChar(cursor_char, PROMPT_COLOR, SHELL_COLOR, cursor_x, cursor_y, FONT_SIZE);
+        fbDrawChar(fb, cursor_char, PROMPT_COLOR, SHELL_COLOR, cursor_x, cursor_y, FONT_SIZE);
         cursor_drawn = should_be_drawn;
     }
 }
@@ -271,7 +266,7 @@ void reset_cursor() {
     cursor_visible = 1;
     last_cursor_time = syscall_time();
     if (!cursor_drawn) {
-        drawChar('_', PROMPT_COLOR, SHELL_COLOR, cursor_x, cursor_y, FONT_SIZE);
+        fbDrawChar(fb, '_', PROMPT_COLOR, SHELL_COLOR, cursor_x, cursor_y, FONT_SIZE);
         cursor_drawn = 1;
     }
 }
@@ -279,7 +274,7 @@ void reset_cursor() {
 // Función para ocultar cursor (llamar antes de escribir texto)
 void hide_cursor() {
     if (cursor_drawn) {
-        drawChar(' ', SHELL_COLOR, SHELL_COLOR, cursor_x, cursor_y, FONT_SIZE);
+        fbDrawChar(fb, ' ', SHELL_COLOR, SHELL_COLOR, cursor_x, cursor_y, FONT_SIZE);
         cursor_drawn = 0;
     }
 }
@@ -313,7 +308,7 @@ void handle_keyboard_input() {
                 command_buffer[buffer_pos] = '\0';
                 if (cursor_x >= FONT_SIZE * FONT_BMP_SIZE) {
                     cursor_x -= FONT_SIZE * FONT_BMP_SIZE;
-                    drawChar(' ', FONT_COLOR, SHELL_COLOR, cursor_x, cursor_y, FONT_SIZE);
+                    fbDrawChar(fb, ' ', FONT_COLOR, SHELL_COLOR, cursor_x, cursor_y, FONT_SIZE);
                 }
             }
             return;
@@ -337,7 +332,7 @@ void shell_main() {
     
     // Mensaje de bienvenida
     shell_print_colored("=======================================\n", PROMPT_COLOR);
-    shell_print_colored("    SHELL v14.4\n", PROMPT_COLOR);
+    shell_print_colored("    SHELL v15.0\n", PROMPT_COLOR);
     shell_print_colored("=======================================\n", PROMPT_COLOR);
     shell_print("Escribe 'help' para ver comandos disponibles.\n\n");
     
@@ -346,11 +341,16 @@ void shell_main() {
     // Loop principal
     while (1) {
         handle_keyboard_input();
+        fbSet(fb);
     }
 }
 
+
 // Punto de entrada principal
+uint8_t newFb [100000000]; // CAMBIAR POR MALLOC
 int main() {
+    fb = newFb;
+    getVideoData(&width,&height,&bpp,&pitch);
     shell_main();
     return 0;
 }

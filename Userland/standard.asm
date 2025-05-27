@@ -1,6 +1,6 @@
 GLOBAL putPixel
 GLOBAL getVideoData
-GLOBAL setFramebuffer
+GLOBAL fbSet
 global syscall_write
 global syscall_read
 global syscall_isKeyDown
@@ -42,7 +42,7 @@ putPixel:
     int     0x80          ; llamar a syscall
     ret
 
-setFramebuffer:
+fbSet:
     mov     rax, 0xB
     int     0x80
     ret

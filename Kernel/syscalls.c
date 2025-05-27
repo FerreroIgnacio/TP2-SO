@@ -112,5 +112,5 @@ void sys_put_pixel(uint32_t hexColor, uint64_t x, uint64_t y){
  * ID 11 
  */
 void sys_set_framebuffer(uint8_t * fb){
-    void setFrameBuffer(fb);
+    setFramebuffer(fb);
 }

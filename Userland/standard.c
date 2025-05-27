@@ -203,12 +203,11 @@ char getAsciiFromMakeCode(uint8_t makeCode, int shifted) {
     return shifted ? makeCodeToAsciiShifted[makeCode] : makeCodeToAscii[makeCode];
 }
 
-uint64_t getFramebufferSize (){
+uint64_t fbGetSize (){
     uint16_t height, pitch;
     getVideoData(0, &height, 0, &pitch);
     return pitch * height;
 }
-
 
 void fbPutPixel(uint8_t * fb, uint32_t hexColor, uint64_t x, uint64_t y, uint64_t bpp, uint64_t pitch) {
     uint64_t offset = (x * (bpp/8)) + (y * pitch);
@@ -313,11 +312,8 @@ void fbFill (uint8_t * fb, uint32_t hexColor){
 
 // OBSOLETO, NO USAR
 
-
-
-
-
 // Escribe el char str en la posición (x,y)
+/*
 void drawChar(char ascii, uint32_t hexColor, uint32_t backColor, uint64_t x, uint64_t y, uint64_t size){
     if(ascii < 0 || ascii > 128) 
 	    return;
@@ -385,6 +381,7 @@ void drawInt(int num, uint32_t hexColor, uint32_t backColor, uint64_t x, uint64_
     drawText(buffer, hexColor, backColor, x, y, size);
 }
 
+*/
 
 // Dibuja un rectángulo de w pixeles por h pixeles en la posición (x,y)
 // Siendo x,y la esquina inferior del rectángulo

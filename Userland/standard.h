@@ -20,10 +20,10 @@ extern void putPixel(uint32_t hexColor, uint64_t x, uint64_t y);
 extern void getVideoData(uint16_t* width, uint16_t* height, uint16_t* bpp, uint16_t* pitch);
 
 // retorna el tamaño del Framebuffer
-uint64_t getFramebufferSize ();
+uint64_t fbGetSize ();
 
 // fb es un vector de getFramebufferSize() posiciones
-extern void setFramebuffer(uint8_t * fb);
+void fbSet(uint8_t * fb);
 
 void fbDrawChar(uint8_t * fb, char ascii, uint32_t hexColor, uint32_t backColor, uint64_t x, uint64_t y, uint64_t size);
 
@@ -37,7 +37,7 @@ void fbFill (uint8_t * fb, uint32_t hexColor);
 
 
 // OBSOLETO, NO USAR
-
+/*
 
 void drawChar(char ascii, uint32_t hexColor, uint32_t backColor, uint64_t x, uint64_t y, uint64_t size);
 
@@ -46,7 +46,7 @@ void drawText(char* str, uint32_t hexColor, uint32_t backColor, uint64_t x, uint
 
 void drawInt(int num, uint32_t hexColor, uint32_t backColor, uint64_t x, uint64_t y, uint64_t size);
 
-
+*/
 
 // Dibuja un rectángulo de w pixeles por h pixeles en la posición (x,y)
 // Siendo x,y la esquina inferior del rectángulo

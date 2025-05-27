@@ -44,8 +44,9 @@ typedef struct vbe_mode_info_structure * VBEInfoPtr;
 VBEInfoPtr VBE_mode_info = (VBEInfoPtr) 0x0000000000005C00;
 
 
-void setFrameBuffer(uint8_t * fb){
+void setFramebuffer(uint8_t * fb){
     uint64_t size = VBE_mode_info->pitch * VBE_mode_info->height;
+
     uint8_t * dest = (uint8_t *) VBE_mode_info->framebuffer;
     for (uint64_t i = 0; i < size; i++) {
         dest[i] = fb[i];
