@@ -8,7 +8,12 @@ extern char font8x8_basic[128][8];
 extern int syscall_write(int fd, const char *buf, unsigned long count);
 extern int syscall_read(int fd, char *buf, unsigned long count);
 extern int syscall_isKeyDown(int scancode);
-extern int syscall_time();
+
+uint64_t getBootTime();
+
+void getLocalTime(uint8_t* hours, uint8_t* minutes, uint8_t* seconds);
+
+void getLocalDate(uint8_t* year, uint8_t* month, uint8_t* day);
 
 char getAsciiFromMakeCode(uint8_t makeCode, int shifted);
 
@@ -33,6 +38,10 @@ void fbDrawInt(uint8_t * fb, int num, uint32_t hexColor, uint32_t backColor, uin
 
 void fbFill (uint8_t * fb, uint32_t hexColor);
 
+void itos(uint64_t value, char* str) ;
+
+// Función para formato de fecha/hora con padding de ceros
+void itos_padded(uint64_t value, char* str, int width);
 
 
 

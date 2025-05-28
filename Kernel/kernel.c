@@ -21,7 +21,7 @@ extern char font8x8_basic[128][8];
 
 static void * const sampleCodeModuleAddress = (void*)0x400000;
 static void * const sampleDataModuleAddress = (void*)0x500000;
-static void * const pongisgolfModuleAddress = (void*)0x1000000;
+static void * const pongisgolfModuleAddress = (void*)0x900000;
 
 typedef int (*EntryPoint)();
 
@@ -113,7 +113,7 @@ int main()
 	
 
 	((EntryPoint)sampleCodeModuleAddress)();
-	//((EntryPoint)pongisgolfModuleAddress)();
+	((EntryPoint)pongisgolfModuleAddress)();
 	//drawInt(((EntryPoint)pongisgolfModuleAddress)(), 0xFF0000, 0x111111, 0,8 * 3, 3);
 	//drawInt(((EntryPoint)sampleCodeModuleAddress)(), 0xFF0000, 0x111111, 0,8 * 3, 3);
 	while(1);

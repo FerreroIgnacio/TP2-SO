@@ -17,6 +17,8 @@ IDTEntry idtTable[IDTSIZE] = {0};
 
 // Funcion para inicializar la tabla en idtLoader.asm
 extern void idtStart();
+extern void enableInterrupts();
+void idtAdd(uint8_t id, void (*handler)(void), uint8_t flags);
 
 // HANDLERS
 extern void irq00Handler();

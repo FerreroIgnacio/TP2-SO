@@ -21,7 +21,7 @@ char makeCodeToAscii[128] = {
     '9',    // 0x0A
     '0',    // 0x0B
     '\'',   // 0x0C - apostrofe (en lugar de -)
-    '¿',    // 0x0D - ¿ (en lugar de =)
+    191,    // 0x0D - ¿ (en lugar de =)
     0,      // 0x0E - Backspace
     0,      // 0x0F - Tab
     'q',    // 0x10
@@ -47,7 +47,7 @@ char makeCodeToAscii[128] = {
     'j',    // 0x24
     'k',    // 0x25
     'l',    // 0x26
-    'ñ',    // 0x27 - ñ
+    241,    // 0x27 - ñ
     '{',    // 0x28 - { (en algunos layouts argentinos)
     '|',    // 0x29 - |
     0,      // 0x2A - Left Shift
@@ -306,7 +306,57 @@ void fbFill (uint8_t * fb, uint32_t hexColor){
 
 }
 
+void itos(uint64_t value, char* str) {
+    // Caso especial: si el valor es 0
+    if (value == 0) {
+        str[0] = '0';
+        str[1] = '\0';
+        return;
+    }
+    
+    // Buffer temporal para construir el string al revés
+    char temp[21]; // máximo 20 dígitos para uint64_t + null terminator
+    int index = 0;
+    
+    // Extraer dígitos (quedan en orden inverso)
+    while (value > 0) {
+        temp[index] = (value % 10) + '0';
+        value /= 10;
+        index++;
+    }
+    
+    // Copiar al string destino en orden correcto
+    int i;
+    for (i = 0; i < index; i++) {
+        str[i] = temp[index - 1 - i];
+    }
+    str[i] = '\0'; // null terminator
+}
 
+// Función para formato de fecha/hora con padding de ceros
+void itos_padded(uint64_t value, char* str, int width) {
+    // Convertir a string normal primero
+    char temp[21];
+    itos(value, temp);
+    
+    // Calcular longitud del número
+    int len = 0;
+    while (temp[len] != '\0') len++;
+    
+    // Agregar ceros al inicio si es necesario
+    int padding = width - len;
+    int i;
+    for (i = 0; i < padding; i++) {
+        str[i] = '0';
+    }
+    
+    // Copiar el número
+    for (i = 0; i < len; i++) {
+        str[padding + i] = temp[i];
+    }
+    
+    // NO agregar null terminator (para concatenación)
+}
 
 
 

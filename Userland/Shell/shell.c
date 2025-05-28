@@ -38,6 +38,7 @@ void cmd_clear();
 void cmd_echo(char* args);
 void cmd_test();
 void cmd_info();
+void cmd_dateTime();
 
 // Utilidades de string
 int str_equals(const char* s1, const char* s2);
@@ -145,9 +146,10 @@ void clear_screen() {
 // Comandos disponibles
 void cmd_help() {
     shell_print("Comandos disponibles:\n");
-    shell_print("  help     - Mostrar esta ayuda\n");
-    shell_print("  clear    - Limpiar pantalla\n");
-    shell_print("  echo     - Mostrar texto\n");
+    shell_print("  help      - Mostrar esta ayuda\n");
+    shell_print("  clear     - Limpiar pantalla\n");
+    shell_print("  echo      - Mostrar texto\n");
+    shell_print("  dateTime  - Mostrar fecha y hora\n");
     shell_print("\nControles:\n");
     shell_print("  Enter - Ejecutar comando\n");
     shell_print("  Backspace - Borrar carácter\n");
@@ -208,6 +210,30 @@ void cmd_amongus() {
     shell_newline();
 }
 
+void cmd_dateTime(){
+    uint8_t year=0,month=0,day=0,hours=0,minutes=0,seconds=0;
+    char str [18] = "hola"; // "DD/MM/YY HH:MM:SS";
+    //shell_print("DD/MM/YY HH:MM:SS");
+
+    getLocalTime(&hours,&minutes,&seconds);
+    getLocalDate(&year,&month,&day);
+
+    itos_padded(day, str,2);
+    itos_padded(month, str+3,2);
+    itos_padded(year, str+6,2);
+    itos_padded(hours, str+9,2);
+    itos_padded(minutes, str+12,2);
+    itos_padded(seconds, str+15,2);
+    str[2]=str[5]='-';
+    str[8]=' ';
+    str[11]=str[14]=':';
+
+    shell_print(str);
+    
+    shell_newline();
+}
+
+
 // Ejecutar comando
 void execute_command() {
   hide_cursor(); 
@@ -228,7 +254,9 @@ void execute_command() {
     } else if (str_equals(cmd_copy, "echo")) {
         cmd_echo(args);
     } else if (str_equals(cmd_copy, "SUS")) {
-	cmd_amongus();
+	    cmd_amongus();
+    } else if (str_equals(cmd_copy, "dateTime")) {
+	    cmd_dateTime();
     } else if (cmd_copy[0] != '\0') {
         shell_print_colored("Error: ", ERROR_COLOR);
         shell_print("Comando desconocido '");
@@ -244,7 +272,7 @@ static int cursor_drawn = 0;
 #define CURSOR_BLINK_INTERVAL 80  //en ticks
 
 void update_cursor() {
-    int current_time = syscall_time();
+    int current_time = getBootTime();
     int should_blink = (current_time - last_cursor_time >= CURSOR_BLINK_INTERVAL);
     
     if (should_blink) {
@@ -264,7 +292,7 @@ void update_cursor() {
 // Función para forzar cursor visible (llamar después de escribir)
 void reset_cursor() {
     cursor_visible = 1;
-    last_cursor_time = syscall_time();
+    last_cursor_time = getBootTime();
     if (!cursor_drawn) {
         fbDrawChar(fb, '_', PROMPT_COLOR, SHELL_COLOR, cursor_x, cursor_y, FONT_SIZE);
         cursor_drawn = 1;

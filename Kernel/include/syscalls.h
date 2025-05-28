@@ -11,7 +11,9 @@
 #define SYSCALL_READ 0
 #define SYSCALL_WRITE 1
 #define SYSCALL_ISKEYDOWN 2
-#define SYSCALL_GETTIME 3
+#define SYSCALL_GET_BOOTTIME 3
+#define SYSCALL_GET_TIME 4
+#define SYSCALL_GET_DATE 5
 
 #define SYSCALL_GET_VIDEO_DATA 9
 #define SYSCALL_PUT_PIXEL 10
@@ -29,6 +31,11 @@ void sys_put_pixel(uint32_t hexColor, uint64_t x, uint64_t y);
 
 void sys_set_framebuffer(uint8_t * fb);
 
-uint64_t sys_getTime();
+uint64_t sys_getBootTime();
+
+void sys_getTime(uint8_t* hours, uint8_t* minutes, uint8_t* seconds);
+
+void sys_getDate(uint8_t* year, uint8_t* month, uint8_t* day);
+
 
 #endif

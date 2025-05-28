@@ -10,8 +10,14 @@ int syscallHandler(int syscall_num, uint64_t arg1, uint64_t arg2, uint64_t arg3,
             return sys_write((int)arg1, (const char*)arg2, (uint64_t)arg3);
 	    case SYSCALL_ISKEYDOWN:
 		    return sys_isKeyDown((int)arg1);
-	    case SYSCALL_GETTIME:
-		    return sys_getTime();
+	    case SYSCALL_GET_BOOTTIME:
+		    return sys_getBootTime();
+        case SYSCALL_GET_TIME:
+		    sys_getTime(arg1, arg2, arg3);
+            return 1;
+        case SYSCALL_GET_DATE:
+		    sys_getDate(arg1, arg2, arg3);    
+            return 1;
         case SYSCALL_GET_VIDEO_DATA:
             sys_get_video_data((uint16_t*) arg1, (uint16_t*) arg2,(uint16_t*) arg3, (uint16_t*) arg4);
             return 1; 
@@ -82,10 +88,9 @@ void timerTickHandler() {
 /*
  * ID 3
  */
-uint64_t sys_getTime() {
+uint64_t sys_getBootTime() {
     return system_ticks * 10;  // 100 Hz → 10 ms por tick
 }
-
 
 /*
  * ID 9 
