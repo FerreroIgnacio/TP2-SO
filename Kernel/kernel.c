@@ -54,9 +54,9 @@ void * initializeKernelBinary()
 	ncPrint("[Loading modules]");
 	ncNewline();
 	void * moduleAddresses[] = {
-		sampleCodeModuleAddress,
-		sampleDataModuleAddress,
-		pongisgolfModuleAddress
+    sampleCodeModuleAddress,     // [0] -> Shell goes to 0x400000 ✓
+    sampleDataModuleAddress,     // [1] -> Data goes to 0x500000 ✓  
+    pongisgolfModuleAddress      // [2] -> PongisGolf goes to 0x1000000 ✓
 	};
 
 	loadModules(&endOfKernelBinary, moduleAddresses);
@@ -112,9 +112,12 @@ int main()
 	idtInit();
 	
 
-	((EntryPoint)sampleCodeModuleAddress)();
-	//((EntryPoint)pongisgolfModuleAddress)();
-	//drawInt(((EntryPoint)pongisgolfModuleAddress)(), 0xFF0000, 0x111111, 0,8 * 3, 3);
+//	((EntryPoint)sampleCodeModuleAddress)();
+	((EntryPoint)pongisgolfModuleAddress)();
+//	drawInt(((EntryPoint)0x1000000)(), 0xFF0000, 0x111111, 0,8 * 3, 3);
+	//prueba para drawInt
+	drawInt(15, 0xFF0000, 0x111111, 8 * 3,8 * 3, 3);
+	
 	//drawInt(((EntryPoint)sampleCodeModuleAddress)(), 0xFF0000, 0x111111, 0,8 * 3, 3);
 	while(1);
 	return 0;

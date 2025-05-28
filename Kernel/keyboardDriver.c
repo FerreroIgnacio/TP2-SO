@@ -32,7 +32,7 @@ void keyPressedAction(uint8_t scancode) {
         }
 		
         // Solo mostrar y enviar scancode crudo
-	//  drawInt(scancode, 0xFFFFFF, 0x000000, 0, getHeight() - 8 * 3, 3);
+	  drawInt(scancode, 0xFFFFFF, 0x000000, 0, getHeight() - 8 * 3, 3);
     //	char * msj = sys_isKeyDown(0x2A) || sys_isKeyDown(0x36) ? "Algun shift down :)" : "Ningun shift down :(";
     //	putText(msj, 0xFFFFFF, 0x000000, 0, getHeight() - 8 * 3 - 8 * 3, 3);
 	//        putChar(scancode, 0xFFFFFF, 0x000000, 0, getHeight() - 8 * 3, 3);
