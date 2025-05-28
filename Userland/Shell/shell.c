@@ -1,5 +1,3 @@
-/*
-
 #include "../standard.h"
 
 #define CHAR_PER_LINE width / (FONT_SIZE * FONT_BMP_SIZE)
@@ -21,6 +19,7 @@ static char command_buffer[BUFFER_SIZE];
 static int buffer_pos = 0;
 static int cursor_x = 0;
 static int cursor_y = 0;
+static int prompt_x = 0; // Nueva variable para recordar donde empieza el prompt
 
 // Prototipos de funciones
 void shell_main();
@@ -33,6 +32,10 @@ void shell_print_prompt();
 void clear_buffer();
 void clear_screen();
 void execute_command();
+void hide_cursor();
+void reset_cursor();
+void update_cursor();
+void redraw_command_line();
 
 // Comandos disponibles
 void cmd_help();
@@ -79,14 +82,14 @@ char* find_args(char* cmd) {
     return cmd;
 }
 
-// Función para imprimir un carácter
+// Función para imprimir un carácter (solo para output, no para input)
 void shell_putchar(char c) {
     if (c == '\n') {
         shell_newline();
         return;
     }
-    drawChar(cursor_x, cursor_y, c, FONT_COLOR);
-    //fbDrawChar(fb, c, FONT_COLOR, SHELL_COLOR, cursor_x, cursor_y, FONT_SIZE);
+    
+    drawCharHighlight(cursor_x, cursor_y, c, FONT_COLOR, SHELL_COLOR);
     cursor_x += FONT_SIZE * FONT_BMP_SIZE;
     
     if (cursor_x >= CHAR_PER_LINE * FONT_SIZE * FONT_BMP_SIZE) {
@@ -101,12 +104,12 @@ void shell_print(const char* str) {
 
 // Función para imprimir string con color específico
 void shell_print_colored(const char* str, uint32_t color) {
+    hide_cursor();
     while (*str) {
         if (*str == '\n') {
             shell_newline();
         } else {
-            drawChar(cursor_x, cursor_y, *str, color);
-	        //fbDrawChar(fb, *str, color, SHELL_COLOR, cursor_x, cursor_y, FONT_SIZE);
+            drawCharHighlight(cursor_x, cursor_y, *str, color, SHELL_COLOR);
             cursor_x += FONT_SIZE * FONT_BMP_SIZE;
             if (cursor_x >= CHAR_PER_LINE * FONT_SIZE * FONT_BMP_SIZE) {
                 shell_newline();
@@ -119,11 +122,11 @@ void shell_print_colored(const char* str, uint32_t color) {
 // Nueva línea
 void shell_newline() {
     hide_cursor();
-	cursor_x = 0;
+    cursor_x = 0;
     cursor_y += FONT_SIZE * FONT_BMP_SIZE + LINE_Y_PADDING;
     
     // Si llegamos al final de la pantalla, hacer scroll
-    if (cursor_y >= height - FONT_SIZE) {
+    if (cursor_y >= height - (FONT_SIZE * FONT_BMP_SIZE + LINE_Y_PADDING)) {
         clear_screen();
         cursor_y = 0;
         shell_print_colored("--- Se limpio la pantalla (scroll) ---\n", PROMPT_COLOR);
@@ -133,6 +136,7 @@ void shell_newline() {
 // Mostrar prompt
 void shell_print_prompt() {
     shell_print_colored("> ", PROMPT_COLOR);
+    prompt_x = cursor_x; // Recordar donde termina el prompt
 }
 
 // Limpiar buffer de comandos
@@ -141,11 +145,38 @@ void clear_buffer() {
     command_buffer[0] = '\0';
 }
 
-// Limpiar pantalla
+
 void clear_screen() {
-	//fbFill (fb, SHELL_COLOR);
+    for (uint32_t y = 0; y < height; y++) {
+        for (uint32_t x = 0; x < width; x++) {
+            setPixel(x, y, SHELL_COLOR);
+        }
+    }
     cursor_x = cursor_y = 0;
 }
+
+
+// Redibujar la línea de comando completa
+void redraw_command_line() {
+    hide_cursor();
+    
+    // Limpiar desde el prompt hasta el final de la línea
+    int temp_x = prompt_x;
+    while (temp_x < CHAR_PER_LINE * FONT_SIZE * FONT_BMP_SIZE) {
+        drawCharHighlight(temp_x, cursor_y, ' ', SHELL_COLOR, SHELL_COLOR);
+        temp_x += FONT_SIZE * FONT_BMP_SIZE;
+    }
+    
+    // Redibujar el comando actual
+    cursor_x = prompt_x;
+    for (int i = 0; i < buffer_pos; i++) {
+        drawCharHighlight(cursor_x, cursor_y, command_buffer[i], FONT_COLOR, SHELL_COLOR);
+        cursor_x += FONT_SIZE * FONT_BMP_SIZE;
+    }
+    
+    reset_cursor();
+}
+
 // Comandos disponibles
 void cmd_help() {
     shell_print("Comandos disponibles:\n");
@@ -166,8 +197,7 @@ void cmd_echo(char* args) {
     if (*args) {
         shell_print(args);
     }
-   shell_newline();
-
+    shell_newline();
 }
 
 //Altamente experimental, despues la borramos total es un amongus(sus) junto al soporte de unicode
@@ -215,8 +245,7 @@ void cmd_amongus() {
 
 void cmd_dateTime(){
     uint8_t year=0,month=0,day=0,hours=0,minutes=0,seconds=0;
-    char str [18] = "hola"; // "DD/MM/YY HH:MM:SS";
-    //shell_print("DD/MM/YY HH:MM:SS");
+    char str[18] = "hola"; // "DD/MM/YY HH:MM:SS";
 
     getLocalTime(&hours,&minutes,&seconds);
     getLocalDate(&year,&month,&day);
@@ -232,19 +261,14 @@ void cmd_dateTime(){
     str[11]=str[14]=':';
 
     shell_print(str);
-    
     shell_newline();
 }
 
-
 // Ejecutar comando
 void execute_command() {
-  hide_cursor(); 
-     	if (buffer_pos == 0) return;
-    // Borro el cursor antes de ejecutar comando
-    drawChar(cursor_x, cursor_y, ' ', PROMPT_COLOR);
-    //fbDrawChar(fb,' ', PROMPT_COLOR, SHELL_COLOR, cursor_x, cursor_y, FONT_SIZE);
-
+    if (buffer_pos == 0) return;
+    
+    hide_cursor();
     command_buffer[buffer_pos] = '\0';
     
     char cmd_copy[BUFFER_SIZE];
@@ -258,9 +282,9 @@ void execute_command() {
     } else if (str_equals(cmd_copy, "echo")) {
         cmd_echo(args);
     } else if (str_equals(cmd_copy, "SUS")) {
-	    cmd_amongus();
+        cmd_amongus();
     } else if (str_equals(cmd_copy, "dateTime")) {
-	    cmd_dateTime();
+        cmd_dateTime();
     } else if (cmd_copy[0] != '\0') {
         shell_print_colored("Error: ", ERROR_COLOR);
         shell_print("Comando desconocido '");
@@ -280,48 +304,49 @@ void update_cursor() {
     int should_blink = (current_time - last_cursor_time >= CURSOR_BLINK_INTERVAL);
     
     if (should_blink) {
+        // Borrar cursor actual si está dibujado
+        if (cursor_drawn) {
+            drawCharHighlight(cursor_x, cursor_y, ' ', SHELL_COLOR, SHELL_COLOR);
+        }
+        
+        // Cambiar estado
         cursor_visible = !cursor_visible;
+        cursor_drawn = cursor_visible;
         last_cursor_time = current_time;
-    }
-    
-    // Solo actualizar la pantalla si el estado visual cambió
-    int should_be_drawn = cursor_visible;
-    if (cursor_drawn != should_be_drawn) {
-        char cursor_char = should_be_drawn ? '_' : ' ';
-         drawChar(cursor_x, cursor_y, cursor_char, PROMPT_COLOR);
-	//fbDrawChar(fb, cursor_char, PROMPT_COLOR, SHELL_COLOR, cursor_x, cursor_y, FONT_SIZE);
-        cursor_drawn = should_be_drawn;
+        
+        // Dibujar nuevo estado
+        if (cursor_visible) {
+            drawCharHighlight(cursor_x, cursor_y, '_', PROMPT_COLOR, SHELL_COLOR);
+        }
     }
 }
 
 // Función para forzar cursor visible (llamar después de escribir)
 void reset_cursor() {
     cursor_visible = 1;
+    cursor_drawn = 1;
     last_cursor_time = getBootTime();
-    if (!cursor_drawn) {
-        drawChar(cursor_x, cursor_y, '_', PROMPT_COLOR);
-	    // fbDrawChar(fb, '_', PROMPT_COLOR, SHELL_COLOR, cursor_x, cursor_y, FONT_SIZE);
-        cursor_drawn = 1;
-    }
+    drawCharHighlight(cursor_x, cursor_y, '_', PROMPT_COLOR, SHELL_COLOR);
 }
 
 // Función para ocultar cursor (llamar antes de escribir texto)
 void hide_cursor() {
     if (cursor_drawn) {
-         drawChar(cursor_x, cursor_y, ' ', SHELL_COLOR);
-	    //fbDrawChar(fb, ' ', SHELL_COLOR, SHELL_COLOR, cursor_x, cursor_y, FONT_SIZE);
+        drawCharHighlight(cursor_x, cursor_y, ' ', SHELL_COLOR, SHELL_COLOR);
         cursor_drawn = 0;
     }
 }
 
 #define LSHIFT_SCANCODE 0x2A
 #define RSHIFT_SCANCODE 0x36
-    // Manejar entrada del teclado usando syscalls
+
+// Manejar entrada del teclado usando syscalls
 void handle_keyboard_input() {
-	update_cursor();  
+    update_cursor();  
 
     // Actualizar estado de shift usando syscall_isKeyDown
-      int shift_pressed = syscall_isKeyDown(LSHIFT_SCANCODE) || syscall_isKeyDown(RSHIFT_SCANCODE); // Left/Right Shift
+    int shift_pressed = syscall_isKeyDown(LSHIFT_SCANCODE) || syscall_isKeyDown(RSHIFT_SCANCODE);
+    
     // Leer scancode del buffer usando syscall_read
     uint8_t scancode;
     if (syscall_read(0, (char*)&scancode, 1) > 0) {
@@ -329,9 +354,8 @@ void handle_keyboard_input() {
         if (scancode == 0x1C) { // Enter
             shell_newline();
             execute_command();
-	    clear_buffer();
-         
-	    shell_newline();
+            clear_buffer();
+            shell_newline();
             shell_print_prompt();
             return;
         }
@@ -339,13 +363,8 @@ void handle_keyboard_input() {
         if (scancode == 0x0E) { // Backspace
             if (buffer_pos > 0) {
                 buffer_pos--;
-		hide_cursor();
                 command_buffer[buffer_pos] = '\0';
-                if (cursor_x >= FONT_SIZE * FONT_BMP_SIZE) {
-                    cursor_x -= FONT_SIZE * FONT_BMP_SIZE;
-                 	drawChar(cursor_x, cursor_y, ' ', FONT_COLOR);
-		    //fbDrawChar(fb, ' ', FONT_COLOR, SHELL_COLOR, cursor_x, cursor_y, FONT_SIZE);
-                }
+                redraw_command_line();
             }
             return;
         }
@@ -356,7 +375,21 @@ void handle_keyboard_input() {
         // Solo agregar caracteres imprimibles
         if (ascii != 0 && ascii >= 32 && ascii <= 126 && buffer_pos < BUFFER_SIZE - 1) {
             command_buffer[buffer_pos++] = ascii;
-            shell_putchar(ascii);
+            command_buffer[buffer_pos] = '\0'; // Mantener terminado en null
+            
+            hide_cursor();
+            // Dibujar el nuevo carácter
+            drawCharHighlight(cursor_x, cursor_y, ascii, FONT_COLOR, SHELL_COLOR);
+            cursor_x += FONT_SIZE * FONT_BMP_SIZE;
+            
+            // Verificar si necesitamos wrap (opcional, depende de tu diseño)
+            if (cursor_x >= CHAR_PER_LINE * FONT_SIZE * FONT_BMP_SIZE) {
+                // Manejar wrap si es necesario
+                cursor_x = prompt_x; // Volver al inicio del prompt en nueva línea
+                cursor_y += FONT_SIZE * FONT_BMP_SIZE + LINE_Y_PADDING;
+            }
+            
+            reset_cursor();
         }
     }
 }
@@ -377,18 +410,14 @@ void shell_main() {
     // Loop principal
     while (1) {
         handle_keyboard_input();
-        //fbSet(fb);
     }
 }
 
-
 // Punto de entrada principal
-uint8_t newFb [100000000]; // CAMBIAR POR MALLOC
+uint8_t newFb[100000000]; // CAMBIAR POR MALLOC
 int main() {
     fb = newFb;
     getVideoData(&width,&height,&bpp,&pitch);
     shell_main();
     return 0;
 }
-    
-*/

@@ -1,4 +1,4 @@
-#include "../standard.h"
+/*G#include "../standard.h"
 
 #define CHAR_PER_LINE width / (FONT_SIZE * FONT_BMP_SIZE)
 #define FONT_BMP_SIZE 8 
@@ -401,4 +401,4 @@ int main() {
     getVideoData(&width,&height,&bpp,&pitch);
     shell_main();
     return 0;
-}
+}*/

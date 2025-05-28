@@ -350,8 +350,6 @@ void itos_padded(uint64_t value, char* str, int width) {
 }
 
 
-
-
 /* Funciones mejoradas con fbSetRegion B) */
 /* SUS ඞ */
 
@@ -361,32 +359,42 @@ void itos_padded(uint64_t value, char* str, int width) {
  * Si quisieramos expandir a RGBA o algun formato con mayor bpp
  * basta con cambiar el tipo de los parametros de color y setear NO_COLOR_MASK a un valor fuera del rango del bpp
  */
-#define NO_COLOR_MASK 0xFFFFFFFF
-#define NO_MASK_COLOR NO_COLOR_MASK
+#define NO_COLOR_MASK 0xFFFFFF + 1
 #define BPP 3
 #define TEMP_ALLOC_LEN 500 //despues reemplazamos por malloc(width, height);
 
+/*
+ * Dado dos colores genera un color de mascara diferente a ellos dos
+ */
+uint32_t generateMaskColor(uint32_t colorA, uint32_t colorB){
+	if(colorA + 1 == colorB){
+		return colorB + 1;
+	}
+	return colorA + 1;
+}
 			
 void setPixel(uint32_t x, uint32_t y, uint32_t color) {
     uint8_t bmp[BPP];
     bmp[0] = color & 0xFF;
     bmp[1] = (color >> 8) & 0xFF;
     bmp[2] = (color >> 16) & 0xFF;
-    fbSetRegion(x, y, 1, 1, bmp, NO_COLOR_MASK);
+    fbSetRegion(x, y, 1, 1, bmp, color + 1 /* no mask */);
 }
 void drawRect(uint32_t x, uint32_t y, uint32_t width, uint32_t height, uint32_t color) {
     uint8_t bmp[TEMP_ALLOC_LEN][TEMP_ALLOC_LEN][BPP];
+    uint32_t maskColor = color + 1;
     for (uint32_t j = 0; j < height; j++)
         for (uint32_t i = 0; i < width; i++) {
             bmp[j][i][0] = color & 0xFF;
             bmp[j][i][1] = (color >> 8) & 0xFF;
             bmp[j][i][2] = (color >> 16) & 0xFF;
         }
-    fbSetRegion(x, y, width, height, (uint8_t*)bmp, NO_COLOR_MASK); // sin máscara
+    fbSetRegion(x, y, width, height, (uint8_t*)bmp, maskColor); // sin máscara
 }
 void drawCircle(uint32_t x, uint32_t y, uint32_t r, uint32_t color) {
     uint32_t d = r * 2 + 1;
     uint8_t bmp[TEMP_ALLOC_LEN][TEMP_ALLOC_LEN][3];
+    uint32_t maskColor = color + 1;
     for (uint32_t j = 0; j < d; j++) {
         for (uint32_t i = 0; i < d; i++) {
             int dx = (int)i - (int)r;
@@ -396,26 +404,33 @@ void drawCircle(uint32_t x, uint32_t y, uint32_t r, uint32_t color) {
                 bmp[j][i][1] = (color >> 8) & 0xFF;
                 bmp[j][i][2] = (color >> 16) & 0xFF;
             } else {
-                bmp[j][i][0] = NO_COLOR_MASK & 0xFF;
-                bmp[j][i][1] = (NO_COLOR_MASK >> 8) & 0xFF;
-                bmp[j][i][2] = (NO_COLOR_MASK >> 16) & 0xFF;
+                bmp[j][i][0] = (maskColor) & 0xFF;
+                bmp[j][i][1] = (maskColor >> 8) & 0xFF;
+                bmp[j][i][2] = (maskColor >> 16) & 0xFF;
             }
         }
     }
 
-    fbSetRegion(x - r, y - r, d, d, (uint8_t*)bmp, NO_COLOR_MASK);
+    fbSetRegion(x - r, y - r, d, d, (uint8_t*)bmp, maskColor);
 }
 void drawChar(uint32_t x, uint32_t y, char ascii, uint32_t color){
 	drawCharHighlight(x, y, ascii, color, NO_COLOR_MASK);
 }
+
 void drawCharHighlight(uint32_t x, uint32_t y, char ascii, uint32_t color, uint32_t backColor) {
-	if ((uint8_t)ascii > 127) return;
+    if ((uint8_t)ascii > 127) return;
 
     uint8_t bmp[FONT_HEIGHT][FONT_WIDTH][BPP];
-
-    for (uint32_t row = 0; row < FONT_WIDTH; row++) {
+    uint32_t maskColor = generateMaskColor(color, backColor);
+    int hasBackground = (backColor != NO_COLOR_MASK);  
+    
+    if(!hasBackground){
+        backColor = maskColor;  
+    }
+    
+    for (uint32_t row = 0; row < FONT_HEIGHT; row++) {  
         uint8_t bits = font8x8_basic[(uint8_t)ascii][row];
-        for (uint32_t col = 0; col < 8; col++) {
+        for (uint32_t col = 0; col < FONT_WIDTH; col++) { 
             if (bits & (1 << col)) {
                 bmp[row][col][0] = color & 0xFF;
                 bmp[row][col][1] = (color >> 8) & 0xFF;
@@ -427,9 +442,14 @@ void drawCharHighlight(uint32_t x, uint32_t y, char ascii, uint32_t color, uint3
             }
         }
     }
-
-    fbSetRegion(x, y, FONT_WIDTH, FONT_HEIGHT, (uint8_t*)bmp, NO_COLOR_MASK);
+    
+    fbSetRegion(x, y, FONT_WIDTH, FONT_HEIGHT, (uint8_t*)bmp, 
+                hasBackground ? NO_COLOR_MASK : maskColor);
 }
+
+
+
+
 void drawTextHighlight(uint32_t x, uint32_t y, const char* str, uint32_t color, uint32_t backColor) {
     while (*str) {
         drawCharHighlight(x, y, *str, color, backColor);
@@ -438,10 +458,10 @@ void drawTextHighlight(uint32_t x, uint32_t y, const char* str, uint32_t color, 
     }
 }
 void drawText(uint32_t x, uint32_t y, const char* str, uint32_t color) {
-	drawTextHighlight(x,y, str, color, NO_MASK_COLOR);
+	drawTextHighlight(x,y, str, color, NO_COLOR_MASK);
 }
 void drawInt(uint32_t x, uint32_t y, int value, uint32_t color){
-	drawIntHighlight(x,y,value,color, NO_MASK_COLOR);
+	drawIntHighlight(x,y,value,color, NO_COLOR_MASK);
 }
 void drawIntHighlight(uint32_t x, uint32_t y, int value, uint32_t color, uint32_t backColor) {
     char buf[TEMP_ALLOC_LEN];
