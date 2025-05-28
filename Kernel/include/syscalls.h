@@ -18,6 +18,7 @@
 #define SYSCALL_GET_VIDEO_DATA 9
 #define SYSCALL_PUT_PIXEL 10
 #define SYSCALL_SET_FRAMEBUFFER 11
+#define SYSCALL_SET_FRAMEBUFFER_REGION 12
 
 int sys_write(int fd, const char* buffer, uint64_t count);
 
@@ -37,5 +38,6 @@ void sys_getTime(uint8_t* hours, uint8_t* minutes, uint8_t* seconds);
 
 void sys_getDate(uint8_t* year, uint8_t* month, uint8_t* day);
 
+void sys_set_framebuffer_region(uint32_t topLeftX, uint32_t topLeftY, uint32_t width, uint32_t height, uint8_t* bmp, uint32_t maskColor);
 
 #endif

@@ -2,15 +2,15 @@
 #include <syscalls.h>
 #include <keyboardDriver.h>
 
-int syscallHandler(int syscall_num, uint64_t arg1, uint64_t arg2, uint64_t arg3, uint64_t arg4, uint64_t arg5) {
+int syscallHandler(int syscall_num, uint64_t arg1, uint64_t arg2, uint64_t arg3, uint64_t arg4, uint64_t arg5, uint64_t arg6) {
     switch(syscall_num) {
         case SYSCALL_READ: // read
             return sys_read((int)arg1, (char*)arg2, (uint64_t)arg3);
         case SYSCALL_WRITE: // write  
             return sys_write((int)arg1, (const char*)arg2, (uint64_t)arg3);
-	    case SYSCALL_ISKEYDOWN:
-		    return sys_isKeyDown((int)arg1);
-	    case SYSCALL_GET_BOOTTIME:
+	case SYSCALL_ISKEYDOWN:
+		return sys_isKeyDown((int)arg1);
+	case SYSCALL_GET_BOOTTIME:
 		    return sys_getBootTime();
         case SYSCALL_GET_TIME:
 		    sys_getTime(arg1, arg2, arg3);
@@ -22,12 +22,15 @@ int syscallHandler(int syscall_num, uint64_t arg1, uint64_t arg2, uint64_t arg3,
             sys_get_video_data((uint16_t*) arg1, (uint16_t*) arg2,(uint16_t*) arg3, (uint16_t*) arg4);
             return 1; 
         case SYSCALL_PUT_PIXEL:
-	        sys_put_pixel((uint32_t)arg1, (uint64_t)arg2, (uint64_t)arg3);
-        	return 1;
+            sys_put_pixel((uint32_t)arg1, (uint64_t)arg2, (uint64_t)arg3);
+            return 1;
         case SYSCALL_SET_FRAMEBUFFER:
             sys_set_framebuffer((uint8_t*)arg1);
             return 1;
-	    default:
+        case SYSCALL_SET_FRAMEBUFFER_REGION:
+            sys_set_framebuffer_region((uint32_t)arg1, (uint32_t)arg2, (uint32_t)arg3, (uint32_t)arg4, (uint8_t*)arg5, (uint32_t)arg6);
+            return 1;
+        default:
             return -1;
     }
 }
@@ -118,4 +121,10 @@ void sys_put_pixel(uint32_t hexColor, uint64_t x, uint64_t y){
  */
 void sys_set_framebuffer(uint8_t * fb){
     setFramebuffer(fb);
+}
+/*
+* ID 12
+*/
+void sys_set_framebuffer_region(uint32_t topLeftX, uint32_t topLeftY, uint32_t width, uint32_t height, uint8_t* bmp, uint32_t maskColor){
+   setFrameBufferRegion(topLeftX, topLeftY, width, height, bmp, maskColor);
 }

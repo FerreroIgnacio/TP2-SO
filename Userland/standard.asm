@@ -1,17 +1,23 @@
-global syscall_write
-global syscall_read
-global syscall_isKeyDown
-global syscall_time
+GLOBAL syscall_write
+GLOBAL syscall_read
+GLOBAL syscall_isKeyDown
+GLOBAL syscall_time
 GLOBAL getBootTime
 GLOBAL getLocalTime 
 GLOBAL getLocalDate
 GLOBAL putPixel
 GLOBAL getVideoData
 GLOBAL fbSet
-
+GLOBAL fbSetRegion
 SECTION .text
 
 
+;fbSetRegion(uint32_t topLeftX, uint32_t topLeftY, uint32_t width, uint32_t height, uint8_t* bmp, uint32_t maskColor)
+fbSetRegion:
+   mov rax, 12         ; syscall ID para set framebuffer region
+   ; rdi=topLeftX, rsi=topLeftY, rdx=width, rcx=height, r8=bmp, r9=maskColor
+   int 0x80
+   ret	
 
 ; int syscall_write(int fd, const char *buf, unsigned long count)
 syscall_write:

@@ -21,7 +21,7 @@ extern char font8x8_basic[128][8];
 
 static void * const sampleCodeModuleAddress = (void*)0x400000;
 static void * const sampleDataModuleAddress = (void*)0x500000;
-static void * const pongisgolfModuleAddress = (void*)0x900000;
+static void * const pongisgolfModuleAddress = (void*)0x1000000;
 
 typedef int (*EntryPoint)();
 
@@ -54,9 +54,9 @@ void * initializeKernelBinary()
 	ncPrint("[Loading modules]");
 	ncNewline();
 	void * moduleAddresses[] = {
-		sampleCodeModuleAddress,
-		sampleDataModuleAddress,
-		pongisgolfModuleAddress
+    sampleCodeModuleAddress,     // [0] -> Shell goes to 0x400000 ✓
+    sampleDataModuleAddress,     // [1] -> Data goes to 0x500000 ✓  
+    pongisgolfModuleAddress      // [2] -> PongisGolf goes to 0x1000000 ✓
 	};
 
 	loadModules(&endOfKernelBinary, moduleAddresses);
@@ -112,9 +112,12 @@ int main()
 	idtInit();
 	
 
-	((EntryPoint)sampleCodeModuleAddress)();
+//	((EntryPoint)sampleCodeModuleAddress)();
 	((EntryPoint)pongisgolfModuleAddress)();
-	//drawInt(((EntryPoint)pongisgolfModuleAddress)(), 0xFF0000, 0x111111, 0,8 * 3, 3);
+//	drawInt(((EntryPoint)0x1000000)(), 0xFF0000, 0x111111, 0,8 * 3, 3);
+	//prueba para drawInt
+	drawInt(15, 0xFF0000, 0x111111, 8 * 3,8 * 3, 3);
+	
 	//drawInt(((EntryPoint)sampleCodeModuleAddress)(), 0xFF0000, 0x111111, 0,8 * 3, 3);
 	while(1);
 	return 0;

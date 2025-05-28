@@ -53,6 +53,32 @@ void setFramebuffer(uint8_t * fb){
     }
 }
 
+// Copia una region de bitmap al framebuffer con mascara de color sobre los px a ignorar
+void setFrameBufferRegion(uint32_t topLeftX, uint32_t topLeftY, uint32_t width, uint32_t height, uint8_t* bmp, uint32_t maskColor) {
+    if (!bmp || !VBE_mode_info) {
+        return;
+    }
+    
+    uint8_t* dest = (uint8_t*)VBE_mode_info->framebuffer;
+    uint32_t pitch = VBE_mode_info->pitch;
+    
+    for (uint32_t y = 0; y < height; y++) {
+        for (uint32_t x = 0; x < width; x++) {
+            uint64_t bmpOffset = (y * width + x) * 3;
+            
+            // Construir color RGB para comparar con máscara
+	    //  R, G, B
+            uint32_t pixelColor = bmp[bmpOffset] | (bmp[bmpOffset + 1] << 8) | (bmp[bmpOffset + 2] << 16);
+            
+            if (pixelColor != maskColor) {
+                uint64_t fbOffset = (topLeftY + y) * pitch + (topLeftX + x) * 3;
+                dest[fbOffset] = bmp[bmpOffset];
+                dest[fbOffset + 1] = bmp[bmpOffset + 1];
+                dest[fbOffset + 2] = bmp[bmpOffset + 2];
+            }
+        }
+    }
+}
 uint16_t getWidth() {
     return VBE_mode_info->width;
 }

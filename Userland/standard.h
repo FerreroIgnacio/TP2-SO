@@ -43,7 +43,7 @@ void itos(uint64_t value, char* str) ;
 // Función para formato de fecha/hora con padding de ceros
 void itos_padded(uint64_t value, char* str, int width);
 
-
+extern void fbSetRegion(uint32_t topLeftX, uint32_t topLeftY, uint32_t width, uint32_t height, uint8_t* bmp, uint32_t maskColor);
 
 // OBSOLETO, NO USAR
 /*

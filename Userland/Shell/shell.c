@@ -360,7 +360,7 @@ void shell_main() {
     
     // Mensaje de bienvenida
     shell_print_colored("=======================================\n", PROMPT_COLOR);
-    shell_print_colored("    SHELL v15.0\n", PROMPT_COLOR);
+    shell_print_colored("    SHELL v15.1\n", PROMPT_COLOR);
     shell_print_colored("=======================================\n", PROMPT_COLOR);
     shell_print("Escribe 'help' para ver comandos disponibles.\n\n");
     
