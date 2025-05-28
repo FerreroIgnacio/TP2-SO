@@ -3,8 +3,7 @@
 
 #include <stdint.h>
 //#include "font8x8/font8x8_basic.h"
-
-
+#define NULL 0
 #define FONT_HEIGHT 8
 #define FONT_WIDTH 8
 

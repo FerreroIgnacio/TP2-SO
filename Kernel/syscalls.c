@@ -105,6 +105,7 @@ static uint64_t system_ticks = 0;  // Contador de ticks global
 // Handler del timer (IRQ0)
 void timerTickHandler() {
     system_ticks++;  // Incrementa el contador en cada tick
+	drawInt(system_ticks,0xFF0000, 0x000000, 0,0 ,2);
 }
 
 /*
