@@ -314,11 +314,9 @@ void fpsInit(){
 
 //retorna la cantidad de frames 
 uint64_t getFps(){
-    double time = getBootTime()-timerCount;
-    time = time*5.4348;
-    if (time < 100) return 11111;
-    int inttime = time; 
-    uint64_t fps  = (1000 * framesCount)/inttime;
+    uint64_t time = getBootTime()-timerCount;
+    if (time < 100) return 0;
+    uint64_t fps  = (1000 * framesCount)/time;
     fpsInit();
     return fps;
 };

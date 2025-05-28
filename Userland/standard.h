@@ -13,6 +13,7 @@ extern int syscall_write(int fd, const char *buf, unsigned long count);
 extern int syscall_read(int fd, char *buf, unsigned long count);
 extern int syscall_isKeyDown(int scancode);
 
+// devuelve el tiempo de booteo en ms
 uint64_t getBootTime();
 
 void getLocalTime(uint8_t* hours, uint8_t* minutes, uint8_t* seconds);
@@ -41,6 +42,12 @@ void fbDrawText(uint8_t * fb, char* str, uint32_t hexColor, uint32_t backColor, 
 void fbDrawInt(uint8_t * fb, int num, uint32_t hexColor, uint32_t backColor, uint64_t x, uint64_t y, uint64_t size);
 
 void fbFill (uint8_t * fb, uint32_t hexColor);
+
+void incFramesCount();
+void fpsInit();
+
+//retorna la cantidad de frames 
+uint64_t getFps();
 
 void itos(uint64_t value, char* str) ;
 

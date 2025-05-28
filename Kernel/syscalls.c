@@ -112,7 +112,7 @@ void timerTickHandler() {
  * ID 3
  */
 uint64_t sys_getBootTime() {
-    return system_ticks * 10;  // 100 Hz → 10 ms por tick
+    return system_ticks * 55;  // 
 }
 
 /*
