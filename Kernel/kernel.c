@@ -112,7 +112,7 @@ int main()
 	idtInit();
 	
 
-//	((EntryPoint)sampleCodeModuleAddress)();
+	//((EntryPoint)sampleCodeModuleAddress)();
 	((EntryPoint)pongisgolfModuleAddress)();
 //	drawInt(((EntryPoint)0x1000000)(), 0xFF0000, 0x111111, 0,8 * 3, 3);
 	//prueba para drawInt
