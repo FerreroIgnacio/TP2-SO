@@ -12,6 +12,8 @@
 #define ERROR_COLOR 0xAA4444
 #define PROMPT_COLOR 0x44AAA4
 
+#define KEYS_PER_LOOP 7
+
 // Variables globales
 uint8_t * fb;
 uint16_t width=0, height=0, bpp=0, pitch=0;
@@ -245,6 +247,13 @@ void cmd_dateTime(){
 }
 
 
+void cmd_fps(){
+    char str [15] = "FPS: ";
+    itos_padded(getFps(), str+4,5);
+    shell_print(str);
+    shell_newline();
+}
+
 
 
 
@@ -268,12 +277,14 @@ void execute_command() {
         cmd_clear();
     } else if (str_equals(cmd_copy, "echo")) {
         cmd_echo(args);
-    } else if (str_equals(cmd_copy, "SUS")) {
-	    cmd_amongus();
     } else if (str_equals(cmd_copy, "datetime")) {
 	    cmd_dateTime();
+    } else if (str_equals(cmd_copy, "fps")) {
+	    cmd_fps();
     } else if (str_equals(cmd_copy, "pongisgolf")) {
 	    ((EntryPoint)pongisgolfModuleAddress)();    
+    } else if (str_equals(cmd_copy, "SUS")) {
+	    cmd_amongus();
     } else if (cmd_copy[0] != '\0') {
         shell_print_colored("Error: ", ERROR_COLOR);
         shell_print("Comando desconocido '");
@@ -375,6 +386,7 @@ void handle_keyboard_input() {
 
 // Función principal del shell
 void shell_main() {
+    fpsInit();
     clear_screen();
     clear_buffer();
     
@@ -388,8 +400,10 @@ void shell_main() {
     
     // Loop principal
     while (1) {
-        handle_keyboard_input();
+        for (int i = 0 ; i < KEYS_PER_LOOP ; i++)
+            handle_keyboard_input();
         fbSet(fb);
+        incFramesCount();
     }
 }
 

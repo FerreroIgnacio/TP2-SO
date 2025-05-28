@@ -198,6 +198,7 @@ char getAsciiFromMakeCode(uint8_t makeCode, int shifted) {
     return shifted ? makeCodeToAsciiShifted[makeCode] : makeCodeToAscii[makeCode];
 }
 
+
 uint64_t fbGetSize (){
     uint16_t height, pitch;
     getVideoData(0, &height, 0, &pitch);
@@ -281,25 +282,46 @@ void fbDrawInt(uint8_t * fb, int num, uint32_t hexColor, uint32_t backColor, uin
     fbDrawText(fb, buffer, hexColor, backColor, x, y, size);
 }
 
-void fbFill (uint8_t * fb, uint32_t hexColor){
+
+
+
+void fbFill(uint8_t * fb, uint32_t hexColor){
     uint16_t bpp, pitch, width, height;
     getVideoData(&width, &height, &bpp, &pitch);
-
     uint8_t r = (hexColor >> 16) & 0xFF;
     uint8_t g = (hexColor >> 8) & 0xFF;
     uint8_t b = hexColor & 0xFF;
     uint8_t bytesPerPixel = bpp / 8;
-
+    
     for (uint16_t y = 0; y < height; y++) {
         for (uint16_t x = 0; x < width; x++) {
             uint64_t offset = y * pitch + x * bytesPerPixel;
-            fb[offset]     = b;
+            fb[offset] = b;
             fb[offset + 1] = g;
             fb[offset + 2] = r;
         }
     }
-
 }
+
+uint64_t framesCount, timerCount;
+void incFramesCount(){
+    framesCount++;
+}
+void fpsInit(){
+    timerCount = getBootTime();
+    framesCount = 0;
+}
+
+//retorna la cantidad de frames 
+uint64_t getFps(){
+    double time = getBootTime()-timerCount;
+    time = time*5.4348;
+    if (time < 100) return 11111;
+    int inttime = time; 
+    uint64_t fps  = (1000 * framesCount)/inttime;
+    fpsInit();
+    return fps;
+};
 
 void itos(uint64_t value, char* str) {
     // Caso especial: si el valor es 0
