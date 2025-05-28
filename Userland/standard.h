@@ -3,6 +3,11 @@
 
 #include <stdint.h>
 //#include "font8x8/font8x8_basic.h"
+
+
+#define FONT_HEIGHT 8
+#define FONT_WIDTH 8
+
 extern char font8x8_basic[128][8];
 
 extern int syscall_write(int fd, const char *buf, unsigned long count);
@@ -44,6 +49,35 @@ void itos(uint64_t value, char* str) ;
 void itos_padded(uint64_t value, char* str, int width);
 
 extern void fbSetRegion(uint32_t topLeftX, uint32_t topLeftY, uint32_t width, uint32_t height, uint8_t* bmp, uint32_t maskColor);
+
+
+/* de fbSetRegion */
+
+// Dibuja un pixel en (x, y) con color RGB
+void setPixel(uint32_t x, uint32_t y, uint32_t color);
+
+// Dibuja un rectángulo de tamaño w x h en (x, y)
+void drawRect(uint32_t x, uint32_t y, uint32_t w, uint32_t h, uint32_t color);
+
+// Dibuja un círculo centrado en (x, y) con radio r
+void drawCircle(uint32_t x, uint32_t y, uint32_t r, uint32_t color);
+
+// Dibuja el carácter ASCII c (fuente 8x8) en (x, y)
+void drawChar(uint32_t x, uint32_t y, char c, uint32_t color);
+
+// Dibuja texto plano en (x, y) (usa fuente 8x8)
+void drawText(uint32_t x, uint32_t y, const char* str, uint32_t color);
+
+// Dibuja un entero como texto decimal en (x, y)
+void drawInt(uint32_t x, uint32_t y, int value, uint32_t color);
+
+/* Iguales a las de arriba, pero utilizando backColor */
+void drawCharHighlight(uint32_t x, uint32_t y, char c, uint32_t color, uint32_t backColor);
+
+void drawTextHighlight(uint32_t x, uint32_t y, const char* str, uint32_t color, uint32_t backColor);
+
+void drawIntHighlight(uint32_t x, uint32_t y, int value, uint32_t color, uint32_t backColor);
+
 
 // OBSOLETO, NO USAR
 /*
