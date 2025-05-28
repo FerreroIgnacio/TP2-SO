@@ -8,13 +8,9 @@ int main() {
 //    return 10;
     fb = newFb;
     getVideoData(&width,&height,&bpp,&pitch);
+    fbFill(fb,0x0A0105);
     fbDrawText(fb, "Bienvenido a Pongis Golf", 0xFFFFFF, 0x000000, 20, 20, 3);
     fbSet(fb);
-    for (int y = 0; y < 500; y++) {
-        for (int x = 0; x < 500; x++) {
-            putPixel(0x00AA00, x, y);
-        }
-    }
     //while(1);
     return 10;
 }
