@@ -8,11 +8,11 @@
 static char keysDown[256] = {0};
 
 // Handler de la interrupción irq01
-static int shiftPressed = 0;
+//static int shiftPressed = 0;
 static int capsLockOn = 0;
 void keyPressedAction(uint8_t scancode) {
     uint8_t keycode = scancode & 0x7F;
-    
+
     if (scancode & 0x80) {
         keysDown[keycode] = 0;
     } else {
@@ -23,11 +23,11 @@ void keyPressedAction(uint8_t scancode) {
         }
 		
         // Solo mostrar y enviar scancode crudo
-	  drawInt(scancode, 0xFFFFFF, 0x000000, 0, getHeight() - 8 * 3, 3);
-    //	char * msj = sys_isKeyDown(0x2A) || sys_isKeyDown(0x36) ? "Algun shift down :)" : "Ningun shift down :(";
-    //	putText(msj, 0xFFFFFF, 0x000000, 0, getHeight() - 8 * 3 - 8 * 3, 3);
-	//        putChar(scancode, 0xFFFFFF, 0x000000, 0, getHeight() - 8 * 3, 3);
-        queueKey(scancode);
+	    drawInt(scancode, 0xFFFFFF, 0x000000, 0, getHeight() - 8 * 3, 3);
+        //	char * msj = sys_isKeyDown(0x2A) || sys_isKeyDown(0x36) ? "Algun shift down :)" : "Ningun shift down :(";
+        //	putText(msj, 0xFFFFFF, 0x000000, 0, getHeight() - 8 * 3 - 8 * 3, 3);
+	    //  putChar(scancode, 0xFFFFFF, 0x000000, 0, getHeight() - 8 * 3, 3);
+        queueKeyStdin(scancode);
     }
 }
 int areKeysPressed(uint8_t * scanCodeVec){

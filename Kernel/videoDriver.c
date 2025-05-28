@@ -34,7 +34,7 @@ struct vbe_mode_info_structure {
 	uint8_t reserved_position;
 	uint8_t direct_color_attributes;
  
-	uint32_t framebuffer;		// physical address of the linear frame buffer; write here to draw to the screen
+	uint8_t * framebuffer;		// physical address of the linear frame buffer; write here to draw to the screen
 	uint32_t off_screen_mem_off;
 	uint16_t off_screen_mem_size;	// size of memory in the framebuffer but not being displayed on the screen
 	uint8_t reserved1[206];
@@ -44,9 +44,14 @@ typedef struct vbe_mode_info_structure * VBEInfoPtr;
 VBEInfoPtr VBE_mode_info = (VBEInfoPtr) 0x0000000000005C00;
 
 
-void setFramebuffer(uint8_t * fb){
-    uint64_t size = VBE_mode_info->pitch * VBE_mode_info->height;
 
+
+// Copia el framebuffer pasado por parámetro al hardware
+void setFramebuffer(uint8_t * fb){
+    if (!fb){
+        return;
+    }
+    uint64_t size = VBE_mode_info->pitch * VBE_mode_info->height;
     uint8_t * dest = (uint8_t *) VBE_mode_info->framebuffer;
     for (uint64_t i = 0; i < size; i++) {
         dest[i] = fb[i];
@@ -65,9 +70,8 @@ void setFrameBufferRegion(uint32_t topLeftX, uint32_t topLeftY, uint32_t width, 
     for (uint32_t y = 0; y < height; y++) {
         for (uint32_t x = 0; x < width; x++) {
             uint64_t bmpOffset = (y * width + x) * 3;
-            
             // Construir color RGB para comparar con máscara
-	    //  R, G, B
+	        //  R, G, B
             uint32_t pixelColor = bmp[bmpOffset] | (bmp[bmpOffset + 1] << 8) | (bmp[bmpOffset + 2] << 16);
             
             if (pixelColor != maskColor) {
@@ -97,7 +101,7 @@ uint16_t getPitch() {
 
 // Cambia el color del pixel (x,y) a hexColor</b></font>
 void putPixel(uint32_t hexColor, uint64_t x, uint64_t y) {
-    uint8_t * framebuffer = (uint8_t *) VBE_mode_info->framebuffer;
+    uint8_t * framebuffer = VBE_mode_info->framebuffer;
     uint64_t offset = (x * ((VBE_mode_info->bpp)/8)) + (y * VBE_mode_info->pitch);
     framebuffer[offset]     =  (hexColor) & 0xFF;
     framebuffer[offset+1]   =  (hexColor >> 8) & 0xFF; 
@@ -123,7 +127,7 @@ void putText(char* str, uint32_t hexColor, uint32_t backColor, uint64_t x, uint6
  void putChar(char ascii, uint32_t hexColor, uint32_t backColor, uint64_t x, uint64_t y, uint64_t size){
     if(ascii < 0 || ascii > 128) 
 	    return;
-	char * bmp = font8x8_basic[ascii];
+	char * bmp = font8x8_basic[(unsigned char)ascii];
 
     for(int j = 0; j < 64; j++){
         int fil = j / 8;    // fila (0-7)

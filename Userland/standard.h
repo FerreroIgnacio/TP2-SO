@@ -48,10 +48,10 @@ void itos(uint64_t value, char* str) ;
 // Función para formato de fecha/hora con padding de ceros
 void itos_padded(uint64_t value, char* str, int width);
 
-extern void fbSetRegion(uint32_t topLeftX, uint32_t topLeftY, uint32_t width, uint32_t height, uint8_t* bmp, uint32_t maskColor);
 
 
-/* de fbSetRegion */
+// 
+void fbSetRegion(uint32_t topLeftX, uint32_t topLeftY, uint32_t width, uint32_t height, uint8_t* bmp, uint32_t maskColor);
 
 // Dibuja un pixel en (x, y) con color RGB
 void setPixel(uint32_t x, uint32_t y, uint32_t color);
@@ -77,29 +77,6 @@ void drawCharHighlight(uint32_t x, uint32_t y, char c, uint32_t color, uint32_t 
 void drawTextHighlight(uint32_t x, uint32_t y, const char* str, uint32_t color, uint32_t backColor);
 
 void drawIntHighlight(uint32_t x, uint32_t y, int value, uint32_t color, uint32_t backColor);
-
-
-// OBSOLETO, NO USAR
-/*
-
-void drawChar(char ascii, uint32_t hexColor, uint32_t backColor, uint64_t x, uint64_t y, uint64_t size);
-
-// Escribe el string str en la posición (x,y)
-void drawText(char* str, uint32_t hexColor, uint32_t backColor, uint64_t x, uint64_t y, uint64_t size);
-
-void drawInt(int num, uint32_t hexColor, uint32_t backColor, uint64_t x, uint64_t y, uint64_t size);
-
-*/
-
-// Dibuja un rectángulo de w pixeles por h pixeles en la posición (x,y)
-// Siendo x,y la esquina inferior del rectángulo
-//void drawRectangle(uint32_t hexColor, uint64_t x, uint64_t y, uint64_t w, uint64_t h);
-
-// Dibuja un círculo de r píxeles de radio en la posición (x,y)
-//void drawCircle(uint32_t hexColor, uint64_t x, uint64_t y, uint64_t r);
-
-// Cambia todos los píxeles a hexColor
-//void fillScreen(uint32_t hexColor);
 
 
 

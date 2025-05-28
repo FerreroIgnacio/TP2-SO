@@ -1,11 +1,7 @@
 #include "standard.h"
-
 #include "font8x8/font8x8_basic.h"
-//uint16_t getWidth();
-//uint16_t getHeight();
 
 // Reemplaza las tablas en standard.c con estas versiones corregidas para layout argentino
-
 // Make code to ASCII mapping for Set 1 scancodes - Layout Argentino
 char makeCodeToAscii[128] = {
     0,      // 0x00 - unused
@@ -99,9 +95,8 @@ char makeCodeToAscii[128] = {
     0, 0, 0, 0, 0, 0, 0, 0, 0, 0,  // 0x5E-0x67 unused
     0, 0, 0, 0, 0, 0, 0, 0, 0, 0,  // 0x68-0x71 unused
     0, 0, 0, 0, 0, 0, 0, 0, 0, 0,  // 0x72-0x7B unused
-    0, 0, 0, 0                     // 0x7C-0x7F unused
+    0                              // 0x7C-0x7F unused
 };
-
 // Shifted characters mapping - Layout Argentino
 char makeCodeToAsciiShifted[128] = {
     0,      // 0x00 - unused
@@ -117,7 +112,7 @@ char makeCodeToAsciiShifted[128] = {
     ')',    // 0x0A - Shift+9
     '=',    // 0x0B - Shift+0
     '?',    // 0x0C - Shift+' (apostrofe)
-    '¡',    // 0x0D - Shift+¿
+    0,      // 0x0D - Shift+¿                   ARREGLAR ¡
     0,      // 0x0E - Backspace
     0,      // 0x0F - Tab
     'Q',    // 0x10
@@ -143,9 +138,9 @@ char makeCodeToAsciiShifted[128] = {
     'J',    // 0x24
     'K',    // 0x25
     'L',    // 0x26
-    'Ñ',    // 0x27 - Shift+ñ
+    0,      // 0x27 - Shift+ñ                   ARREGLAR Ñ
     '[',    // 0x28 - Shift+{
-    '°',    // 0x29 - Shift+|
+    0,      // 0x29 - Shift+|                    ARREGLAR °
     0,      // 0x2A - Left Shift
     ']',    // 0x2B - Shift+}
     'Z',    // 0x2C
@@ -195,7 +190,7 @@ char makeCodeToAsciiShifted[128] = {
     0, 0, 0, 0, 0, 0, 0, 0, 0, 0,  // 0x5E-0x67 unused
     0, 0, 0, 0, 0, 0, 0, 0, 0, 0,  // 0x68-0x71 unused
     0, 0, 0, 0, 0, 0, 0, 0, 0, 0,  // 0x72-0x7B unused
-    0, 0, 0, 0                     // 0x7C-0x7F unused
+    0,                             // 0x7C-0x7F unused
 };
 
 char getAsciiFromMakeCode(uint8_t makeCode, int shifted) {
@@ -220,7 +215,7 @@ void fbDrawChar(uint8_t * fb, char ascii, uint32_t hexColor, uint32_t backColor,
     
     if(ascii < 0 || ascii > 128) 
 	    return;
-	char * bmp = font8x8_basic[ascii];
+	char * bmp = font8x8_basic[(unsigned char)ascii];
 
     uint16_t bpp, pitch;
     getVideoData(0, 0, &bpp, &pitch);   
@@ -333,30 +328,30 @@ void itos(uint64_t value, char* str) {
     str[i] = '\0'; // null terminator
 }
 
-// Función para formato de fecha/hora con padding de ceros
 void itos_padded(uint64_t value, char* str, int width) {
-    // Convertir a string normal primero
+
     char temp[21];
     itos(value, temp);
     
-    // Calcular longitud del número
     int len = 0;
     while (temp[len] != '\0') len++;
     
-    // Agregar ceros al inicio si es necesario
     int padding = width - len;
     int i;
     for (i = 0; i < padding; i++) {
         str[i] = '0';
     }
     
-    // Copiar el número
     for (i = 0; i < len; i++) {
         str[padding + i] = temp[i];
     }
     
-    // NO agregar null terminator (para concatenación)
+    // no agrega null
 }
+
+
+
+
 /* Funciones mejoradas con fbSetRegion B) */
 /* SUS ඞ */
 
@@ -369,7 +364,6 @@ void itos_padded(uint64_t value, char* str, int width) {
 #define NO_COLOR_MASK 0xFFFFFFFF
 #define NO_MASK_COLOR NO_COLOR_MASK
 #define BPP 3
-#define setFbRegion fbSetRegion
 #define TEMP_ALLOC_LEN 500 //despues reemplazamos por malloc(width, height);
 
 			
@@ -378,7 +372,7 @@ void setPixel(uint32_t x, uint32_t y, uint32_t color) {
     bmp[0] = color & 0xFF;
     bmp[1] = (color >> 8) & 0xFF;
     bmp[2] = (color >> 16) & 0xFF;
-    setFbRegion(x, y, 1, 1, bmp, NO_COLOR_MASK);
+    fbSetRegion(x, y, 1, 1, bmp, NO_COLOR_MASK);
 }
 void drawRect(uint32_t x, uint32_t y, uint32_t width, uint32_t height, uint32_t color) {
     uint8_t bmp[TEMP_ALLOC_LEN][TEMP_ALLOC_LEN][BPP];
@@ -388,7 +382,7 @@ void drawRect(uint32_t x, uint32_t y, uint32_t width, uint32_t height, uint32_t 
             bmp[j][i][1] = (color >> 8) & 0xFF;
             bmp[j][i][2] = (color >> 16) & 0xFF;
         }
-    setFbRegion(x, y, width, height, (uint8_t*)bmp, NO_COLOR_MASK); // sin máscara
+    fbSetRegion(x, y, width, height, (uint8_t*)bmp, NO_COLOR_MASK); // sin máscara
 }
 void drawCircle(uint32_t x, uint32_t y, uint32_t r, uint32_t color) {
     uint32_t d = r * 2 + 1;
@@ -409,10 +403,8 @@ void drawCircle(uint32_t x, uint32_t y, uint32_t r, uint32_t color) {
         }
     }
 
-    setFbRegion(x - r, y - r, d, d, (uint8_t*)bmp, NO_COLOR_MASK);
+    fbSetRegion(x - r, y - r, d, d, (uint8_t*)bmp, NO_COLOR_MASK);
 }
-
-
 void drawChar(uint32_t x, uint32_t y, char ascii, uint32_t color){
 	drawCharHighlight(x, y, ascii, color, NO_COLOR_MASK);
 }
@@ -436,7 +428,7 @@ void drawCharHighlight(uint32_t x, uint32_t y, char ascii, uint32_t color, uint3
         }
     }
 
-    setFbRegion(x, y, FONT_WIDTH, FONT_HEIGHT, (uint8_t*)bmp, NO_COLOR_MASK);
+    fbSetRegion(x, y, FONT_WIDTH, FONT_HEIGHT, (uint8_t*)bmp, NO_COLOR_MASK);
 }
 void drawTextHighlight(uint32_t x, uint32_t y, const char* str, uint32_t color, uint32_t backColor) {
     while (*str) {
@@ -448,11 +440,9 @@ void drawTextHighlight(uint32_t x, uint32_t y, const char* str, uint32_t color, 
 void drawText(uint32_t x, uint32_t y, const char* str, uint32_t color) {
 	drawTextHighlight(x,y, str, color, NO_MASK_COLOR);
 }
-
 void drawInt(uint32_t x, uint32_t y, int value, uint32_t color){
 	drawIntHighlight(x,y,value,color, NO_MASK_COLOR);
 }
-
 void drawIntHighlight(uint32_t x, uint32_t y, int value, uint32_t color, uint32_t backColor) {
     char buf[TEMP_ALLOC_LEN];
     int i = TEMP_ALLOC_LEN - 1;

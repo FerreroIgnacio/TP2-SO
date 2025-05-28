@@ -1,10 +1,8 @@
-/*
-
 #include "../standard.h"
 
 #define CHAR_PER_LINE width / (FONT_SIZE * FONT_BMP_SIZE)
 #define FONT_BMP_SIZE 8 
-#define FONT_SIZE 1
+#define FONT_SIZE 2
 #define BUFFER_SIZE 256
 #define LINE_Y_PADDING 4
 #define LINES_PER_SCREEN height / ((FONT_SIZE * FONT_BMP_SIZE) + LINE_Y_PADDING)
@@ -32,6 +30,7 @@ void shell_newline();
 void shell_print_prompt();
 void clear_buffer();
 void clear_screen();
+void hide_cursor();
 void execute_command();
 
 // Comandos disponibles
@@ -47,6 +46,14 @@ int str_equals(const char* s1, const char* s2);
 int str_length(const char* str);
 char* find_args(char* cmd);
 void str_copy(char* dest, const char* src);
+
+
+//programas
+static void * const pongisgolfModuleAddress = (void*)0x1000000;
+
+typedef int (*EntryPoint)();
+
+
 
 // Implementación de funciones de utilidad de string
 int str_equals(const char* s1, const char* s2) {
@@ -85,8 +92,8 @@ void shell_putchar(char c) {
         shell_newline();
         return;
     }
-    drawChar(cursor_x, cursor_y, c, FONT_COLOR);
-    //fbDrawChar(fb, c, FONT_COLOR, SHELL_COLOR, cursor_x, cursor_y, FONT_SIZE);
+    //drawChar(cursor_x, cursor_y, c, FONT_COLOR);
+    fbDrawChar(fb, c, FONT_COLOR, SHELL_COLOR, cursor_x, cursor_y, FONT_SIZE);
     cursor_x += FONT_SIZE * FONT_BMP_SIZE;
     
     if (cursor_x >= CHAR_PER_LINE * FONT_SIZE * FONT_BMP_SIZE) {
@@ -105,8 +112,8 @@ void shell_print_colored(const char* str, uint32_t color) {
         if (*str == '\n') {
             shell_newline();
         } else {
-            drawChar(cursor_x, cursor_y, *str, color);
-	        //fbDrawChar(fb, *str, color, SHELL_COLOR, cursor_x, cursor_y, FONT_SIZE);
+            //drawChar(cursor_x, cursor_y, *str, color);
+	        fbDrawChar(fb, *str, color, SHELL_COLOR, cursor_x, cursor_y, FONT_SIZE);
             cursor_x += FONT_SIZE * FONT_BMP_SIZE;
             if (cursor_x >= CHAR_PER_LINE * FONT_SIZE * FONT_BMP_SIZE) {
                 shell_newline();
@@ -143,7 +150,7 @@ void clear_buffer() {
 
 // Limpiar pantalla
 void clear_screen() {
-	//fbFill (fb, SHELL_COLOR);
+	fbFill (fb, SHELL_COLOR);
     cursor_x = cursor_y = 0;
 }
 // Comandos disponibles
@@ -152,7 +159,9 @@ void cmd_help() {
     shell_print("  help      - Mostrar esta ayuda\n");
     shell_print("  clear     - Limpiar pantalla\n");
     shell_print("  echo      - Mostrar texto\n");
-    shell_print("  dateTime  - Mostrar fecha y hora\n");
+    shell_print("  datetime  - Mostrar fecha y hora\n");
+    shell_print("\nProgramas disponibles:\n");
+    shell_print("  pongisgolf\n");
     shell_print("\nControles:\n");
     shell_print("  Enter - Ejecutar comando\n");
     shell_print("  Backspace - Borrar carácter\n");
@@ -215,8 +224,7 @@ void cmd_amongus() {
 
 void cmd_dateTime(){
     uint8_t year=0,month=0,day=0,hours=0,minutes=0,seconds=0;
-    char str [18] = "hola"; // "DD/MM/YY HH:MM:SS";
-    //shell_print("DD/MM/YY HH:MM:SS");
+    char str [18];
 
     getLocalTime(&hours,&minutes,&seconds);
     getLocalDate(&year,&month,&day);
@@ -230,20 +238,23 @@ void cmd_dateTime(){
     str[2]=str[5]='-';
     str[8]=' ';
     str[11]=str[14]=':';
+    str[17] = 0;
 
     shell_print(str);
-    
     shell_newline();
 }
 
 
+
+
+
 // Ejecutar comando
 void execute_command() {
-  hide_cursor(); 
-     	if (buffer_pos == 0) return;
+    hide_cursor(); 
+    if (buffer_pos == 0) return;
     // Borro el cursor antes de ejecutar comando
-    drawChar(cursor_x, cursor_y, ' ', PROMPT_COLOR);
-    //fbDrawChar(fb,' ', PROMPT_COLOR, SHELL_COLOR, cursor_x, cursor_y, FONT_SIZE);
+    //drawChar(cursor_x, cursor_y, ' ', PROMPT_COLOR);
+    fbDrawChar(fb,' ', PROMPT_COLOR, SHELL_COLOR, cursor_x, cursor_y, FONT_SIZE);
 
     command_buffer[buffer_pos] = '\0';
     
@@ -259,8 +270,10 @@ void execute_command() {
         cmd_echo(args);
     } else if (str_equals(cmd_copy, "SUS")) {
 	    cmd_amongus();
-    } else if (str_equals(cmd_copy, "dateTime")) {
+    } else if (str_equals(cmd_copy, "datetime")) {
 	    cmd_dateTime();
+    } else if (str_equals(cmd_copy, "pongisgolf")) {
+	    ((EntryPoint)pongisgolfModuleAddress)();    
     } else if (cmd_copy[0] != '\0') {
         shell_print_colored("Error: ", ERROR_COLOR);
         shell_print("Comando desconocido '");
@@ -288,8 +301,8 @@ void update_cursor() {
     int should_be_drawn = cursor_visible;
     if (cursor_drawn != should_be_drawn) {
         char cursor_char = should_be_drawn ? '_' : ' ';
-         drawChar(cursor_x, cursor_y, cursor_char, PROMPT_COLOR);
-	//fbDrawChar(fb, cursor_char, PROMPT_COLOR, SHELL_COLOR, cursor_x, cursor_y, FONT_SIZE);
+        //drawChar(cursor_x, cursor_y, cursor_char, PROMPT_COLOR);
+	    fbDrawChar(fb, cursor_char, PROMPT_COLOR, SHELL_COLOR, cursor_x, cursor_y, FONT_SIZE);
         cursor_drawn = should_be_drawn;
     }
 }
@@ -299,8 +312,8 @@ void reset_cursor() {
     cursor_visible = 1;
     last_cursor_time = getBootTime();
     if (!cursor_drawn) {
-        drawChar(cursor_x, cursor_y, '_', PROMPT_COLOR);
-	    // fbDrawChar(fb, '_', PROMPT_COLOR, SHELL_COLOR, cursor_x, cursor_y, FONT_SIZE);
+        //drawChar(cursor_x, cursor_y, '_', PROMPT_COLOR);
+	    fbDrawChar(fb, '_', PROMPT_COLOR, SHELL_COLOR, cursor_x, cursor_y, FONT_SIZE);
         cursor_drawn = 1;
     }
 }
@@ -308,8 +321,8 @@ void reset_cursor() {
 // Función para ocultar cursor (llamar antes de escribir texto)
 void hide_cursor() {
     if (cursor_drawn) {
-         drawChar(cursor_x, cursor_y, ' ', SHELL_COLOR);
-	    //fbDrawChar(fb, ' ', SHELL_COLOR, SHELL_COLOR, cursor_x, cursor_y, FONT_SIZE);
+        //drawChar(cursor_x, cursor_y, ' ', SHELL_COLOR);
+	    fbDrawChar(fb, ' ', SHELL_COLOR, SHELL_COLOR, cursor_x, cursor_y, FONT_SIZE);
         cursor_drawn = 0;
     }
 }
@@ -329,9 +342,8 @@ void handle_keyboard_input() {
         if (scancode == 0x1C) { // Enter
             shell_newline();
             execute_command();
-	    clear_buffer();
-         
-	    shell_newline();
+	        clear_buffer();
+	        shell_newline();
             shell_print_prompt();
             return;
         }
@@ -339,12 +351,12 @@ void handle_keyboard_input() {
         if (scancode == 0x0E) { // Backspace
             if (buffer_pos > 0) {
                 buffer_pos--;
-		hide_cursor();
+		        hide_cursor();
                 command_buffer[buffer_pos] = '\0';
                 if (cursor_x >= FONT_SIZE * FONT_BMP_SIZE) {
                     cursor_x -= FONT_SIZE * FONT_BMP_SIZE;
-                 	drawChar(cursor_x, cursor_y, ' ', FONT_COLOR);
-		    //fbDrawChar(fb, ' ', FONT_COLOR, SHELL_COLOR, cursor_x, cursor_y, FONT_SIZE);
+                 	//drawChar(cursor_x, cursor_y, ' ', FONT_COLOR);
+		            fbDrawChar(fb, ' ', FONT_COLOR, SHELL_COLOR, cursor_x, cursor_y, FONT_SIZE);
                 }
             }
             return;
@@ -377,7 +389,7 @@ void shell_main() {
     // Loop principal
     while (1) {
         handle_keyboard_input();
-        //fbSet(fb);
+        fbSet(fb);
     }
 }
 
@@ -390,5 +402,3 @@ int main() {
     shell_main();
     return 0;
 }
-    
-*/

@@ -1,55 +1,42 @@
 GLOBAL syscall_write
 GLOBAL syscall_read
 GLOBAL syscall_isKeyDown
-GLOBAL syscall_time
 GLOBAL getBootTime
 GLOBAL getLocalTime 
 GLOBAL getLocalDate
-GLOBAL putPixel
 GLOBAL getVideoData
+GLOBAL putPixel
 GLOBAL fbSet
 GLOBAL fbSetRegion
 SECTION .text
 
 
-;fbSetRegion(uint32_t topLeftX, uint32_t topLeftY, uint32_t width, uint32_t height, uint8_t* bmp, uint32_t maskColor)
-fbSetRegion:
-   mov rax, 12         ; syscall ID para set framebuffer region
-   ; rdi=topLeftX, rsi=topLeftY, rdx=width, rcx=height, r8=bmp, r9=maskColor
-   int 0x80
-   ret	
-
-; int syscall_write(int fd, const char *buf, unsigned long count)
 syscall_write:
-    mov rax, 1          ; syscall ID para write
-    ; rdi, rsi, rdx ya tienen fd, buf, count por convención de llamada
+    mov rax, 1              ; syscall ID para write
     int 0x80
     ret
-
-; int syscall_read(int fd, char *buf, unsigned long count)
 syscall_read:
-    mov rax, 0          ; syscall ID para read
-    ; rdi, rsi, rdx ya tienen fd, buf, count por convención de llamada
-    int 0x80
+    mov rax, 0              ; syscall ID para read
+    int     0x80
     ret
 syscall_isKeyDown:
-	mov rax, 2
-	int 0x80
+	mov     rax, 2
+	int     0x80
 	ret
     
 getBootTime:
-    mov rax, 3          ; ID de syscall para bootTime (3)
-    int 0x80
+    mov     rax, 0x3        ; ID de syscall para bootTime (3)
+    int     0x80
     ret
 
 getLocalTime:
-    mov rax, 4          ; ID de syscall para localTime (3)
-    int 0x80
+    mov     rax, 0x4        ; ID de syscall para localTime (4)
+    int     0x80
     ret
 
 getLocalDate:
-    mov rax, 5          ; ID de syscall para localDate (3)
-    int 0x80
+    mov     rax, 0x5        ; ID de syscall para localDate (5)
+    int     0x80
     ret
 
 getVideoData:
@@ -67,4 +54,8 @@ fbSet:
     int     0x80
     ret
 
-
+;fbSetRegion(uint32_t topLeftX, uint32_t topLeftY, uint32_t width, uint32_t height, uint8_t* bmp, uint32_t maskColor)
+fbSetRegion:
+   mov      rax, 0xC        ; syscall ID para set framebuffer region             
+   int      0x80            ; rdi=topLeftX, rsi=topLeftY, rdx=width, rcx=height, r8=bmp, r9=maskColor
+   ret	

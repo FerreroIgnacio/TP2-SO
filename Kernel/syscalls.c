@@ -1,5 +1,7 @@
 #include <videoDriver.h>
 #include <syscalls.h>
+#include <stdin.h>
+#include <stdout.h>
 #include <keyboardDriver.h>
 
 int syscallHandler(int syscall_num, uint64_t arg1, uint64_t arg2, uint64_t arg3, uint64_t arg4, uint64_t arg5, uint64_t arg6) {
@@ -8,15 +10,15 @@ int syscallHandler(int syscall_num, uint64_t arg1, uint64_t arg2, uint64_t arg3,
             return sys_read((int)arg1, (char*)arg2, (uint64_t)arg3);
         case SYSCALL_WRITE: // write  
             return sys_write((int)arg1, (const char*)arg2, (uint64_t)arg3);
-	case SYSCALL_ISKEYDOWN:
-		return sys_isKeyDown((int)arg1);
-	case SYSCALL_GET_BOOTTIME:
+	    case SYSCALL_ISKEYDOWN:
+		    return sys_isKeyDown((int)arg1);
+	    case SYSCALL_GET_BOOTTIME:
 		    return sys_getBootTime();
         case SYSCALL_GET_TIME:
-		    sys_getTime(arg1, arg2, arg3);
+		    sys_getTime((uint8_t*)arg1, (uint8_t*)arg2, (uint8_t*)arg3);
             return 1;
         case SYSCALL_GET_DATE:
-		    sys_getDate(arg1, arg2, arg3);    
+		    sys_getDate((uint8_t*)arg1, (uint8_t*)arg2, (uint8_t*)arg3);    
             return 1;
         case SYSCALL_GET_VIDEO_DATA:
             sys_get_video_data((uint16_t*) arg1, (uint16_t*) arg2,(uint16_t*) arg3, (uint16_t*) arg4);
@@ -40,14 +42,24 @@ int syscallHandler(int syscall_num, uint64_t arg1, uint64_t arg2, uint64_t arg3,
  * ID 0
  */
 int sys_read(int fd, char* buffer, uint64_t count) {
+    if (buffer == 0 || count == 0)
+        return 0;
     switch (fd) {
         case STDIN: {
             uint64_t i = 0;
             while (i < count && stdin_has_data()) {  // Solo leer si hay datos
-                buffer[i++] = consumeKey();
+                buffer[i++] = consumeKeyStdin();
             }
             return i;  // Retorna cuántos caracteres se leyeron (puede ser 0)
         }
+        case STDOUT: {
+            uint64_t i = 0;
+            while (i < count && stdout_has_data()) {  // Solo leer si hay datos
+                buffer[i++] = consumeKeyStdout();
+            }
+            return i;  // Retorna cuántos caracteres se leyeron (puede ser 0)
+        }
+
         default:
             return -1;
     }
@@ -56,10 +68,19 @@ int sys_read(int fd, char* buffer, uint64_t count) {
 /*
  * ID 1
  */
-// En tu syscallHandler
 int sys_write(int fd, const char* buffer, uint64_t count) {
+    if (buffer == 0 || count == 0)
+        return 0;
     switch(fd) {
         case STDOUT: // stdout
+            for (uint64_t i = 0; i < count; i++){
+                char c = buffer[i];
+                if ((c >= 32 && c <= 126) || c == '\n' || c == '\r' || c == '\t' || c == '\b'){
+                    queueKeyStdout(c);
+                }
+            }
+            return count;
+
         case STDERR: // stderr
             // Escribir directamente a pantalla usando tu videoDrive
             for(uint64_t i = 0; i < count; i++) {
@@ -84,8 +105,6 @@ static uint64_t system_ticks = 0;  // Contador de ticks global
 // Handler del timer (IRQ0)
 void timerTickHandler() {
     system_ticks++;  // Incrementa el contador en cada tick
-	//drawInt((int)system_ticks, 0x00FF00, 0x000000, 0, 0, 3);
-    // putText((int)system_ticks, 0xFFFFFF, 0x000000, 0, getHeight() - 8 * 3 - 8 * 3, 3);
 }
 
 /*

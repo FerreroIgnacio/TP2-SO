@@ -23,7 +23,8 @@ void drawInt(int num, uint32_t hexColor, uint32_t backColor, uint64_t x, uint64_
 
 uint16_t getWidth();
 uint16_t getHeight();
-
+uint16_t getBpp();
+uint16_t getPitch();
 
 void setFramebuffer(uint8_t * fb);
 void setFrameBufferRegion(uint32_t topLeftX, uint32_t topLeftY, uint32_t width, uint32_t height, uint8_t* bmp, uint32_t maskColor);

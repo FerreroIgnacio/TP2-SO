@@ -6,8 +6,6 @@
 #define STDOUT 1
 #define STDERR 2
 
-
-
 #define SYSCALL_READ 0
 #define SYSCALL_WRITE 1
 #define SYSCALL_ISKEYDOWN 2
