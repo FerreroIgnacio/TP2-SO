@@ -7,15 +7,6 @@
 // Vector de teclas presionadas
 static char keysDown[256] = {0};
 
-// Handler actual
-keyboard_handler_t current_handler = 0;
-
-// Guarda un nuevo keyboard handler
-void setKeyboardHandler(keyboard_handler_t new_handler) {
-    current_handler = new_handler;
-}
-
-
 // Handler de la interrupción irq01
 static int shiftPressed = 0;
 static int capsLockOn = 0;

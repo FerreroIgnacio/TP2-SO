@@ -34,7 +34,7 @@ void fbDrawInt(uint8_t * fb, int num, uint32_t hexColor, uint32_t backColor, uin
 void fbFill (uint8_t * fb, uint32_t hexColor);
 
 
-
+extern void fbSetRegion(uint32_t topLeftX, uint32_t topLeftY, uint32_t width, uint32_t height, uint8_t* bmp, uint32_t maskColor);
 
 // OBSOLETO, NO USAR
 /*
