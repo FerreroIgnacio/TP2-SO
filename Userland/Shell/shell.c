@@ -51,7 +51,7 @@ void str_copy(char* dest, const char* src);
 
 
 //programas
-static void * const pongisgolfModuleAddress = (void*)0x1000000;
+static void * const pongisgolfModuleAddress = (void*)0x600000;
 
 typedef int (*EntryPoint)();
 
@@ -397,13 +397,19 @@ void shell_main() {
     shell_print("Escribe 'help' para ver comandos disponibles.\n\n");
     
     shell_print_prompt();
+
     
+    printf("test parametros: %d %x %#X %#o hola\n",100, 64, 128, 800);
+    printf("el printf funciona\n");
+    char buff [1000];
+    syscall_read(STDOUT,buff,1000);
+    shell_print(buff);
+
     // Loop principal
     while (1) {
         for (int i = 0 ; i < KEYS_PER_LOOP ; i++)
             handle_keyboard_input();
         fbSet(fb);
-        incFramesCount();
     }
 }
 

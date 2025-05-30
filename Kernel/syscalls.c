@@ -3,6 +3,7 @@
 #include <stdin.h>
 #include <stdout.h>
 #include <keyboardDriver.h>
+#include <isrHandlers.h>
 
 int syscallHandler(int syscall_num, uint64_t arg1, uint64_t arg2, uint64_t arg3, uint64_t arg4, uint64_t arg5, uint64_t arg6) {
     switch(syscall_num) {
@@ -57,6 +58,7 @@ int sys_read(int fd, char* buffer, uint64_t count) {
             while (i < count && stdout_has_data()) {  // Solo leer si hay datos
                 buffer[i++] = consumeKeyStdout();
             }
+            buffer[i]=0;
             return i;  // Retorna cuántos caracteres se leyeron (puede ser 0)
         }
 
@@ -82,9 +84,9 @@ int sys_write(int fd, const char* buffer, uint64_t count) {
             return count;
 
         case STDERR: // stderr
-            // Escribir directamente a pantalla usando tu videoDrive
+            // TODO: ver donde mandamos esto
             for(uint64_t i = 0; i < count; i++) {
-                putChar(buffer[i], 0xFF0000, 0x00FF00, 0 + (i * 8 * 5), 0, 5); // Asumiendo que tienes esta función
+                putChar(buffer[i], 0xFF0000, 0x00FF00, 0 + (i * 8 * 5), 0, 5);
             }
             return count;
         default:
@@ -99,20 +101,12 @@ int sys_isKeyDown(int scancode) {
 	return isKeyPressed(scancode);
 }
 
-static uint64_t system_ticks = 0;  // Contador de ticks global
-
-// Handler interno, hay que moverlo
-// Handler del timer (IRQ0)
-void timerTickHandler() {
-    system_ticks++;  // Incrementa el contador en cada tick
-	drawInt(system_ticks,0xFF0000, 0x000000, 0,0 ,2);
-}
 
 /*
  * ID 3
  */
 uint64_t sys_getBootTime() {
-    return system_ticks * 55;  // 
+    return getSysTicks() * 55;
 }
 
 /*

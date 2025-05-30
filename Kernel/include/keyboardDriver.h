@@ -3,7 +3,7 @@
 #define KEYBOARD_DRIVER_H
 #include <stdint.h>
 #include <keyboardDriver.h>
-#include <idtLoader.h>        
+#include <idtInit.h>        
 #include <stdin.h>
 #include <videoDriver.h>
 

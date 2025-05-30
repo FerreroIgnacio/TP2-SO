@@ -1,5 +1,6 @@
 #include "standard.h"
 #include "font8x8/font8x8_basic.h"
+#include <stdarg.h>
 
 // Reemplaza las tablas en standard.c con estas versiones corregidas para layout argentino
 // Make code to ASCII mapping for Set 1 scancodes - Layout Argentino
@@ -198,7 +199,6 @@ char getAsciiFromMakeCode(uint8_t makeCode, int shifted) {
     return shifted ? makeCodeToAsciiShifted[makeCode] : makeCodeToAscii[makeCode];
 }
 
-
 uint64_t fbGetSize (){
     uint16_t height, pitch;
     getVideoData(0, &height, 0, &pitch);
@@ -282,9 +282,6 @@ void fbDrawInt(uint8_t * fb, int num, uint32_t hexColor, uint32_t backColor, uin
     fbDrawText(fb, buffer, hexColor, backColor, x, y, size);
 }
 
-
-
-
 void fbFill(uint8_t * fb, uint32_t hexColor){
     uint16_t bpp, pitch, width, height;
     getVideoData(&width, &height, &bpp, &pitch);
@@ -303,16 +300,19 @@ void fbFill(uint8_t * fb, uint32_t hexColor){
     }
 }
 
+
+
 uint64_t framesCount, timerCount;
-void incFramesCount(){
-    framesCount++;
-}
 void fpsInit(){
     timerCount = getBootTime();
     framesCount = 0;
 }
 
-//retorna la cantidad de frames 
+void incFramesCount(){
+    framesCount++;
+}
+
+// Promedio de Frames Por Segundo desde la úĺtima llamada
 uint64_t getFps(){
     uint64_t time = getBootTime()-timerCount;
     if (time < 100) return 0;
@@ -320,6 +320,255 @@ uint64_t getFps(){
     fpsInit();
     return fps;
 };
+
+
+
+int strlen(const char* str) {
+    int len = 0;
+    while (str[len])
+        len++;
+    return len;
+}
+
+
+void putchar (char c){                          // %c
+    char str [1] = {c};
+    syscall_write(STDOUT,str,1);
+}
+
+void puts (const char* str){                          // %s
+    syscall_write(STDOUT,str,strlen(str));
+}
+
+void putuint(uint64_t value){                   // %u
+    if (value == 0) {
+        putchar('0');
+        return;
+    }
+
+    char buffer[21];                        // 64bits = 20 digitos (max) + \0
+    int i = 0;
+     
+    while (value > 0) {
+        buffer[i++] = '0' + (value % 10);   // 1234 => "4321"
+        value /= 10;
+    }
+
+    for (int j = i - 1; j >= 0; j--) {      // imprimir en orden correcto
+        putchar(buffer[j]);                 
+    }
+}
+
+void putint(int64_t value){                     // %d %ld %lld
+    if (value < 0) {
+        putchar('-');
+        value = -value;
+    }
+    putuint(value);
+}
+
+void putoct(uint64_t value){                    // %o
+    if (value == 0) {
+        putchar('0');
+        return;
+    }
+
+    char buffer[22];                        // 64bits = 21 digitos en octal (max) + \0
+    int i = 0;
+     
+    while (value > 0) {
+        buffer[i++] = '0' + (value % 8);    // 1234 => "4321"
+        value /= 8;
+    }
+
+    for (int j = i - 1; j >= 0; j--) {      // imprimir en orden correcto
+        putchar(buffer[j]);                 
+    }    
+}
+
+void puthex(uint64_t value){                    // %x %p
+    if (value == 0) {
+        putchar('0');
+        return;
+    }
+    
+    char hex_digits [16] = "0123456789abcdef";
+
+    char buffer[16];                        // 64bits = 16 digitos en hexa (max) + \0
+    int i = 0;
+    
+    while (value > 0) {
+        buffer[i++] = hex_digits[value % 16];
+        value /= 16;
+    }
+    
+    for (int j = i - 1; j >= 0; j--) {
+        putchar(buffer[j]);
+    }
+}
+
+void puthexupper(uint64_t value){               // %X %P
+    if (value == 0) {
+        putchar('0');
+        return;
+    }
+    
+    char hex_digits [16] = "0123456789ABCDEF";
+
+    char buffer[16];                        // 64bits = 16 digitos en hexa (max) + \0
+    int i = 0;
+
+    while (value > 0) {
+        buffer[i++] = hex_digits[value % 16];
+        value /= 16;
+    }
+    
+    for (int j = i - 1; j >= 0; j--) {
+        putchar(buffer[j]);
+    }
+}
+
+// Falta agregar soporte para double
+/*
+void putdouble(double value, int precision) {   // %f
+    if (value < 0) {
+        putchar('-');
+        value = -value;
+    }
+
+    uint64_t integer = (uint64_t)value;
+    putuint(integer);                                   // imprimir parte entera
+    putchar('.');
+    double fractional = value - integer;
+
+    for (int i = 0; i < precision; i++) {
+        fractional *= 10;
+    }
+
+    uint64_t decimals = (uint64_t)(fractional + 0.5);   // redondeo
+
+    uint64_t base = 1;                                  // imprimir ceros luego de la coma
+    for (int i = 1; i < precision; i++) {
+        base *= 10;
+        if (decimals < base)
+            putchar('0');
+    }
+
+    putuint(decimals);                                  // imprimir parte decimal
+}
+*/
+
+
+uint64_t printf(const char * format, ...){
+    va_list args;
+    va_start(args, format);
+    char c;
+    uint64_t len=0;
+    while(* format){
+        c = *format++;
+        len++;
+        switch (c){
+            case '%':
+                c = *format++;
+                switch (c){
+                case '%':
+                    putchar('%');
+                    break;
+                case 'c':
+                    char ch = (char)va_arg(args, int);
+                    putchar(ch);
+                    break;
+                case 's':
+                    puts(va_arg(args,char*));
+                    break;
+                case 'l':
+                    c = *format++;
+                    if (c=='d'){
+                        putint(va_arg(args,int64_t));
+                        break;
+                    }
+                    if (c=='l'){
+                        c = *format++;
+                        if (c=='d'){
+                            putint(va_arg(args,int64_t));
+                            break;
+                        }
+                        format--;
+                    }
+                    format--;
+                    break;
+                case 'd':
+                    putint(va_arg(args,int64_t));
+                    break;
+                case 'u':
+                    putuint(va_arg(args,uint64_t));
+                    break;
+                case '#':
+                    c = *format++;
+                    if (c == 'x'){
+                        puts("0x");
+                        puthex(va_arg(args,uint64_t));
+                        break;
+                    }
+                    if (c == 'X'){
+                        puts("0x");
+                        puthexupper(va_arg(args,uint64_t));
+                        break;
+                    }
+                    if (c == 'o'){
+                        putchar('0');
+                        putoct(va_arg(args,uint64_t));
+                        break;
+                    }
+                    format--;
+                    break;
+                case 'p':
+                case 'x':
+                    puthex(va_arg(args,uint64_t));
+                    break;   
+                case 'P':
+                case 'X':
+                    puthexupper(va_arg(args,uint64_t));
+                    break;   
+                case 'o':
+                    putoct(va_arg(args,uint64_t));
+                    break;
+
+                // Falta agregar soporte para float / double    
+                /*
+                case '.':
+                    c = *format++;
+                    if(c < '0' || c > '9'){
+                        format--;
+                        break;
+                    }
+                    int precision = c - '0';
+                    c = *format++;
+                    if (c != 'f'){
+                        format-=2;
+                        break;
+                    }
+                    putdouble(va_arg(args,double),precision);
+                    break;
+                case 'f':
+                    putdouble(va_arg(args,double),6);
+                    break;
+                default:
+                    break;
+                */    
+                }
+                break;
+            default:
+                putchar(c);
+                break;
+        }
+    }
+    return len;
+}
+
+
+
+
 
 void itos(uint64_t value, char* str) {
     // Caso especial: si el valor es 0
@@ -368,6 +617,9 @@ void itos_padded(uint64_t value, char* str, int width) {
     
     // no agrega null
 }
+
+
+
 
 
 /* Funciones mejoradas con fbSetRegion B) */
@@ -507,89 +759,4 @@ void drawIntHighlight(uint32_t x, uint32_t y, int value, uint32_t color, uint32_
     drawTextHighlight(x, y, &buf[i + 1], color, backColor);
 }
 
-
-
-
-// OBSOLETO, NO USAR
-
-// Escribe el char str en la posición (x,y)
-/*
-void drawChar(char ascii, uint32_t hexColor, uint32_t backColor, uint64_t x, uint64_t y, uint64_t size){
-    if(ascii < 0 || ascii > 128) 
-	    return;
-	char * bmp = font8x8_basic[ascii];
-
-    for(int j = 0; j < 64; j++){
-        int fil = j / 8;    // fila (0-7)
-        int col = j % 8;    // columna (0-7)
-
-        // Acceder al byte de la fila y verificar el bit de la columna
-        int isOn = bmp[fil] & (1 << col);  // Sin invertir el bit
-        int color = isOn ? hexColor : backColor;
-
-        for (int dx = 0; dx < size; dx++) {
-            for (int dy = 0; dy < size; dy++) {
-                putPixel(color,
-                        x + col * size + dx,     // X: posición + columna
-                        y + fil * size + dy);    // Y: posición + fila
-            }
-        }
-    }
-}
-
-// Escribe el string str en la posición (x,y)
-void drawText(char* str, uint32_t hexColor, uint32_t backColor, uint64_t x, uint64_t y, uint64_t size){
-	//para cada letra
-	int i = 0;
-	while(str[i] != 0){
-		drawChar(str[i], hexColor, backColor, x, y, size);
-		x+= 8 * size;
-		i++;
-	}
-}
-
-// Dibuja un número entero en la pantalla en la posición (x,y)
-void drawInt(int num, uint32_t hexColor, uint32_t backColor, uint64_t x, uint64_t y, uint64_t size) {
-    char buffer[12];
-    int i = 0;
-    
-    // Manejo numeros negativos
-    if (num < 0) {
-        buffer[i++] = '-';
-        num = -num;
-    }
-    
-    // Caso especial: 0
-    if (num == 0) {
-        buffer[i++] = '0';
-    } else {
-        // Extraer dígitos en orden inverso
-        int start = i;
-        while (num > 0) {
-            buffer[i++] = (num % 10) + '0';
-            num /= 10;
-        }
-        // Invertir solo los dígitos
-        for (int j = start; j < (start + i) / 2; j++) {
-            char temp = buffer[j];
-            buffer[j] = buffer[i - 1 - (j - start)];
-            buffer[i - 1 - (j - start)] = temp;
-        }
-    }
-    
-    buffer[i] = '\0';
-    drawText(buffer, hexColor, backColor, x, y, size);
-}
-
-*/
-
-// Dibuja un rectángulo de w pixeles por h pixeles en la posición (x,y)
-// Siendo x,y la esquina inferior del rectángulo
-//void drawRectangle(uint32_t hexColor, uint64_t x, uint64_t y, uint64_t w, uint64_t h);
-
-// Dibuja un círculo de r píxeles de radio en la posición (x,y)
-//void drawCircle(uint32_t hexColor, uint64_t x, uint64_t y, uint64_t r);
-
-// Cambia todos los píxeles a hexColor
-//void fillScreen(uint32_t hexColor);
 

@@ -5,7 +5,7 @@
 #include <naiveConsole.h>
 #include <videoDriver.h>
 #include <keyboardDriver.h>
-#include <idtLoader.h>
+#include <idtInit.h>
 extern uint8_t text;
 extern uint8_t rodata;
 extern uint8_t data;
@@ -21,7 +21,7 @@ extern char font8x8_basic[128][8];
 
 static void * const sampleCodeModuleAddress = (void*)0x400000;
 static void * const sampleDataModuleAddress = (void*)0x500000;
-static void * const pongisgolfModuleAddress = (void*)0x1000000;
+static void * const pongisgolfModuleAddress = (void*)0x600000;
 
 typedef int (*EntryPoint)();
 
@@ -56,7 +56,7 @@ void * initializeKernelBinary()
 	void * moduleAddresses[] = {
     sampleCodeModuleAddress,     // [0] -> Shell goes to 0x400000 ✓
     sampleDataModuleAddress,     // [1] -> Data goes to 0x500000 ✓  
-    pongisgolfModuleAddress      // [2] -> PongisGolf goes to 0x1000000 ✓
+    pongisgolfModuleAddress      // [2] -> PongisGolf goes to 0x600000 ✓
 	};
 
 	loadModules(&endOfKernelBinary, moduleAddresses);
@@ -110,11 +110,9 @@ int main()
 	ncPrint("[Finished]");
 	
 	idtInit();
-	
-
 	((EntryPoint)sampleCodeModuleAddress)();
 //	((EntryPoint)pongisgolfModuleAddress)();
-//	drawInt(((EntryPoint)0x1000000)(), 0xFF0000, 0x111111, 0,8 * 3, 3);
+//	drawInt(((EntryPoint)0x600000)(), 0xFF0000, 0x111111, 0,8 * 3, 3);
 	//prueba para drawInt
 	//drawInt(15, 0xFF0000, 0x111111, 8 * 3,8 * 3, 3);
 	

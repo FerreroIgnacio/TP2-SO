@@ -1,5 +1,5 @@
 #include <keyboardDriver.h>
-#include <idtLoader.h>   
+#include <idtInit.h>   
 #include <stdint.h>
 #include <videoDriver.h>
 

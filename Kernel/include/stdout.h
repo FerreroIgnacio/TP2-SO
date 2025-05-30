@@ -9,6 +9,9 @@
 // Inserta un carácter en el buffer
 void queueKeyStdout(char c);
 
+// Inserta un string al stdout
+void queueStringStdout(const char* str);
+
 // Extrae un carácter del buffer
 char consumeKeyStdout(void);
 
