@@ -1,16 +1,16 @@
 #include "standard.h"
-#include "font8x8/font8x8_basic.h"
+#include "font8x8/font8x8.h"
+#include "font8x16/font8x16.h"
 #include <stdarg.h>
 
 
 // FUNCIONES GENÉRICAS MANEJO DE STRINGS
 
-int strlen(const char *str) {
+int strlen(const char *str){
     int len = 0;
     while (*str++) len++;
     return len;
 }
-
 int strcmp(const char *s1, const char *s2) {
     while (*s1 && (*s1 == *s2)) {
         s1++;
@@ -18,7 +18,6 @@ int strcmp(const char *s1, const char *s2) {
     }
     return (unsigned char)*s1 - (unsigned char)*s2;
 }
-
 int strncmp(const char *s1, const char *s2, uint64_t n) {
     while (n-- && *s1 && (*s1 == *s2)) {
         s1++;
@@ -57,7 +56,7 @@ char *strncat(char *dest, const char *src, uint64_t n) {
 // Make code to ASCII mapping for Set 1 makecodes - Layout Argentino
 char makeCodeToAscii[128] = {
     0,      // 0x00 - unused
-    0,      // 0x01 - ESC
+    '\e',      // 0x01 - ESC
     '1',    // 0x02
     '2',    // 0x03
     '3',    // 0x04
@@ -70,8 +69,8 @@ char makeCodeToAscii[128] = {
     '0',    // 0x0B
     '\'',   // 0x0C - apostrofe (en lugar de -)
     191,    // 0x0D - ¿ (en lugar de =)
-    0,      // 0x0E - Backspace
-    0,      // 0x0F - Tab
+    '\b',   // 0x0E - Backspace
+    '\t',   // 0x0F - Tab
     'q',    // 0x10
     'w',    // 0x11
     'e',    // 0x12
@@ -84,7 +83,7 @@ char makeCodeToAscii[128] = {
     'p',    // 0x19
     0,      // 0x1A - ´ (dead key, puede ser problemático)
     '+',    // 0x1B - +
-    0,      // 0x1C - Enter
+    '\n',   // 0x1C - Enter
     0,      // 0x1D - Left Ctrl
     'a',    // 0x1E
     's',    // 0x1F
@@ -140,8 +139,8 @@ char makeCodeToAscii[128] = {
     '3',    // 0x51 - Keypad 3
     '0',    // 0x52 - Keypad 0
     '.',    // 0x53 - Keypad .
-     0,    // 0x54
-     0,  // 0x55
+     0,     // 0x54
+     0,     // 0x55
      '<',   // 0x56 '<'
     0, 0, 0, 0, 0, 0, 0, 0, 0, 0,  // 0x54-0x5D unused
     0, 0, 0, 0, 0, 0, 0, 0, 0, 0,  // 0x5E-0x67 unused
@@ -152,7 +151,7 @@ char makeCodeToAscii[128] = {
 // Shifted characters mapping - Layout Argentino
 char makeCodeToAsciiShifted[128] = {
     0,      // 0x00 - unused
-    0,      // 0x01 - ESC
+    '\e',      // 0x01 - ESC
     '!',    // 0x02 - Shift+1
     '"',    // 0x03 - Shift+2
     '#',    // 0x04 - Shift+3
@@ -164,9 +163,9 @@ char makeCodeToAsciiShifted[128] = {
     ')',    // 0x0A - Shift+9
     '=',    // 0x0B - Shift+0
     '?',    // 0x0C - Shift+' (apostrofe)
-    0,      // 0x0D - Shift+¿                   ARREGLAR ¡
-    0,      // 0x0E - Backspace
-    0,      // 0x0F - Tab
+    161,      // 0x0D - Shift+¿ = ¡
+    '\b',   // 0x0E - Backspace
+    '\t',   // 0x0F - Tab
     'Q',    // 0x10
     'W',    // 0x11
     'E',    // 0x12
@@ -179,7 +178,7 @@ char makeCodeToAsciiShifted[128] = {
     'P',    // 0x19
     0,      // 0x1A - Shift+´ (dead key)
     '*',    // 0x1B - Shift++
-    0,      // 0x1C - Enter
+    '\n',   // 0x1C - Enter
     0,      // 0x1D - Left Ctrl
     'A',    // 0x1E
     'S',    // 0x1F
@@ -190,9 +189,9 @@ char makeCodeToAsciiShifted[128] = {
     'J',    // 0x24
     'K',    // 0x25
     'L',    // 0x26
-    0,      // 0x27 - Shift+ñ                   ARREGLAR Ñ
+    209,    // 0x27 - Shift+ñ                   
     '[',    // 0x28 - Shift+{
-    0,      // 0x29 - Shift+|                    ARREGLAR °
+    176,      // 0x29 - Shift+| = °              
     0,      // 0x2A - Left Shift
     ']',    // 0x2B - Shift+}
     'Z',    // 0x2C
@@ -236,8 +235,8 @@ char makeCodeToAsciiShifted[128] = {
     '0',    // 0x52 - Keypad 0
     '.',    // 0x53 - Keypad .i
       0,    // 0x54
-     0,  // 0x55
-     '>',    // 0x56 '>'
+     0,     // 0x55
+     '>',   // 0x56 '>'
     0, 0, 0, 0, 0, 0, 0, 0, 0, 0,  // 0x54-0x5D unused
     0, 0, 0, 0, 0, 0, 0, 0, 0, 0,  // 0x5E-0x67 unused
     0, 0, 0, 0, 0, 0, 0, 0, 0, 0,  // 0x68-0x71 unused
@@ -504,7 +503,7 @@ void fbPutPixel(uint8_t * fb, uint32_t hexColor, uint64_t x, uint64_t y, uint64_
     fb[offset+1]   =  (hexColor >> 8) & 0xFF; 
     fb[offset+2]   =  (hexColor >> 16) & 0xFF;
 }
-
+// Dibujar caracter en la posición (y,x) del frame buffer
 void fbDrawChar(uint8_t * fb, char ascii, uint32_t hexColor, uint32_t backColor, uint64_t x, uint64_t y, uint64_t size){
     
     if(ascii < 0 || ascii > 128) 
@@ -530,7 +529,7 @@ void fbDrawChar(uint8_t * fb, char ascii, uint32_t hexColor, uint32_t backColor,
         }
     }
 }
-
+// Dibujar string en la posición (y,x) del frame buffer
 void fbDrawText(uint8_t * fb, char* str, uint32_t hexColor, uint32_t backColor, uint64_t x, uint64_t y, uint64_t size){
 	int i = 0;
 	while(str[i] != 0){
@@ -539,7 +538,7 @@ void fbDrawText(uint8_t * fb, char* str, uint32_t hexColor, uint32_t backColor, 
 		i++;
 	}
 }
-
+// Dibujar número en la posición (y,x) del frame buffer
 void fbDrawInt(uint8_t * fb, int num, uint32_t hexColor, uint32_t backColor, uint64_t x, uint64_t y, uint64_t size){
     char buffer[12];
     int i = 0;
@@ -571,25 +570,6 @@ void fbDrawInt(uint8_t * fb, int num, uint32_t hexColor, uint32_t backColor, uin
     buffer[i] = '\0';
     fbDrawText(fb, buffer, hexColor, backColor, x, y, size);
 }
-
-void fbFill(uint8_t * fb, uint32_t hexColor){
-    uint16_t bpp, pitch, width, height;
-    getVideoData(&width, &height, &bpp, &pitch);
-    uint8_t r = (hexColor >> 16) & 0xFF;
-    uint8_t g = (hexColor >> 8) & 0xFF;
-    uint8_t b = hexColor & 0xFF;
-    uint8_t bytesPerPixel = bpp / 8;
-    
-    for (uint16_t y = 0; y < height; y++) {
-        for (uint16_t x = 0; x < width; x++) {
-            uint64_t offset = y * pitch + x * bytesPerPixel;
-            fb[offset] = b;
-            fb[offset + 1] = g;
-            fb[offset + 2] = r;
-        }
-    }
-}
-
 // Dibuja un rectángulo de w pixeles por h pixeles en la posición (x,y)
 void fbDrawRectangle(uint8_t * fb, uint32_t hexColor, uint64_t x, uint64_t y, uint64_t w, uint64_t h){
     uint16_t width,height,bpp,pitch;
@@ -606,8 +586,6 @@ void fbDrawRectangle(uint8_t * fb, uint32_t hexColor, uint64_t x, uint64_t y, ui
         }
     }
 }
-
-
 // Dibuja un círculo de r píxeles de radio en la posición (x,y)
 void fbDrawCircle(uint8_t * fb, uint32_t hexColor, uint64_t x, uint64_t y, int64_t r){
     uint16_t width,height,bpp,pitch;
@@ -625,7 +603,24 @@ void fbDrawCircle(uint8_t * fb, uint32_t hexColor, uint64_t x, uint64_t y, int64
 	}
    }
 }
-
+// Llenar el frame bufer con hexColor
+void fbFill(uint8_t * fb, uint32_t hexColor){
+    uint16_t bpp, pitch, width, height;
+    getVideoData(&width, &height, &bpp, &pitch);
+    uint8_t r = (hexColor >> 16) & 0xFF;
+    uint8_t g = (hexColor >> 8) & 0xFF;
+    uint8_t b = hexColor & 0xFF;
+    uint8_t bytesPerPixel = bpp / 8;
+    
+    for (uint16_t y = 0; y < height; y++) {
+        for (uint16_t x = 0; x < width; x++) {
+            uint64_t offset = y * pitch + x * bytesPerPixel;
+            fb[offset] = b;
+            fb[offset + 1] = g;
+            fb[offset + 2] = r;
+        }
+    }
+}
 
 
 // CÁLCULO DE FPS

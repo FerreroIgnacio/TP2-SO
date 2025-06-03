@@ -80,7 +80,6 @@ void shell_putchar(char c) {
         shell_newline();
         return;
     }
-    //drawChar(cursor_x, cursor_y, c, FONT_COLOR);
     fbDrawChar(fb, c, FONT_COLOR, SHELL_COLOR, cursor_x, cursor_y, FONT_SIZE);
     cursor_x += FONT_SIZE * FONT_BMP_SIZE;
     
@@ -152,7 +151,7 @@ void cmd_help() {
     shell_print("  pongisgolf\n");
     shell_print("\nControles:\n");
     shell_print("  Enter - Ejecutar comando\n");
-    shell_print("  Backspace - Borrar carácter\n");
+    shell_print("  Backspace - Borrar caracter\n");
 }
 
 void cmd_clear() {
@@ -356,11 +355,12 @@ void handle_keyboard_input() {
 	update_cursor();  
 
     // Actualizar estado de shift usando isKeyPressed
-      int shift_pressed = isKeyPressed(LSHIFT_MAKECODE) || isKeyPressed(RSHIFT_MAKECODE); // Left/Right Shift
+    int shift_pressed = isKeyPressed(LSHIFT_MAKECODE) || isKeyPressed(RSHIFT_MAKECODE); // Left/Right Shift
     // Leer makecode del buffer usando read
     uint8_t makecode;
     if (read(0, (char*)&makecode, 1) > 0) {
         
+        // no usar makecodes extendidos
         if (makecode == 0xE0){
             read(0, (char*)&makecode, 1);
             return;
@@ -374,7 +374,6 @@ void handle_keyboard_input() {
             shell_print_prompt();
             return;
         }
-        
         if (makecode == 0x0E) { // Backspace
             if (buffer_pos > 0) {
                 buffer_pos--;
@@ -382,7 +381,6 @@ void handle_keyboard_input() {
                 command_buffer[buffer_pos] = '\0';
                 if (cursor_x >= FONT_SIZE * FONT_BMP_SIZE) {
                     cursor_x -= FONT_SIZE * FONT_BMP_SIZE;
-                 	//drawChar(cursor_x, cursor_y, ' ', FONT_COLOR);
 		            fbDrawChar(fb, ' ', FONT_COLOR, SHELL_COLOR, cursor_x, cursor_y, FONT_SIZE);
                 }
             }

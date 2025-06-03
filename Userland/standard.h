@@ -11,22 +11,16 @@
 #define STDOUT 1
 #define STDERR 2
 
-
-extern char font8x8_basic[128][8];
-
 // Escribir (count) caracteres de (buf) en el file descriptor (fd).
 int write(int fd, const char *buff, unsigned long count);
-
 // Leer (count) caracteres del file descriptor (fd) y guardar en (buf).
 int read(int fd, char *buff, unsigned long count);
 
 // 1 si la tecla (makecode) está presionada, 0 si no. 
 // para scancodes especiales agregar E0, por ejemplo, 0xE048 para flecha arriba
 int isKeyPressed(uint16_t makecode);
-
 // 1 si las (count) teclas de (makecode) estás presionadas, 0 si no. 
 int areKeysPressed(int * makecodes, int count);
-
 // Si shifted = 0, Retorna el caracter correspondiente al makeCode
 // Si shifted = 1, Retorna el caracter correspondiente a Shift + makeCode
 char getAsciiFromMakeCode(uint8_t makeCode, int shifted);
@@ -53,8 +47,6 @@ void getLocalDate(uint8_t* year, uint8_t* month, uint8_t* day);
 
 
 
-
-
 // Se define struct registers para mejorar la sintaxis.
 typedef struct registers {
     uint64_t rip;     
@@ -76,17 +68,15 @@ typedef struct registers {
     uint64_t r14;
     uint64_t r15;
 } registers_t;
-
 // Realiza una captura de todos los registros del procesesador dentro del kernel
 // (a excepción de rax que es necesario para ésta petición) 
 void saveRegisters();
-
 // Guarda en regs la captura de los registros realizada por saveRegisters en el siguiente orden:
 // rip, rflags, rsp, rbp, rax, rbx, rcx, rdx, rsi, rdi, r8, r9, r10, r11, r12, r13, r14, r15
 void getRegisters(registers_t* regs);
 
-// ESCRIBIR EN STDOUT
 
+// ESCRIBIR EN STDOUT
 void putchar (char c);              // %c
 void puts (const char* str);        // %s
 void putuint(uint64_t c);           // %u
@@ -100,7 +90,6 @@ uint64_t printf(const char * format, ... );
 
 
 // LEER STDIN
-
 /*
 
             HACER
@@ -110,45 +99,44 @@ uint64_t printf(const char * format, ... );
 
 
 // MANEJO DEL MODO VIDEO
+typedef struct videoData{
+    uint8_t * fb;
+    uint16_t width;
+    uint16_t height;
+    uint16_t bpp;
+    uint16_t pitch;
+} videoData_t;
 
 // Cambia el color del pixel (x,y) a hexColor
 extern void putPixel(uint32_t hexColor, uint64_t x, uint64_t y);
-
 // Guarda en los punteros los datos de la pantalla.
 // Si no se quiere guardar un dato, colocar NULL como argumento;
 extern void getVideoData(uint16_t* width, uint16_t* height, uint16_t* bpp, uint16_t* pitch);
-
 // retorna el tamaño del Framebuffer
 uint64_t fbGetSize ();
 
-// Muestra fb en pantalla. fb es un vector de al menos fbGetSize() posiciones
-void fbSet(uint8_t * fb);
-
+// Cambia el pixel (x,y) del frame buffer por hexColor
+void fbPutPixel(uint8_t * fb, uint32_t hexColor, uint64_t x, uint64_t y, uint64_t bpp, uint64_t pitch);
 // Dibujar caracter en la posición (y,x) del frame buffer
 void fbDrawChar(uint8_t * fb, char ascii, uint32_t hexColor, uint32_t backColor, uint64_t x, uint64_t y, uint64_t size);
-
 // Dibujar string en la posición (y,x) del frame buffer
 void fbDrawText(uint8_t * fb, char* str, uint32_t hexColor, uint32_t backColor, uint64_t x, uint64_t y, uint64_t size);
-
 // Dibujar número en la posición (y,x) del frame buffer
 void fbDrawInt(uint8_t * fb, int num, uint32_t hexColor, uint32_t backColor, uint64_t x, uint64_t y, uint64_t size);
-
 // Dibuja un rectángulo de w pixeles por h pixeles en la posición (x,y)
 void fbDrawRectangle(uint8_t * fb, uint32_t hexColor, uint64_t x, uint64_t y, uint64_t w, uint64_t h);
-
 // Dibuja un círculo de r píxeles de radio en la posición (x,y)
 void fbDrawCircle(uint8_t * fb, uint32_t hexColor, uint64_t x, uint64_t y, int64_t r);
-
 // Llenar el frame bufer con hexColor
 void fbFill (uint8_t * fb, uint32_t hexColor);
-
+// Muestra fb en pantalla. fb es un vector de al menos fbGetSize() posiciones
+void fbSet(uint8_t * fb);
 
 
 // CÁLCULO DE FPS
 
 // Inicia el contador de frames
 void fpsInit();
-
 // Promedio de Frames Por Segundo desde la úĺtima llamada a getFps()
 uint64_t getFps();
 
