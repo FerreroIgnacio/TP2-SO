@@ -6,13 +6,23 @@
 #define BUFFER_SIZE 256
 #define LINE_Y_PADDING 4
 #define LINES_PER_SCREEN height / ((FONT_SIZE * FONT_BMP_SIZE) + LINE_Y_PADDING)
+#define STDOUT_BUFFER_SIZE 4096
+#define FRAMEBUFFER_SIZE 100000000
 
 #define SHELL_COLOR 0x00000A
 #define FONT_COLOR 0xAAAAAA
 #define ERROR_COLOR 0xAA4444
 #define PROMPT_COLOR 0x44AAA4
 
-#define KEYS_PER_LOOP 7
+#define KEYS_PER_LOOP 8
+
+#define LSHIFT_MAKECODE 0x2A
+#define RSHIFT_MAKECODE 0x36
+#define LCTRL_MAKECODE  0x1D
+#define LALT_MAKECODE   0x38
+#define TAB_MAKECODE    0x0F
+#define ESC_MAKECODE    0x01
+
 
 // Variables globales
 uint8_t * fb;
@@ -21,6 +31,7 @@ static char command_buffer[BUFFER_SIZE];
 static int buffer_pos = 0;
 static int cursor_x = 0;
 static int cursor_y = 0;
+static char firstEntry = 1;
 
 // Prototipos de funciones
 void shell_main();
@@ -42,42 +53,17 @@ void cmd_echo(char* args);
 void cmd_test();
 void cmd_info();
 void cmd_dateTime();
+void cmd_fps();
+void cmd_registers();
 
 // Utilidades de string
-int str_equals(const char* s1, const char* s2);
-int str_length(const char* str);
 char* find_args(char* cmd);
-void str_copy(char* dest, const char* src);
 
 
 //programas
 static void * const pongisgolfModuleAddress = (void*)0x600000;
 
 typedef int (*EntryPoint)();
-
-
-
-// Implementación de funciones de utilidad de string
-int str_equals(const char* s1, const char* s2) {
-    while (*s1 && *s2 && *s1 == *s2) {
-        s1++;
-        s2++;
-    }
-    return *s1 == *s2;
-}
-
-int str_length(const char* str) {
-    int len = 0;
-    while (str[len]) len++;
-    return len;
-}
-
-void str_copy(char* dest, const char* src) {
-    while (*src) {
-        *dest++ = *src++;
-    }
-    *dest = '\0';
-}
 
 char* find_args(char* cmd) {
     while (*cmd && *cmd != ' ') cmd++;
@@ -114,7 +100,6 @@ void shell_print_colored(const char* str, uint32_t color) {
         if (*str == '\n') {
             shell_newline();
         } else {
-            //drawChar(cursor_x, cursor_y, *str, color);
 	        fbDrawChar(fb, *str, color, SHELL_COLOR, cursor_x, cursor_y, FONT_SIZE);
             cursor_x += FONT_SIZE * FONT_BMP_SIZE;
             if (cursor_x >= CHAR_PER_LINE * FONT_SIZE * FONT_BMP_SIZE) {
@@ -158,10 +143,11 @@ void clear_screen() {
 // Comandos disponibles
 void cmd_help() {
     shell_print("Comandos disponibles:\n");
-    shell_print("  help      - Mostrar esta ayuda\n");
+    shell_print("  help      - Mostrar comandos disponibles\n");
     shell_print("  clear     - Limpiar pantalla\n");
     shell_print("  echo      - Mostrar texto\n");
-    shell_print("  datetime  - Mostrar fecha y hora\n");
+    shell_print("  datetime  - Mostrar fecha y hora UTC-0 \n");
+    shell_print("  registers - Imprimir registros guardados (Ctrl+R)\n");
     shell_print("\nProgramas disponibles:\n");
     shell_print("  pongisgolf\n");
     shell_print("\nControles:\n");
@@ -180,6 +166,61 @@ void cmd_echo(char* args) {
    shell_newline();
 
 }
+
+void cmd_dateTime(){
+    uint8_t year=0,month=0,day=0,hours=0,minutes=0,seconds=0;
+    getLocalTime(&hours,&minutes,&seconds);
+    getLocalDate(&year,&month,&day);
+    printf("Fecha y hora en UTC-0: %d/%d/20%d %d:%d:%d\n",day, month, year, hours, minutes, seconds);
+}
+
+
+void cmd_fps(){
+    printf("FPS: %d", getFps());
+}
+
+void cmd_registers(){
+    registers_t regs;
+    getRegisters(&regs);
+    printf("RIP: %#P\n"
+        "RFLAGS: %#P\n"
+        "RSP: %#P\n"
+        "RBP: %#P\n"
+        "RAX: %#P\n"
+        "RBX: %#P\n"
+        "RCX: %#P\n"
+        "RDX: %#P\n"
+        "RSI: %#P\n"
+        "RDI: %#P\n"
+        "R8 : %#P\n"
+        "R9 : %#P\n"
+        "R10: %#P\n"
+        "R11: %#P\n"
+        "R12: %#P\n"
+        "R13: %#P\n"
+        "R14: %#P\n"
+        "R15: %#P\n",
+        regs.rip,
+        regs.rflags,
+        regs.rsp,
+        regs.rbp,
+        regs.rax,
+        regs.rbx,
+        regs.rcx,
+        regs.rdx,
+        regs.rsi,
+        regs.rdi,
+        regs.r8,
+        regs.r9,
+        regs.r10,
+        regs.r11,
+        regs.r12,
+        regs.r13,
+        regs.r14,
+        regs.r15);
+}
+
+
 
 //Altamente experimental, despues la borramos total es un amongus(sus) junto al soporte de unicode
 #include "unicodeSupport.h"
@@ -224,35 +265,7 @@ void cmd_amongus() {
     shell_newline();
 }
 
-void cmd_dateTime(){
-    uint8_t year=0,month=0,day=0,hours=0,minutes=0,seconds=0;
-    char str [18];
 
-    getLocalTime(&hours,&minutes,&seconds);
-    getLocalDate(&year,&month,&day);
-
-    itos_padded(day, str,2);
-    itos_padded(month, str+3,2);
-    itos_padded(year, str+6,2);
-    itos_padded(hours, str+9,2);
-    itos_padded(minutes, str+12,2);
-    itos_padded(seconds, str+15,2);
-    str[2]=str[5]='-';
-    str[8]=' ';
-    str[11]=str[14]=':';
-    str[17] = 0;
-
-    shell_print(str);
-    shell_newline();
-}
-
-
-void cmd_fps(){
-    char str [15] = "FPS: ";
-    itos_padded(getFps(), str+4,5);
-    shell_print(str);
-    shell_newline();
-}
 
 
 
@@ -261,29 +274,31 @@ void cmd_fps(){
 void execute_command() {
     hide_cursor(); 
     if (buffer_pos == 0) return;
+
     // Borro el cursor antes de ejecutar comando
-    //drawChar(cursor_x, cursor_y, ' ', PROMPT_COLOR);
     fbDrawChar(fb,' ', PROMPT_COLOR, SHELL_COLOR, cursor_x, cursor_y, FONT_SIZE);
 
     command_buffer[buffer_pos] = '\0';
     
     char cmd_copy[BUFFER_SIZE];
-    str_copy(cmd_copy, command_buffer);
+    strcpy(cmd_copy, command_buffer);
     char* args = find_args(cmd_copy);
     
-    if (str_equals(cmd_copy, "help")) {
+    if (!strcmp(cmd_copy, "help")) {
         cmd_help();
-    } else if (str_equals(cmd_copy, "clear")) {
+    } else if (!strcmp(cmd_copy, "clear")) {
         cmd_clear();
-    } else if (str_equals(cmd_copy, "echo")) {
+    } else if (!strcmp(cmd_copy, "echo")) {
         cmd_echo(args);
-    } else if (str_equals(cmd_copy, "datetime")) {
+    } else if (!strcmp(cmd_copy, "datetime")) {
 	    cmd_dateTime();
-    } else if (str_equals(cmd_copy, "fps")) {
+    } else if (!strcmp(cmd_copy, "fps")) {
 	    cmd_fps();
-    } else if (str_equals(cmd_copy, "pongisgolf")) {
+    } else if (!strcmp(cmd_copy, "registers")) {
+	    cmd_registers();
+    } else if (!strcmp(cmd_copy, "pongisgolf")) {
 	    ((EntryPoint)pongisgolfModuleAddress)();    
-    } else if (str_equals(cmd_copy, "SUS")) {
+    } else if (!strcmp(cmd_copy, "SUS")) {
 	    cmd_amongus();
     } else if (cmd_copy[0] != '\0') {
         shell_print_colored("Error: ", ERROR_COLOR);
@@ -312,7 +327,6 @@ void update_cursor() {
     int should_be_drawn = cursor_visible;
     if (cursor_drawn != should_be_drawn) {
         char cursor_char = should_be_drawn ? '_' : ' ';
-        //drawChar(cursor_x, cursor_y, cursor_char, PROMPT_COLOR);
 	    fbDrawChar(fb, cursor_char, PROMPT_COLOR, SHELL_COLOR, cursor_x, cursor_y, FONT_SIZE);
         cursor_drawn = should_be_drawn;
     }
@@ -323,7 +337,6 @@ void reset_cursor() {
     cursor_visible = 1;
     last_cursor_time = getBootTime();
     if (!cursor_drawn) {
-        //drawChar(cursor_x, cursor_y, '_', PROMPT_COLOR);
 	    fbDrawChar(fb, '_', PROMPT_COLOR, SHELL_COLOR, cursor_x, cursor_y, FONT_SIZE);
         cursor_drawn = 1;
     }
@@ -332,25 +345,28 @@ void reset_cursor() {
 // Función para ocultar cursor (llamar antes de escribir texto)
 void hide_cursor() {
     if (cursor_drawn) {
-        //drawChar(cursor_x, cursor_y, ' ', SHELL_COLOR);
 	    fbDrawChar(fb, ' ', SHELL_COLOR, SHELL_COLOR, cursor_x, cursor_y, FONT_SIZE);
         cursor_drawn = 0;
     }
 }
 
-#define LSHIFT_SCANCODE 0x2A
-#define RSHIFT_SCANCODE 0x36
+
     // Manejar entrada del teclado usando syscalls
 void handle_keyboard_input() {
 	update_cursor();  
 
-    // Actualizar estado de shift usando syscall_isKeyDown
-      int shift_pressed = syscall_isKeyDown(LSHIFT_SCANCODE) || syscall_isKeyDown(RSHIFT_SCANCODE); // Left/Right Shift
-    // Leer scancode del buffer usando syscall_read
-    uint8_t scancode;
-    if (syscall_read(0, (char*)&scancode, 1) > 0) {
+    // Actualizar estado de shift usando isKeyPressed
+      int shift_pressed = isKeyPressed(LSHIFT_MAKECODE) || isKeyPressed(RSHIFT_MAKECODE); // Left/Right Shift
+    // Leer makecode del buffer usando read
+    uint8_t makecode;
+    if (read(0, (char*)&makecode, 1) > 0) {
+        
+        if (makecode == 0xE0){
+            read(0, (char*)&makecode, 1);
+            return;
+        }
         // Manejar teclas especiales
-        if (scancode == 0x1C) { // Enter
+        if (makecode == 0x1C) { // Enter
             shell_newline();
             execute_command();
 	        clear_buffer();
@@ -359,7 +375,7 @@ void handle_keyboard_input() {
             return;
         }
         
-        if (scancode == 0x0E) { // Backspace
+        if (makecode == 0x0E) { // Backspace
             if (buffer_pos > 0) {
                 buffer_pos--;
 		        hide_cursor();
@@ -373,8 +389,8 @@ void handle_keyboard_input() {
             return;
         }
         
-        // Convertir scancode a ASCII
-        char ascii = getAsciiFromMakeCode(scancode, shift_pressed);
+        // Convertir makecode a ASCII
+        char ascii = getAsciiFromMakeCode(makecode, shift_pressed);
         
         // Solo agregar caracteres imprimibles
         if (ascii != 0 && ascii >= 32 && ascii <= 126 && buffer_pos < BUFFER_SIZE - 1) {
@@ -384,41 +400,43 @@ void handle_keyboard_input() {
     }
 }
 
-// Función principal del shell
-void shell_main() {
-    fpsInit();
-    clear_screen();
-    clear_buffer();
-    
-    // Mensaje de bienvenida
-    shell_print_colored("=======================================\n", PROMPT_COLOR);
-    shell_print_colored("    SHELL v15.1\n", PROMPT_COLOR);
-    shell_print_colored("=======================================\n", PROMPT_COLOR);
+void shell_welcome(){
+    shell_print_colored("=================================================\n", PROMPT_COLOR);
+    shell_print_colored("             SHELL v16.0\n", PROMPT_COLOR);
+    shell_print_colored("=================================================\n", PROMPT_COLOR);
     shell_print("Escribe 'help' para ver comandos disponibles.\n\n");
-    
-    shell_print_prompt();
+}
 
-    
-    printf("test parametros: %d %x %#X %#o hola\n",100, 64, 128, 800);
-    printf("el printf funciona\n");
-    char buff [1000];
-    syscall_read(STDOUT,buff,1000);
-    shell_print(buff);
+// Punto de entrada principal
+uint8_t newFb [FRAMEBUFFER_SIZE]; // CAMBIAR POR MALLOC
+int main() {
 
-    // Loop principal
+    if (firstEntry){
+        fb = newFb;
+        getVideoData(&width,&height,&bpp,&pitch);
+        fpsInit();
+        clear_screen();
+        clear_buffer();
+        shell_welcome();
+        shell_print_prompt();
+        firstEntry = 0;
+    }
+
     while (1) {
+        char stdoutBuff [STDOUT_BUFFER_SIZE];
+        read(STDOUT,stdoutBuff,STDOUT_BUFFER_SIZE);
+        if (strlen(stdoutBuff)>0){
+            cursor_x = 0;
+            shell_print(stdoutBuff);
+            shell_newline();
+            shell_print_prompt();
+        }
+
         for (int i = 0 ; i < KEYS_PER_LOOP ; i++)
             handle_keyboard_input();
         fbSet(fb);
     }
-}
-
-
-// Punto de entrada principal
-uint8_t newFb [100000000]; // CAMBIAR POR MALLOC
-int main() {
-    fb = newFb;
-    getVideoData(&width,&height,&bpp,&pitch);
+    
     shell_main();
     return 0;
 }

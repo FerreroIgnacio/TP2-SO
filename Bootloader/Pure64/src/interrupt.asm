@@ -39,11 +39,11 @@ keyboard:
 
 	xor eax, eax
 
-	in al, 0x60			; Get the scancode from the keyboard
+	in al, 0x60			; Get the makecode from the keyboard
 	test al, 0x80
 	jnz keyboard_done
 	
-	mov [0x000B8088], al		; Dump the scancode to the screen
+	mov [0x000B8088], al		; Dump the makecode to the screen
 
 	mov rax, [os_Counter_RTC]
 	add rax, 10

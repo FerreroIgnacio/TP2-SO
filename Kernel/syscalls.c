@@ -11,8 +11,8 @@ int syscallHandler(int syscall_num, uint64_t arg1, uint64_t arg2, uint64_t arg3,
             return sys_read((int)arg1, (char*)arg2, (uint64_t)arg3);
         case SYSCALL_WRITE: // write  
             return sys_write((int)arg1, (const char*)arg2, (uint64_t)arg3);
-	    case SYSCALL_ISKEYDOWN:
-		    return sys_isKeyDown((int)arg1);
+	    case SYSCALL_ISKEYPRESSED:
+		    return sys_isKeyPressed((int)arg1);
 	    case SYSCALL_GET_BOOTTIME:
 		    return sys_getBootTime();
         case SYSCALL_GET_TIME:
@@ -20,6 +20,12 @@ int syscallHandler(int syscall_num, uint64_t arg1, uint64_t arg2, uint64_t arg3,
             return 1;
         case SYSCALL_GET_DATE:
 		    sys_getDate((uint8_t*)arg1, (uint8_t*)arg2, (uint8_t*)arg3);    
+            return 1;
+        case SYSCALL_SAVE_REGISTERS:
+            sys_saveRegisters();
+            return 1;
+        case SYSCALL_GET_REGISTERS:
+            sys_getRegisters((uint64_t*) arg1);
             return 1;
         case SYSCALL_GET_VIDEO_DATA:
             sys_get_video_data((uint16_t*) arg1, (uint16_t*) arg2,(uint16_t*) arg3, (uint16_t*) arg4);
@@ -97,8 +103,8 @@ int sys_write(int fd, const char* buffer, uint64_t count) {
 /*
  * ID 2
  */
-int sys_isKeyDown(int scancode) {
-	return isKeyPressed(scancode);
+int sys_isKeyPressed(uint16_t makecode) {
+	return isKeyPressed(makecode);
 }
 
 

@@ -7,10 +7,10 @@
 #include <stdin.h>
 #include <videoDriver.h>
 
-int isKeyPressed(uint8_t scanCode);
-int areKeyPressed(uint8_t * scanCodeVec);
-void setKeyPressed(uint8_t scanCode);
-void setKeyReleased(uint8_t scanCode);
+int isKeyPressed(uint16_t makeCode);
+int areKeysPressed(uint16_t * makeCodeVec);
+void setKeyPressed(uint8_t makeCode);
+void setKeyReleased(uint8_t makeCode);
 
 
 

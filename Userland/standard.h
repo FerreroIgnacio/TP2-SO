@@ -3,9 +3,7 @@
 
 #include <stdint.h>
 #include <stdarg.h>
-//#include "font8x8/font8x8_basic.h"
 
-#define NULL 0
 #define FONT_HEIGHT 8
 #define FONT_WIDTH 8
 
@@ -16,19 +14,48 @@
 
 extern char font8x8_basic[128][8];
 
-extern int syscall_write(int fd, const char *buf, unsigned long count);
-extern int syscall_read(int fd, char *buf, unsigned long count);
-extern int syscall_isKeyDown(int scancode);
+// Escribir (count) caracteres de (buf) en el file descriptor (fd).
+int write(int fd, const char *buff, unsigned long count);
 
-// devuelve el tiempo de booteo en ms
-uint64_t getBootTime();
+// Leer (count) caracteres del file descriptor (fd) y guardar en (buf).
+int read(int fd, char *buff, unsigned long count);
 
-void getLocalTime(uint8_t* hours, uint8_t* minutes, uint8_t* seconds);
+// 1 si la tecla (makecode) está presionada, 0 si no. 
+// para scancodes especiales agregar E0, por ejemplo, 0xE048 para flecha arriba
+int isKeyPressed(uint16_t makecode);
 
-void getLocalDate(uint8_t* year, uint8_t* month, uint8_t* day);
+// 1 si las (count) teclas de (makecode) estás presionadas, 0 si no. 
+int areKeysPressed(int * makecodes, int count);
 
+// Si shifted = 0, Retorna el caracter correspondiente al makeCode
+// Si shifted = 1, Retorna el caracter correspondiente a Shift + makeCode
 char getAsciiFromMakeCode(uint8_t makeCode, int shifted);
 
+
+
+// Funciones estándar para el manejo de strings 
+int strlen(const char *str);
+int strcmp(const char *s1, const char *s2);
+int strncmp(const char *s1, const char *s2, uint64_t n);
+char *strcpy(char *dest, const char *src);
+char *strncpy(char *dest, const char *src, uint64_t n);
+char *strcat(char *dest, const char *src);
+char *strncat(char *dest, const char *src, uint64_t n);
+
+
+
+// Tiempo de booteo en ms
+uint64_t getBootTime();
+// Guarda el tiempo según el reloj interno del dispositivo (por lo general, UTC 0)
+void getLocalTime(uint8_t* hours, uint8_t* minutes, uint8_t* seconds);
+// Guarda la fecha según el reloj interno del dispositivo (por lo general, UTC 0)
+void getLocalDate(uint8_t* year, uint8_t* month, uint8_t* day);
+
+
+
+
+
+// Se define struct registers para mejorar la sintaxis.
 typedef struct registers {
     uint64_t rip;     
     uint64_t rflags;  
@@ -49,43 +76,36 @@ typedef struct registers {
     uint64_t r14;
     uint64_t r15;
 } registers_t;
+
+// Realiza una captura de todos los registros del procesesador dentro del kernel
+// (a excepción de rax que es necesario para ésta petición) 
+void saveRegisters();
+
+// Guarda en regs la captura de los registros realizada por saveRegisters en el siguiente orden:
 // rip, rflags, rsp, rbp, rax, rbx, rcx, rdx, rsi, rdi, r8, r9, r10, r11, r12, r13, r14, r15
 void getRegisters(registers_t* regs);
 
-
-
-int strlen(const char* str);
+// ESCRIBIR EN STDOUT
 
 void putchar (char c);              // %c
-
-void puts (const char* str);              // %s
-
+void puts (const char* str);        // %s
 void putuint(uint64_t c);           // %u
-
 void putint(int64_t c);             // %d %ld %lld
-
 void putoct(uint64_t c);            // %o
-
 void puthex(uint64_t c);            // %x %p
-
 void puthexupper(uint64_t value);   // %X %P
-
-// Falta agregar soporte para double
+/* Falta agregar soporte para double */
 //void putdouble(double value, int precision); //%f
-
-
 uint64_t printf(const char * format, ... );
 
 
+// LEER STDIN
 
-// int to string
-void itos(uint64_t value, char* buff) ;
+/*
 
-// Función para formato de fecha/hora con padding de ceros
-void itos_padded(uint64_t value, char* buff, int width);
+            HACER
 
-
-
+*/
 
 
 
@@ -116,6 +136,10 @@ void fbDrawInt(uint8_t * fb, int num, uint32_t hexColor, uint32_t backColor, uin
 // Llenar el frame bufer con hexColor
 void fbFill (uint8_t * fb, uint32_t hexColor);
 
+
+
+// CÁLCULO DE FPS
+
 // Inicia el contador de frames
 void fpsInit();
 
@@ -123,7 +147,11 @@ void fpsInit();
 uint64_t getFps();
 
 
-// MANEJO DEL MODO VIDEO V2
+
+
+
+// MANEJO DEL MODO VIDEO V2 
+// ******NO USAR ESTA PARTE******
 
 // 
 void fbSetRegion(uint32_t topLeftX, uint32_t topLeftY, uint32_t width, uint32_t height, uint8_t* bmp, uint32_t maskColor);

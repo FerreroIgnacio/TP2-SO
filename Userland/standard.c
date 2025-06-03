@@ -2,8 +2,59 @@
 #include "font8x8/font8x8_basic.h"
 #include <stdarg.h>
 
+
+// FUNCIONES GENÉRICAS MANEJO DE STRINGS
+
+int strlen(const char *str) {
+    int len = 0;
+    while (*str++) len++;
+    return len;
+}
+
+int strcmp(const char *s1, const char *s2) {
+    while (*s1 && (*s1 == *s2)) {
+        s1++;
+        s2++;
+    }
+    return (unsigned char)*s1 - (unsigned char)*s2;
+}
+
+int strncmp(const char *s1, const char *s2, uint64_t n) {
+    while (n-- && *s1 && (*s1 == *s2)) {
+        s1++;
+        s2++;
+    }
+    if (n == (uint64_t)-1) return 0;
+    return (unsigned char)*s1 - (unsigned char)*s2;
+}
+char *strcpy(char *dest, const char *src) {
+    char *ret = dest;
+    while ((*dest++ = *src++));
+    return ret;
+}
+char *strncpy(char *dest, const char *src, uint64_t n) {
+    char *ret = dest;
+    while (n && (*dest++ = *src++)) n--;
+    while (n--) *dest++ = '\0';
+    return ret;
+}
+char *strcat(char *dest, const char *src) {
+    char *ret = dest;
+    while (*dest) dest++;
+    while ((*dest++ = *src++));
+    return ret;
+}
+char *strncat(char *dest, const char *src, uint64_t n) {
+    char *ret = dest;
+    while (*dest) dest++;
+    while (n-- && (*src)) *dest++ = *src++;
+    *dest = '\0';
+    return ret;
+}
+
+
 // Reemplaza las tablas en standard.c con estas versiones corregidas para layout argentino
-// Make code to ASCII mapping for Set 1 scancodes - Layout Argentino
+// Make code to ASCII mapping for Set 1 makecodes - Layout Argentino
 char makeCodeToAscii[128] = {
     0,      // 0x00 - unused
     0,      // 0x01 - ESC
@@ -199,6 +250,248 @@ char getAsciiFromMakeCode(uint8_t makeCode, int shifted) {
     return shifted ? makeCodeToAsciiShifted[makeCode] : makeCodeToAscii[makeCode];
 }
 
+int areKeysPressed(int *makecodes, int count) {
+    for (int i = 0; i < count; i++) {
+        if (!isKeyPressed(makecodes[i])) {
+            return 0;
+        }
+    }
+    return 1;
+}
+
+
+// FUNCIONES PARA ESCRIBIR EN STDOUT
+void putchar (char c){                          // %c
+    char str [1] = {c};
+    write(STDOUT,str,1);
+}
+void puts (const char* str){                    // %s
+    write(STDOUT,str,strlen(str));
+}
+void putuint(uint64_t value){                   // %u
+    if (value == 0) {
+        putchar('0');
+        return;
+    }
+
+    char buffer[21];                        // 64bits = 20 digitos (max) + \0
+    int i = 0;
+     
+    while (value > 0) {
+        buffer[i++] = '0' + (value % 10);   // 1234 => "4321"
+        value /= 10;
+    }
+
+    for (int j = i - 1; j >= 0; j--) {      // imprimir en orden correcto
+        putchar(buffer[j]);                 
+    }
+}
+void putint(int64_t value){                     // %d %ld %lld
+    if (value < 0) {
+        putchar('-');
+        value = -value;
+    }
+    putuint(value);
+}
+void putoct(uint64_t value){                    // %o
+    if (value == 0) {
+        putchar('0');
+        return;
+    }
+
+    char buffer[22];                        // 64bits = 21 digitos en octal (max) + \0
+    int i = 0;
+     
+    while (value > 0) {
+        buffer[i++] = '0' + (value % 8);    // 1234 => "4321"
+        value /= 8;
+    }
+
+    for (int j = i - 1; j >= 0; j--) {      // imprimir en orden correcto
+        putchar(buffer[j]);                 
+    }    
+}
+void puthex(uint64_t value){                    // %x %p
+    if (value == 0) {
+        putchar('0');
+        return;
+    }
+    
+    char hex_digits [16] = "0123456789abcdef";
+
+    char buffer[16];                        // 64bits = 16 digitos en hexa (max) + \0
+    int i = 0;
+    
+    while (value > 0) {
+        buffer[i++] = hex_digits[value % 16];
+        value /= 16;
+    }
+    
+    for (int j = i - 1; j >= 0; j--) {
+        putchar(buffer[j]);
+    }
+}
+void puthexupper(uint64_t value){               // %X %P
+    if (value == 0) {
+        putchar('0');
+        return;
+    }
+    
+    char hex_digits [16] = "0123456789ABCDEF";
+
+    char buffer[16];                        // 64bits = 16 digitos en hexa (max) + \0
+    int i = 0;
+
+    while (value > 0) {
+        buffer[i++] = hex_digits[value % 16];
+        value /= 16;
+    }
+    
+    for (int j = i - 1; j >= 0; j--) {
+        putchar(buffer[j]);
+    }
+}
+// Falta agregar soporte para double
+/*
+void putdouble(double value, int precision) {   // %f
+    if (value < 0) {
+        putchar('-');
+        value = -value;
+    }
+
+    uint64_t integer = (uint64_t)value;
+    putuint(integer);                                   // imprimir parte entera
+    putchar('.');
+    double fractional = value - integer;
+
+    for (int i = 0; i < precision; i++) {
+        fractional *= 10;
+    }
+
+    uint64_t decimals = (uint64_t)(fractional + 0.5);   // redondeo
+
+    uint64_t base = 1;                                  // imprimir ceros luego de la coma
+    for (int i = 1; i < precision; i++) {
+        base *= 10;
+        if (decimals < base)
+            putchar('0');
+    }
+
+    putuint(decimals);                                  // imprimir parte decimal
+}
+*/
+
+uint64_t printf(const char * format, ...){
+    va_list args;
+    va_start(args, format);
+    char c;
+    uint64_t len=0;
+    while(* format){
+        c = *format++;
+        len++;
+        switch (c){
+            case '%':
+                c = *format++;
+                switch (c){
+                case '%':
+                    putchar('%');
+                    break;
+                case 'c':
+                    char ch = (char)va_arg(args, int);
+                    putchar(ch);
+                    break;
+                case 's':
+                    puts(va_arg(args,char*));
+                    break;
+                case 'l':
+                    c = *format++;
+                    if (c=='d'){
+                        putint(va_arg(args,int64_t));
+                        break;
+                    }
+                    if (c=='l'){
+                        c = *format++;
+                        if (c=='d'){
+                            putint(va_arg(args,int64_t));
+                            break;
+                        }
+                        format--;
+                    }
+                    format--;
+                    break;
+                case 'd':
+                    putint(va_arg(args,int64_t));
+                    break;
+                case 'u':
+                    putuint(va_arg(args,uint64_t));
+                    break;
+                case '#':
+                    c = *format++;
+                    if (c == 'x' || c == 'p'){
+                        puts("0x");
+                        puthex(va_arg(args,uint64_t));
+                        break;
+                    }
+                    if (c == 'X' || c == 'P'){
+                        puts("0x");
+                        puthexupper(va_arg(args,uint64_t));
+                        break;
+                    }
+                    if (c == 'o'){
+                        putchar('0');
+                        putoct(va_arg(args,uint64_t));
+                        break;
+                    }
+                    format--;
+                    break;
+                case 'p':
+                case 'x':
+                    puthex(va_arg(args,uint64_t));
+                    break;   
+                case 'P':
+                case 'X':
+                    puthexupper(va_arg(args,uint64_t));
+                    break;   
+                case 'o':
+                    putoct(va_arg(args,uint64_t));
+                    break;
+
+                // Falta agregar soporte para float / double    
+                /*
+                case '.':
+                    c = *format++;
+                    if(c < '0' || c > '9'){
+                        format--;
+                        break;
+                    }
+                    int precision = c - '0';
+                    c = *format++;
+                    if (c != 'f'){
+                        format-=2;
+                        break;
+                    }
+                    putdouble(va_arg(args,double),precision);
+                    break;
+                case 'f':
+                    putdouble(va_arg(args,double),6);
+                    break;
+                default:
+                    break;
+                */    
+                }
+                break;
+            default:
+                putchar(c);
+                break;
+        }
+    }
+    return len;
+}
+
+
+
+// MANEJO DEL MODO VIDEO
+
 uint64_t fbGetSize (){
     uint16_t height, pitch;
     getVideoData(0, &height, 0, &pitch);
@@ -302,6 +595,8 @@ void fbFill(uint8_t * fb, uint32_t hexColor){
 
 
 
+// CÁLCULO DE FPS
+
 uint64_t framesCount, timerCount;
 void fpsInit(){
     timerCount = getBootTime();
@@ -323,308 +618,14 @@ uint64_t getFps(){
 
 
 
-int strlen(const char* str) {
-    int len = 0;
-    while (str[len])
-        len++;
-    return len;
-}
 
 
-void putchar (char c){                          // %c
-    char str [1] = {c};
-    syscall_write(STDOUT,str,1);
-}
-
-void puts (const char* str){                          // %s
-    syscall_write(STDOUT,str,strlen(str));
-}
-
-void putuint(uint64_t value){                   // %u
-    if (value == 0) {
-        putchar('0');
-        return;
-    }
-
-    char buffer[21];                        // 64bits = 20 digitos (max) + \0
-    int i = 0;
-     
-    while (value > 0) {
-        buffer[i++] = '0' + (value % 10);   // 1234 => "4321"
-        value /= 10;
-    }
-
-    for (int j = i - 1; j >= 0; j--) {      // imprimir en orden correcto
-        putchar(buffer[j]);                 
-    }
-}
-
-void putint(int64_t value){                     // %d %ld %lld
-    if (value < 0) {
-        putchar('-');
-        value = -value;
-    }
-    putuint(value);
-}
-
-void putoct(uint64_t value){                    // %o
-    if (value == 0) {
-        putchar('0');
-        return;
-    }
-
-    char buffer[22];                        // 64bits = 21 digitos en octal (max) + \0
-    int i = 0;
-     
-    while (value > 0) {
-        buffer[i++] = '0' + (value % 8);    // 1234 => "4321"
-        value /= 8;
-    }
-
-    for (int j = i - 1; j >= 0; j--) {      // imprimir en orden correcto
-        putchar(buffer[j]);                 
-    }    
-}
-
-void puthex(uint64_t value){                    // %x %p
-    if (value == 0) {
-        putchar('0');
-        return;
-    }
-    
-    char hex_digits [16] = "0123456789abcdef";
-
-    char buffer[16];                        // 64bits = 16 digitos en hexa (max) + \0
-    int i = 0;
-    
-    while (value > 0) {
-        buffer[i++] = hex_digits[value % 16];
-        value /= 16;
-    }
-    
-    for (int j = i - 1; j >= 0; j--) {
-        putchar(buffer[j]);
-    }
-}
-
-void puthexupper(uint64_t value){               // %X %P
-    if (value == 0) {
-        putchar('0');
-        return;
-    }
-    
-    char hex_digits [16] = "0123456789ABCDEF";
-
-    char buffer[16];                        // 64bits = 16 digitos en hexa (max) + \0
-    int i = 0;
-
-    while (value > 0) {
-        buffer[i++] = hex_digits[value % 16];
-        value /= 16;
-    }
-    
-    for (int j = i - 1; j >= 0; j--) {
-        putchar(buffer[j]);
-    }
-}
-
-// Falta agregar soporte para double
-/*
-void putdouble(double value, int precision) {   // %f
-    if (value < 0) {
-        putchar('-');
-        value = -value;
-    }
-
-    uint64_t integer = (uint64_t)value;
-    putuint(integer);                                   // imprimir parte entera
-    putchar('.');
-    double fractional = value - integer;
-
-    for (int i = 0; i < precision; i++) {
-        fractional *= 10;
-    }
-
-    uint64_t decimals = (uint64_t)(fractional + 0.5);   // redondeo
-
-    uint64_t base = 1;                                  // imprimir ceros luego de la coma
-    for (int i = 1; i < precision; i++) {
-        base *= 10;
-        if (decimals < base)
-            putchar('0');
-    }
-
-    putuint(decimals);                                  // imprimir parte decimal
-}
-*/
-
-
-uint64_t printf(const char * format, ...){
-    va_list args;
-    va_start(args, format);
-    char c;
-    uint64_t len=0;
-    while(* format){
-        c = *format++;
-        len++;
-        switch (c){
-            case '%':
-                c = *format++;
-                switch (c){
-                case '%':
-                    putchar('%');
-                    break;
-                case 'c':
-                    char ch = (char)va_arg(args, int);
-                    putchar(ch);
-                    break;
-                case 's':
-                    puts(va_arg(args,char*));
-                    break;
-                case 'l':
-                    c = *format++;
-                    if (c=='d'){
-                        putint(va_arg(args,int64_t));
-                        break;
-                    }
-                    if (c=='l'){
-                        c = *format++;
-                        if (c=='d'){
-                            putint(va_arg(args,int64_t));
-                            break;
-                        }
-                        format--;
-                    }
-                    format--;
-                    break;
-                case 'd':
-                    putint(va_arg(args,int64_t));
-                    break;
-                case 'u':
-                    putuint(va_arg(args,uint64_t));
-                    break;
-                case '#':
-                    c = *format++;
-                    if (c == 'x'){
-                        puts("0x");
-                        puthex(va_arg(args,uint64_t));
-                        break;
-                    }
-                    if (c == 'X'){
-                        puts("0x");
-                        puthexupper(va_arg(args,uint64_t));
-                        break;
-                    }
-                    if (c == 'o'){
-                        putchar('0');
-                        putoct(va_arg(args,uint64_t));
-                        break;
-                    }
-                    format--;
-                    break;
-                case 'p':
-                case 'x':
-                    puthex(va_arg(args,uint64_t));
-                    break;   
-                case 'P':
-                case 'X':
-                    puthexupper(va_arg(args,uint64_t));
-                    break;   
-                case 'o':
-                    putoct(va_arg(args,uint64_t));
-                    break;
-
-                // Falta agregar soporte para float / double    
-                /*
-                case '.':
-                    c = *format++;
-                    if(c < '0' || c > '9'){
-                        format--;
-                        break;
-                    }
-                    int precision = c - '0';
-                    c = *format++;
-                    if (c != 'f'){
-                        format-=2;
-                        break;
-                    }
-                    putdouble(va_arg(args,double),precision);
-                    break;
-                case 'f':
-                    putdouble(va_arg(args,double),6);
-                    break;
-                default:
-                    break;
-                */    
-                }
-                break;
-            default:
-                putchar(c);
-                break;
-        }
-    }
-    return len;
-}
-
-
-
-
-
-void itos(uint64_t value, char* str) {
-    // Caso especial: si el valor es 0
-    if (value == 0) {
-        str[0] = '0';
-        str[1] = '\0';
-        return;
-    }
-    
-    // Buffer temporal para construir el string al revés
-    char temp[21]; // máximo 20 dígitos para uint64_t + null terminator
-    int index = 0;
-    
-    // Extraer dígitos (quedan en orden inverso)
-    while (value > 0) {
-        temp[index] = (value % 10) + '0';
-        value /= 10;
-        index++;
-    }
-    
-    // Copiar al string destino en orden correcto
-    int i;
-    for (i = 0; i < index; i++) {
-        str[i] = temp[index - 1 - i];
-    }
-    str[i] = '\0'; // null terminator
-}
-
-void itos_padded(uint64_t value, char* str, int width) {
-
-    char temp[21];
-    itos(value, temp);
-    
-    int len = 0;
-    while (temp[len] != '\0') len++;
-    
-    int padding = width - len;
-    int i;
-    for (i = 0; i < padding; i++) {
-        str[i] = '0';
-    }
-    
-    for (i = 0; i < len; i++) {
-        str[padding + i] = temp[i];
-    }
-    
-    // no agrega null
-}
 
 
 
 
 
 /* Funciones mejoradas con fbSetRegion B) */
-/* SUS ඞ */
-
 /*
  * dado que el formato es RGB no RGBA este valor no se usa nunca
  * lo podemos utilizar cuando no quiero utilizar la mascara
@@ -643,8 +644,7 @@ uint32_t generateMaskColor(uint32_t colorA, uint32_t colorB){
 		return colorB + 1;
 	}
 	return colorA + 1;
-}
-			
+}		
 void setPixel(uint32_t x, uint32_t y, uint32_t color) {
     uint8_t bmp[BPP];
     bmp[0] = color & 0xFF;
@@ -688,7 +688,6 @@ void drawCircle(uint32_t x, uint32_t y, uint32_t r, uint32_t color) {
 void drawChar(uint32_t x, uint32_t y, char ascii, uint32_t color){
 	drawCharHighlight(x, y, ascii, color, NO_COLOR_MASK);
 }
-
 void drawCharHighlight(uint32_t x, uint32_t y, char ascii, uint32_t color, uint32_t backColor) {
     if ((uint8_t)ascii > 127) return;
 
@@ -718,10 +717,6 @@ void drawCharHighlight(uint32_t x, uint32_t y, char ascii, uint32_t color, uint3
     fbSetRegion(x, y, FONT_WIDTH, FONT_HEIGHT, (uint8_t*)bmp, 
                 hasBackground ? NO_COLOR_MASK : maskColor);
 }
-
-
-
-
 void drawTextHighlight(uint32_t x, uint32_t y, const char* str, uint32_t color, uint32_t backColor) {
     while (*str) {
         drawCharHighlight(x, y, *str, color, backColor);
