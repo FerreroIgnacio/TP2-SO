@@ -517,9 +517,6 @@ void fbDrawChar(uint8_t * fb, char ascii, uint32_t hexColor, uint32_t backColor,
     for(int j = 0; j < 64; j++){
         int fil = j / 8;    // fila (0-7)
         int col = j % 8;    // columna (0-7)
-
-        // Acceder al byte de la fila y verificar el bit de la columna
-        //int isOn = bmp[fil] & (1 << col);  // Sin invertir el bit
         int color = (bmp[fil] & (1 << col)) ? hexColor : backColor;
         
     
@@ -593,6 +590,42 @@ void fbFill(uint8_t * fb, uint32_t hexColor){
     }
 }
 
+// Dibuja un rectángulo de w pixeles por h pixeles en la posición (x,y)
+void fbDrawRectangle(uint8_t * fb, uint32_t hexColor, uint64_t x, uint64_t y, uint64_t w, uint64_t h){
+    uint16_t width,height,bpp,pitch;
+    getVideoData(&width,&height,&bpp,&pitch);
+
+    for(uint64_t i = 0; i < h; i++){
+        for(uint64_t j = 0; j < w; j++){
+            uint64_t pixelX = x + j;
+            uint64_t pixelY = y + i;
+
+            if(pixelX < width && pixelY < height) {
+                fbPutPixel(fb,hexColor,pixelX, pixelY,bpp,pitch);
+            }
+        }
+    }
+}
+
+
+// Dibuja un círculo de r píxeles de radio en la posición (x,y)
+void fbDrawCircle(uint8_t * fb, uint32_t hexColor, uint64_t x, uint64_t y, int64_t r){
+    uint16_t width,height,bpp,pitch;
+    getVideoData(&width,&height,&bpp,&pitch);
+    
+    for(signed int dx = -r; dx <= r; dx++){
+        for(int dy = -r; dy <= r; dy++){
+            if(dx * dx + dy * dy <= r * r){
+                uint64_t pixelX = x + dx;
+                uint64_t pixelY = y + dy;
+                if(pixelX >= 0 && pixelY >= 0 && pixelX < width && pixelY < height) {
+                    fbPutPixel(fb,hexColor,pixelX, pixelY,bpp,pitch);
+                }
+	    }
+	}
+   }
+}
+
 
 
 // CÁLCULO DE FPS
@@ -606,7 +639,6 @@ void fpsInit(){
 void incFramesCount(){
     framesCount++;
 }
-
 // Promedio de Frames Por Segundo desde la úĺtima llamada
 uint64_t getFps(){
     uint64_t time = getBootTime()-timerCount;

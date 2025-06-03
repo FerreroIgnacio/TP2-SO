@@ -148,7 +148,7 @@ void putText(char* str, uint32_t hexColor, uint32_t backColor, uint64_t x, uint6
  }
 
 // Dibuja un círculo de r píxeles de radio en la posición (x,y)
-void drawCircle(uint32_t hexColor, uint64_t x, uint64_t y, uint64_t r){
+void drawCircle(uint32_t hexColor, uint64_t x, uint64_t y, int64_t r){
     uint32_t screenWidth = VBE_mode_info->width;
     uint32_t screenHeight = VBE_mode_info->height;
 
@@ -165,7 +165,6 @@ void drawCircle(uint32_t hexColor, uint64_t x, uint64_t y, uint64_t r){
             
 	}
    }
-
 }
 // Dibuja un rectángulo de w pixeles por h pixeles en la posición (x,y)
 void drawRectangle(uint32_t hexColor, uint64_t x, uint64_t y, uint64_t w, uint64_t h){
@@ -184,6 +183,8 @@ void drawRectangle(uint32_t hexColor, uint64_t x, uint64_t y, uint64_t w, uint64
         }
     }
 }
+
+
 /*
  * :D
  */

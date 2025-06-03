@@ -7,6 +7,7 @@ uint8_t newFb [100000000]; // CAMBIAR POR MALLOC
 int main() {
     fb = newFb;
     getVideoData(&width,&height,&bpp,&pitch);
+    
     fbFill(fb,0x0A0105);
     fbDrawText(fb, "Bienvenido a Pongis Golf", 0xFFFFFF, 0x0A0105, 20, 20, 3);
     fbSet(fb);

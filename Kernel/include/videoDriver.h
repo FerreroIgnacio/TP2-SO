@@ -14,7 +14,7 @@ void putText(char* str, uint32_t hexColor, uint32_t backColor, uint64_t x, uint6
 void drawRectangle(uint32_t hexColor, uint64_t x, uint64_t y, uint64_t w, uint64_t h);
 
 // Dibuja un círculo de r píxeles de radio en la posición (x,y)
-void drawCircle(uint32_t hexColor, uint64_t x, uint64_t y, uint64_t r);
+void drawCircle(uint32_t hexColor, uint64_t x, uint64_t y, int64_t r);
 
 // Cambia todos los píxeles a hexColor
 void fillScreen(uint32_t hexColor);

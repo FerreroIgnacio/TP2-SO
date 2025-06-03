@@ -434,6 +434,7 @@ int main() {
 
         for (int i = 0 ; i < KEYS_PER_LOOP ; i++)
             handle_keyboard_input();
+
         fbSet(fb);
     }
     

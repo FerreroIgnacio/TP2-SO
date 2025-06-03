@@ -133,6 +133,12 @@ void fbDrawText(uint8_t * fb, char* str, uint32_t hexColor, uint32_t backColor, 
 // Dibujar número en la posición (y,x) del frame buffer
 void fbDrawInt(uint8_t * fb, int num, uint32_t hexColor, uint32_t backColor, uint64_t x, uint64_t y, uint64_t size);
 
+// Dibuja un rectángulo de w pixeles por h pixeles en la posición (x,y)
+void fbDrawRectangle(uint8_t * fb, uint32_t hexColor, uint64_t x, uint64_t y, uint64_t w, uint64_t h);
+
+// Dibuja un círculo de r píxeles de radio en la posición (x,y)
+void fbDrawCircle(uint8_t * fb, uint32_t hexColor, uint64_t x, uint64_t y, int64_t r);
+
 // Llenar el frame bufer con hexColor
 void fbFill (uint8_t * fb, uint32_t hexColor);
 
