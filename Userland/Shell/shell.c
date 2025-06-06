@@ -31,7 +31,7 @@ static char command_buffer[BUFFER_SIZE];
 static int buffer_pos = 0;
 static int cursor_x = 0;
 static int cursor_y = 0;
-static char firstEntry = 1;
+char firstEntry = 1;
 
 // Prototipos de funciones
 void shell_main();
@@ -55,6 +55,8 @@ void cmd_info();
 void cmd_dateTime();
 void cmd_fps();
 void cmd_registers();
+void cmd_test0Div();
+void cmd_testInvalidCode();
 
 // Utilidades de string
 char* find_args(char* cmd);
@@ -142,11 +144,13 @@ void clear_screen() {
 // Comandos disponibles
 void cmd_help() {
     shell_print("Comandos disponibles:\n");
-    shell_print("  help      - Mostrar comandos disponibles\n");
-    shell_print("  clear     - Limpiar pantalla\n");
-    shell_print("  echo      - Mostrar texto\n");
-    shell_print("  datetime  - Mostrar fecha y hora UTC-0 \n");
-    shell_print("  registers - Imprimir registros guardados (Ctrl+R)\n");
+    shell_print("  help             - Mostrar comandos disponibles\n");
+    shell_print("  clear            - Limpiar pantalla\n");
+    shell_print("  echo             - Mostrar texto\n");
+    shell_print("  datetime         - Mostrar fecha y hora UTC-0 \n");
+    shell_print("  registers        - Imprimir registros guardados (F1)\n");
+    shell_print("  testzerodiv      - Testea la excepcion 00 \n");
+    shell_print("  testinvalidcode  - Testea la excepcion 06 \n");
     shell_print("\nProgramas disponibles:\n");
     shell_print("  pongisgolf\n");
     shell_print("\nControles:\n");
@@ -181,24 +185,24 @@ void cmd_fps(){
 void cmd_registers(){
     registers_t regs;
     getRegisters(&regs);
-    printf("RIP: %#P\n"
+    printf("RIP:    %#P\n"
         "RFLAGS: %#P\n"
-        "RSP: %#P\n"
-        "RBP: %#P\n"
-        "RAX: %#P\n"
-        "RBX: %#P\n"
-        "RCX: %#P\n"
-        "RDX: %#P\n"
-        "RSI: %#P\n"
-        "RDI: %#P\n"
-        "R8 : %#P\n"
-        "R9 : %#P\n"
-        "R10: %#P\n"
-        "R11: %#P\n"
-        "R12: %#P\n"
-        "R13: %#P\n"
-        "R14: %#P\n"
-        "R15: %#P\n",
+        "RSP:    %#P\n"
+        "RBP:    %#P\n"
+        "RAX:    %#P\n"
+        "RBX:    %#P\n"
+        "RCX:    %#P\n"
+        "RDX:    %#P\n"
+        "RSI:    %#P\n"
+        "RDI:    %#P\n"
+        "R8 :    %#P\n"
+        "R9 :    %#P\n"
+        "R10:    %#P\n"
+        "R11:    %#P\n"
+        "R12:    %#P\n"
+        "R13:    %#P\n"
+        "R14:    %#P\n"
+        "R15:    %#P\n",
         regs.rip,
         regs.rflags,
         regs.rsp,
@@ -219,6 +223,16 @@ void cmd_registers(){
         regs.r15);
 }
 
+void cmd_test0Div(){
+    int x = 1;
+    int y = 0;
+    int z = x / y;
+    z++;
+}
+
+void cmd_testInvalidCode(){
+    __asm__ __volatile__("ud2");
+}
 
 
 //Altamente experimental, despues la borramos total es un amongus(sus) junto al soporte de unicode
@@ -295,6 +309,10 @@ void execute_command() {
 	    cmd_fps();
     } else if (!strcmp(cmd_copy, "registers")) {
 	    cmd_registers();
+    } else if (!strcmp(cmd_copy, "testzerodiv")) {
+	    cmd_test0Div();
+    } else if (!strcmp(cmd_copy, "testinvalidcode")) {
+	    cmd_testInvalidCode();
     } else if (!strcmp(cmd_copy, "pongisgolf")) {
 	    ((EntryPoint)pongisgolfModuleAddress)();    
     } else if (!strcmp(cmd_copy, "SUS")) {
@@ -311,7 +329,7 @@ void execute_command() {
 static int cursor_visible = 1;
 static int last_cursor_time = 0;
 static int cursor_drawn = 0; 
-#define CURSOR_BLINK_INTERVAL 80  //en ticks
+#define CURSOR_BLINK_INTERVAL 120  //en ticks
 
 void update_cursor() {
     int current_time = getBootTime();
@@ -353,7 +371,40 @@ void hide_cursor() {
     // Manejar entrada del teclado usando syscalls
 void handle_keyboard_input() {
 	update_cursor();  
+    // Actualizar estado de shift usando isKeyPressed
+    char c;
+    if ( (c = getchar()) > 0) {
+        // Manejar teclas especiales
+        if (c == '\n') { // Enter
+            shell_newline();
+            execute_command();
+	        clear_buffer();
+	        shell_newline();
+            shell_print_prompt();
+            return;
+        }
+        if (c == '\b') { // Backspace
+            if (buffer_pos > 0) {
+                buffer_pos--;
+		        hide_cursor();
+                command_buffer[buffer_pos] = '\0';
+                if (cursor_x >= FONT_SIZE * FONT_BMP_SIZE) {
+                    cursor_x -= FONT_SIZE * FONT_BMP_SIZE;
+		            fbDrawChar(fb, ' ', FONT_COLOR, SHELL_COLOR, cursor_x, cursor_y, FONT_SIZE);
+                }
+            }
+            return;
+        }
+            
+        // Solo agregar caracteres imprimibles
+        if (c >= 32 && c <= 126 && buffer_pos < BUFFER_SIZE - 1) {
+            command_buffer[buffer_pos++] = c;
+            shell_putchar(c);
+        }
+    }
 
+    /*
+    update_cursor(); 
     // Actualizar estado de shift usando isKeyPressed
     int shift_pressed = isKeyPressed(LSHIFT_MAKECODE) || isKeyPressed(RSHIFT_MAKECODE); // Left/Right Shift
     // Leer makecode del buffer usando read
@@ -396,6 +447,7 @@ void handle_keyboard_input() {
             shell_putchar(ascii);
         }
     }
+    */
 }
 
 void shell_welcome(){

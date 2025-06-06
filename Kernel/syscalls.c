@@ -21,9 +21,6 @@ int syscallHandler(int syscall_num, uint64_t arg1, uint64_t arg2, uint64_t arg3,
         case SYSCALL_GET_DATE:
 		    sys_getDate((uint8_t*)arg1, (uint8_t*)arg2, (uint8_t*)arg3);    
             return 1;
-        case SYSCALL_SAVE_REGISTERS:
-            sys_saveRegisters();
-            return 1;
         case SYSCALL_GET_REGISTERS:
             sys_getRegisters((uint64_t*) arg1);
             return 1;

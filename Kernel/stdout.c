@@ -18,8 +18,8 @@ void queueKeyStdout(char c) {
 }
 
 void queueStringStdout(const char * str){
-    while (*str++){
-        queueKeyStdout(*str);
+    while (*str){
+        queueKeyStdout(*str++);
     }
 }
 

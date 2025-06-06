@@ -12,8 +12,7 @@
 #define SYSCALL_GET_BOOTTIME 3
 #define SYSCALL_GET_TIME 4
 #define SYSCALL_GET_DATE 5
-#define SYSCALL_SAVE_REGISTERS 6
-#define SYSCALL_GET_REGISTERS 7
+#define SYSCALL_GET_REGISTERS 6
 
 #define SYSCALL_GET_VIDEO_DATA 9
 #define SYSCALL_PUT_PIXEL 10
@@ -33,7 +32,7 @@ void sys_getTime(uint8_t* hours, uint8_t* minutes, uint8_t* seconds);
 
 void sys_getDate(uint8_t* year, uint8_t* month, uint8_t* day);
 
-void sys_saveRegisters();
+void saveRegisters(uint64_t * regs);
 
 void sys_getRegisters(uint64_t * regs);
 

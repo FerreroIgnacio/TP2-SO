@@ -44,7 +44,7 @@ typedef struct vbe_mode_info_structure * VBEInfoPtr;
 VBEInfoPtr VBE_mode_info = (VBEInfoPtr) 0x0000000000005C00;
 
 
-
+// MODO VIDEO PARA USERLAND
 
 // Copia el framebuffer pasado por parámetro al hardware
 void setFramebuffer(uint8_t * fb){
@@ -109,9 +109,7 @@ void putPixel(uint32_t hexColor, uint64_t x, uint64_t y) {
 }
 
 
-// A PARTIR DE ACÁ NO NECESITARÍAMOS LAS SIGUIENTES FUNCIONES
-
-
+// MODO VIDEO DESDE KERNEL
 
 // Escribe el string str en la posición (x,y)
 void putText(char* str, uint32_t hexColor, uint32_t backColor, uint64_t x, uint64_t y, uint64_t size){
@@ -154,7 +152,6 @@ void drawCircle(uint32_t hexColor, uint64_t x, uint64_t y, int64_t r){
 
     for(int dx = -r; dx <= r; dx++){
         for(int dy = -r; dy <= r; dy++){
-            // Verificar si el punto está dentro del círculo usando la ecuación x² + y² <= r²
             if(dx * dx + dy * dy <= r * r){
                 int64_t pixelX = x + dx;
                 int64_t pixelY = y + dy;
@@ -184,10 +181,7 @@ void drawRectangle(uint32_t hexColor, uint64_t x, uint64_t y, uint64_t w, uint64
     }
 }
 
-
-/*
- * :D
- */
+// completar la 
 void fillScreen(uint32_t hexColor){
 	uint32_t screenWidth = VBE_mode_info->width;
 	uint32_t screenHeight = VBE_mode_info->height;
@@ -199,13 +193,11 @@ void drawInt(int num, uint32_t hexColor, uint32_t backColor, uint64_t x, uint64_
     char buffer[12];
     int i = 0;
     
-    // Manejo numeros negativos
     if (num < 0) {
         buffer[i++] = '-';
         num = -num;
     }
     
-    // Caso especial: 0
     if (num == 0) {
         buffer[i++] = '0';
     } else {

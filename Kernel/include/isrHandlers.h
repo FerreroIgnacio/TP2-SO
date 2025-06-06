@@ -2,9 +2,9 @@
 #define ISR_HANDLERS_H
 #include <stdint.h>
 void ex00Handler();
-void ceroDivHandler();
+void zeroDivDispatcher();
 void ex06Handler();
-void invalidInstrucionHandler();
+void invalidInstrucionDispatcher();
 void irq00Handler();
 void irq01Handler();
 void syscallInterruptHandler();

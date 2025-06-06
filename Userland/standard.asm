@@ -4,7 +4,6 @@ GLOBAL isKeyPressed
 GLOBAL getBootTime
 GLOBAL getLocalTime 
 GLOBAL getLocalDate
-GLOBAL saveRegisters
 GLOBAL getRegisters
 GLOBAL getVideoData
 GLOBAL putPixel
@@ -44,12 +43,8 @@ getLocalDate:
     int     0x80
     ret
 
-saveRegisters:              ; orden: rip, rflags, rsp, rbp, rax, rbx, rcx, rdx, rsi, rdi, r8, r9, r10, r11, r12, r13, r14, r15
-    mov     rax, 0x6        ; ID de syscall para saveRegisters (6)
-    int     0x80
-    ret
 getRegisters:
-    mov     rax, 0x7        ; ID de syscall para  getRegisters (7)
+    mov     rax, 0x6        ; ID de syscall para  getRegisters (7)
     int     0x80
     ret
 
