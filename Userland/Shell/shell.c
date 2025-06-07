@@ -1,8 +1,8 @@
 #include "../standard.h"
+#include "../fontManager.h"
 
-#define CHAR_PER_LINE width / (FONT_SIZE * FONT_BMP_SIZE)
 #define FONT_BMP_SIZE 8 
-#define FONT_SIZE 2
+#define FONT_SIZE 1
 #define BUFFER_SIZE 256
 #define LINE_Y_PADDING 4
 #define LINES_PER_SCREEN height / ((FONT_SIZE * FONT_BMP_SIZE) + LINE_Y_PADDING)
@@ -26,7 +26,7 @@
 
 // Variables globales
 uint8_t * fb;
-uint16_t width=0, height=0, bpp=0, pitch=0;
+static uint16_t width, height, bpp, pitch;
 static char command_buffer[BUFFER_SIZE];
 static int buffer_pos = 0;
 static int cursor_x = 0;
@@ -82,10 +82,11 @@ void shell_putchar(char c) {
         shell_newline();
         return;
     }
-    fbDrawChar(fb, c, FONT_COLOR, SHELL_COLOR, cursor_x, cursor_y, FONT_SIZE);
-    cursor_x += FONT_SIZE * FONT_BMP_SIZE;
+    fbDrawChar(fb, c, FONT_COLOR, SHELL_COLOR, cursor_x, cursor_y);
+    font_info_t currentFont = fontmanager_get_current_font();
+    cursor_x += FONT_SIZE * currentFont.width;
     
-    if (cursor_x >= CHAR_PER_LINE * FONT_SIZE * FONT_BMP_SIZE) {
+    if (cursor_x >= width) {
         shell_newline();
     }
 }
@@ -101,9 +102,10 @@ void shell_print_colored(const char* str, uint32_t color) {
         if (*str == '\n') {
             shell_newline();
         } else {
-	        fbDrawChar(fb, *str, color, SHELL_COLOR, cursor_x, cursor_y, FONT_SIZE);
-            cursor_x += FONT_SIZE * FONT_BMP_SIZE;
-            if (cursor_x >= CHAR_PER_LINE * FONT_SIZE * FONT_BMP_SIZE) {
+	        fbDrawChar(fb, *str, color, SHELL_COLOR, cursor_x, cursor_y);
+            font_info_t currentFont = fontmanager_get_current_font();
+			cursor_x += FONT_SIZE * currentFont.width;
+            if (cursor_x >= width) {
                 shell_newline();
             }
         }
@@ -115,10 +117,11 @@ void shell_print_colored(const char* str, uint32_t color) {
 void shell_newline() {
     hide_cursor();
 	cursor_x = 0;
-    cursor_y += FONT_SIZE * FONT_BMP_SIZE + LINE_Y_PADDING;
+    font_info_t currentFont = fontmanager_get_current_font();
+    cursor_y += FONT_SIZE * currentFont.height + LINE_Y_PADDING;
     
     // Si llegamos al final de la pantalla, hacer scroll
-    if (cursor_y >= height - FONT_SIZE) {
+    if (cursor_y >= height - currentFont.height) {
         clear_screen();
         cursor_y = 0;
         shell_print_colored("--- Se limpio la pantalla (scroll) ---\n", PROMPT_COLOR);
@@ -236,9 +239,11 @@ void cmd_testInvalidCode(){
 
 
 //Altamente experimental, despues la borramos total es un amongus(sus) junto al soporte de unicode
-#include "unicodeSupport.h"
+
+//Temporalmente desabilitada :(
 void cmd_amongus() {
-    // Guardar posición actual del cursor
+  /*
+  // Guardar posición actual del cursor
     uint64_t start_x = cursor_x;
     uint64_t start_y = cursor_y;
     
@@ -271,25 +276,50 @@ void cmd_amongus() {
         drawTextUnicode(amongus_lines[i], FONT_COLOR, SHELL_COLOR, 
                        start_x, start_y + i * FONT_SIZE * FONT_BMP_SIZE, FONT_SIZE);
     }
-    shell_print(".                             Nachito is sus       		\n");		 
+    shell_print(".                             Nachito is sus  2aASDASD     		\n");
     
     cursor_y = start_y + (sizeof(amongus_lines)/sizeof(amongus_lines[0]) - 1) * FONT_SIZE;
     cursor_x = start_x;
     shell_newline();
+
+   */
 }
 
 
 
-
-
-
+//Crea la funcion para cambiar de fuente
+//Crea la funcion para cambiar de fuente
+// Cambia la fuente actual por el índice dado
+void shell_set_font(font_type_t font_index) {
+    int count = fontmanager_get_font_count();
+    if (font_index < 0 || font_index >= count) {
+        shell_print_colored("Error: índice de fuente inválido\n", ERROR_COLOR);
+        return;
+    }
+    shell_newline();
+    fontmanager_set_font(font_index);
+    shell_print_colored("Fuente cambiada a: ", PROMPT_COLOR);
+    shell_print(fontmanager_get_font_name(font_index));
+    shell_newline();
+}
+// Muestra las fuentes disponibles
+void shell_list_fonts() {
+    int count = fontmanager_get_font_count();
+    shell_print("Fuentes disponibles:\n");
+    for (int i = 0; i < count; i++) {
+        const char* name = fontmanager_get_font_name(i);
+        shell_print("  ");
+        shell_print(name);
+        shell_newline();
+    }
+}
 // Ejecutar comando
 void execute_command() {
     hide_cursor(); 
     if (buffer_pos == 0) return;
 
     // Borro el cursor antes de ejecutar comando
-    fbDrawChar(fb,' ', PROMPT_COLOR, SHELL_COLOR, cursor_x, cursor_y, FONT_SIZE);
+    fbDrawChar(fb,' ', PROMPT_COLOR, SHELL_COLOR, cursor_x, cursor_y);
 
     command_buffer[buffer_pos] = '\0';
     
@@ -317,6 +347,16 @@ void execute_command() {
 	    ((EntryPoint)pongisgolfModuleAddress)();    
     } else if (!strcmp(cmd_copy, "SUS")) {
 	    cmd_amongus();
+    } else if (!strcmp(cmd_copy, "listfonts")) {
+        shell_list_fonts();
+    } else if (!strcmp(cmd_copy, "setfont")) {
+        if (*args) {
+            int font_index = strtoint(args);
+            shell_set_font(font_index);
+        } else {
+            shell_print_colored("Uso: setfont <indice>\n", ERROR_COLOR);
+        }
+
     } else if (cmd_copy[0] != '\0') {
         shell_print_colored("Error: ", ERROR_COLOR);
         shell_print("Comando desconocido '");
@@ -329,7 +369,7 @@ void execute_command() {
 static int cursor_visible = 1;
 static int last_cursor_time = 0;
 static int cursor_drawn = 0; 
-#define CURSOR_BLINK_INTERVAL 120  //en ticks
+#define CURSOR_BLINK_INTERVAL 150  //en ticks
 
 void update_cursor() {
     int current_time = getBootTime();
@@ -344,7 +384,7 @@ void update_cursor() {
     int should_be_drawn = cursor_visible;
     if (cursor_drawn != should_be_drawn) {
         char cursor_char = should_be_drawn ? '_' : ' ';
-	    fbDrawChar(fb, cursor_char, PROMPT_COLOR, SHELL_COLOR, cursor_x, cursor_y, FONT_SIZE);
+	    fbDrawChar(fb, cursor_char, PROMPT_COLOR, SHELL_COLOR, cursor_x, cursor_y);
         cursor_drawn = should_be_drawn;
     }
 }
@@ -354,7 +394,8 @@ void reset_cursor() {
     cursor_visible = 1;
     last_cursor_time = getBootTime();
     if (!cursor_drawn) {
-	    fbDrawChar(fb, '_', PROMPT_COLOR, SHELL_COLOR, cursor_x, cursor_y, FONT_SIZE);
+      font_info_t currentFont = fontmanager_get_current_font();
+	    fbDrawChar(fb, '_', PROMPT_COLOR, SHELL_COLOR, cursor_x, cursor_y);
         cursor_drawn = 1;
     }
 }
@@ -362,7 +403,7 @@ void reset_cursor() {
 // Función para ocultar cursor (llamar antes de escribir texto)
 void hide_cursor() {
     if (cursor_drawn) {
-	    fbDrawChar(fb, ' ', SHELL_COLOR, SHELL_COLOR, cursor_x, cursor_y, FONT_SIZE);
+	    fbDrawChar(fb, ' ', SHELL_COLOR, SHELL_COLOR, cursor_x, cursor_y);
         cursor_drawn = 0;
     }
 }
@@ -387,10 +428,12 @@ void handle_keyboard_input() {
             if (buffer_pos > 0) {
                 buffer_pos--;
 		        hide_cursor();
+             font_info_t currentFont = fontmanager_get_current_font();
+
                 command_buffer[buffer_pos] = '\0';
-                if (cursor_x >= FONT_SIZE * FONT_BMP_SIZE) {
-                    cursor_x -= FONT_SIZE * FONT_BMP_SIZE;
-		            fbDrawChar(fb, ' ', FONT_COLOR, SHELL_COLOR, cursor_x, cursor_y, FONT_SIZE);
+                if (cursor_x >= FONT_SIZE * currentFont.width) {
+                    cursor_x -= FONT_SIZE * currentFont.width;
+		            fbDrawChar(fb, ' ', FONT_COLOR, SHELL_COLOR, cursor_x, cursor_y);
                 }
             }
             return;
@@ -452,13 +495,16 @@ void handle_keyboard_input() {
 
 void shell_welcome(){
     shell_print_colored("=================================================\n", PROMPT_COLOR);
-    shell_print_colored("             SHELL v16.0\n", PROMPT_COLOR);
+    shell_print_colored("             SHELL v16.1\n", PROMPT_COLOR);
     shell_print_colored("=================================================\n", PROMPT_COLOR);
     shell_print("Escribe 'help' para ver comandos disponibles.\n\n");
 }
 
 // Punto de entrada principal
 uint8_t newFb [FRAMEBUFFER_SIZE]; // CAMBIAR POR MALLOC
+
+
+
 int main() {
 
     if (firstEntry){

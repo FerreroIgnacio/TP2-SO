@@ -1,7 +1,7 @@
 #include "standard.h"
-#include "font8x8/font8x8.h"
-#include "font8x16/font8x16.h"
 #include <stdarg.h>
+
+
 
 /* MANEJO DE STRINGS */
 int strlen(const char *str){
@@ -469,43 +469,48 @@ void fbPutPixel(uint8_t * fb, uint32_t hexColor, uint64_t x, uint64_t y, uint64_
     fb[offset+1]   =  (hexColor >> 8) & 0xFF; 
     fb[offset+2]   =  (hexColor >> 16) & 0xFF;
 }
-// Dibujar caracter en la posición (x,y) del frame buffer
-void fbDrawChar(uint8_t * fb, char ascii, uint32_t hexColor, uint32_t backColor, uint64_t x, uint64_t y, uint64_t size){
-    
-    if(ascii < 0 || ascii > 128) 
-	    return;
-	char * bmp = font8x8_basic[(unsigned char)ascii];
+// Dibujar un caracter en la posición (x,y) del frame buffer
+void fbDrawChar(uint8_t *fb, char ascii, uint32_t hexColor, uint32_t backColor, uint64_t x, uint64_t y) {
+    font_info_t currentFont = fontmanager_get_current_font();
+    int width = currentFont.width;
+    int height = currentFont.height;
+    int bytes_per_row = (width + 7) / 8;
 
+    // Obtener bpp y pitch del modo de video actual
     uint16_t bpp, pitch;
-    getVideoData(0, 0, &bpp, &pitch);   
+    getVideoData(0, 0, &bpp, &pitch);
 
-    for(int j = 0; j < 64; j++){
-        int fil = j / 8;    // fila (0-7)
-        int col = j % 8;    // columna (0-7)
-        int color = (bmp[fil] & (1 << col)) ? hexColor : backColor;
-        
-    
-        for (int dx = 0; dx < size; dx++) {
-            for (int dy = 0; dy < size; dy++) {
-                fbPutPixel(fb, color, 
-                        x + col * size + dx,     // X: posición + columna
-                        y + fil * size + dy,    // Y: posición + fila
-                        bpp, pitch);
+    uint8_t *bmp = (uint8_t *)currentFont.data + (ascii * currentFont.bytes_per_char);
+
+    for (int row = 0; row < height; row++) {
+        for (int col = 0; col < width; col++) {
+            int byte_offset = row * bytes_per_row + (col / 8);
+            int bit_index;
+
+            // Handle mirrored vs non-mirrored fonts
+            if (!currentFont.mirrored) {
+                bit_index = col % 8;
+            } else {
+                bit_index = 7 - (col % 8);  // Reverse bit order for non-mirrored fonts
             }
+
+            int pixel_on = bmp[byte_offset] & (1 << bit_index);
+            uint32_t color = pixel_on ? hexColor : backColor;
+            fbPutPixel(fb, color, x + col, y + row, bpp, pitch);
         }
     }
 }
 // Dibujar string en la posición (x,y) del frame buffer
-void fbDrawText(uint8_t * fb, char* str, uint32_t hexColor, uint32_t backColor, uint64_t x, uint64_t y, uint64_t size){
+void fbDrawText(uint8_t * fb, char* str, uint32_t hexColor, uint32_t backColor, uint64_t x, uint64_t y){
 	int i = 0;
 	while(str[i] != 0){
-		fbDrawChar(fb, str[i], hexColor, backColor, x, y, size);
-		x+= 8 * size;
+		fbDrawChar(fb, str[i], hexColor, backColor, x, y);
+		x+= fontmanager_get_current_font().width; // Avanzar a la siguiente posición
 		i++;
 	}
 }
 // Dibujar número en la posición (x,y) del frame buffer
-void fbDrawInt(uint8_t * fb, int num, uint32_t hexColor, uint32_t backColor, uint64_t x, uint64_t y, uint64_t size){
+void fbDrawInt(uint8_t * fb, int num, uint32_t hexColor, uint32_t backColor, uint64_t x, uint64_t y){
     char buffer[12];
     int i = 0;
     
@@ -534,7 +539,7 @@ void fbDrawInt(uint8_t * fb, int num, uint32_t hexColor, uint32_t backColor, uin
     }
     
     buffer[i] = '\0';
-    fbDrawText(fb, buffer, hexColor, backColor, x, y, size);
+    fbDrawText(fb, buffer, hexColor, backColor, x, y);
 }
 // Dibuja un rectángulo de w pixeles por h pixeles en la posición (x,y)
 void fbDrawRectangle(uint8_t * fb, uint32_t hexColor, uint64_t x, uint64_t y, uint64_t w, uint64_t h){
@@ -688,7 +693,10 @@ void drawCharHighlight(uint32_t x, uint32_t y, char ascii, uint32_t color, uint3
     }
     
     for (uint32_t row = 0; row < FONT_HEIGHT; row++) {  
-        uint8_t bits = font8x8_basic[(uint8_t)ascii][row];
+      //char * bmp = font8x8_basic[(unsigned char)ascii];
+	font_info_t currentFont = fontmanager_get_current_font();
+	uint8_t bits = currentFont.data + (ascii * currentFont.bytes_per_char);
+
         for (uint32_t col = 0; col < FONT_WIDTH; col++) { 
             if (bits & (1 << col)) {
                 bmp[row][col][0] = color & 0xFF;

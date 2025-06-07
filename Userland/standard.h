@@ -3,6 +3,7 @@
 
 #include <stdint.h>
 #include <stdarg.h>
+#include "fontManager.h"
 
 #define FONT_HEIGHT 8
 #define FONT_WIDTH 8
@@ -119,11 +120,11 @@ uint64_t fbGetSize ();
 // Cambia el pixel (x,y) del frame buffer por hexColor
 void fbPutPixel(uint8_t * fb, uint32_t hexColor, uint64_t x, uint64_t y, uint64_t bpp, uint64_t pitch);
 // Dibujar caracter en la posición (y,x) del frame buffer
-void fbDrawChar(uint8_t * fb, char ascii, uint32_t hexColor, uint32_t backColor, uint64_t x, uint64_t y, uint64_t size);
+void fbDrawChar(uint8_t * fb, char ascii, uint32_t hexColor, uint32_t backColor, uint64_t x, uint64_t y);
 // Dibujar string en la posición (y,x) del frame buffer
-void fbDrawText(uint8_t * fb, char* str, uint32_t hexColor, uint32_t backColor, uint64_t x, uint64_t y, uint64_t size);
+void fbDrawText(uint8_t * fb, char* str, uint32_t hexColor, uint32_t backColor, uint64_t x, uint64_t y);
 // Dibujar número en la posición (y,x) del frame buffer
-void fbDrawInt(uint8_t * fb, int num, uint32_t hexColor, uint32_t backColor, uint64_t x, uint64_t y, uint64_t size);
+void fbDrawInt(uint8_t * fb, int num, uint32_t hexColor, uint32_t backColor, uint64_t x, uint64_t y);
 // Dibuja un rectángulo de w pixeles por h pixeles en la posición (x,y)
 void fbDrawRectangle(uint8_t * fb, uint32_t hexColor, uint64_t x, uint64_t y, uint64_t w, uint64_t h);
 // Dibuja un círculo de r píxeles de radio en la posición (x,y)
