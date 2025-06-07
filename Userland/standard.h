@@ -33,7 +33,7 @@ uint64_t strtoint_complete(const char *str);
 // Escribir (count) caracteres de (buf) en el file descriptor (fd).
 int write(int fd, const char *buff, unsigned long count);
 // Leer (count) caracteres del file descriptor (fd) y guardar en (buf).
-int read(int fd, char *buff, unsigned long count);
+int read(int fd, unsigned char *buff, unsigned long count);
 
 
 
@@ -84,7 +84,7 @@ void getRegisters(registers_t* regs);
 
 
 /* UTILIDADES STDIN */ 
-char getchar();
+unsigned char getchar();
 int scanf(const char *format, ...);
 
 
@@ -120,7 +120,7 @@ uint64_t fbGetSize ();
 // Cambia el pixel (x,y) del frame buffer por hexColor
 void fbPutPixel(uint8_t * fb, uint32_t hexColor, uint64_t x, uint64_t y, uint64_t bpp, uint64_t pitch);
 // Dibujar caracter en la posición (y,x) del frame buffer
-void fbDrawChar(uint8_t * fb, char ascii, uint32_t hexColor, uint32_t backColor, uint64_t x, uint64_t y);
+void fbDrawChar(uint8_t * fb, unsigned char ascii, uint32_t hexColor, uint32_t backColor, uint64_t x, uint64_t y);
 // Dibujar string en la posición (y,x) del frame buffer
 void fbDrawText(uint8_t * fb, char* str, uint32_t hexColor, uint32_t backColor, uint64_t x, uint64_t y);
 // Dibujar número en la posición (y,x) del frame buffer

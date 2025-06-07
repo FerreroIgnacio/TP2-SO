@@ -27,7 +27,7 @@
 // Variables globales
 uint8_t * fb;
 static uint16_t width, height, bpp, pitch;
-static char command_buffer[BUFFER_SIZE];
+static unsigned char command_buffer[BUFFER_SIZE];
 static int buffer_pos = 0;
 static int cursor_x = 0;
 static int cursor_y = 0;
@@ -36,7 +36,7 @@ char firstEntry = 1;
 // Prototipos de funciones
 void shell_main();
 void handle_keyboard_input();
-void shell_putchar(char c);
+void shell_putchar(unsigned char c);
 void shell_print(const char* str);
 void shell_print_colored(const char* str, uint32_t color);
 void shell_newline();
@@ -77,7 +77,7 @@ char* find_args(char* cmd) {
 }
 
 // Función para imprimir un carácter
-void shell_putchar(char c) {
+void shell_putchar(unsigned char c) {
     if (c == '\n') {
         shell_newline();
         return;
@@ -130,6 +130,9 @@ void shell_newline() {
 
 // Mostrar prompt
 void shell_print_prompt() {
+    if (cursor_x != 0){
+        shell_newline();
+    }
     shell_print_colored("> ", PROMPT_COLOR);
 }
 
@@ -146,19 +149,21 @@ void clear_screen() {
 }
 // Comandos disponibles
 void cmd_help() {
-    shell_print("Comandos disponibles:\n");
-    shell_print("  help             - Mostrar comandos disponibles\n");
-    shell_print("  clear            - Limpiar pantalla\n");
-    shell_print("  echo             - Mostrar texto\n");
-    shell_print("  datetime         - Mostrar fecha y hora UTC-0 \n");
-    shell_print("  registers        - Imprimir registros guardados (F1)\n");
-    shell_print("  testzerodiv      - Testea la excepcion 00 \n");
-    shell_print("  testinvalidcode  - Testea la excepcion 06 \n");
-    shell_print("\nProgramas disponibles:\n");
-    shell_print("  pongisgolf\n");
-    shell_print("\nControles:\n");
-    shell_print("  Enter - Ejecutar comando\n");
-    shell_print("  Backspace - Borrar caracter\n");
+    printf("Comandos disponibles:\n");
+    printf("  help             - Mostrar comandos disponibles\n");
+    printf("  clear            - Limpiar pantalla\n");
+    printf("  echo             - Mostrar texto\n");
+    printf("  datetime         - Mostrar fecha y hora UTC-0 \n");
+    printf("  registers        - Imprimir registros guardados (F1)\n");
+    printf("  listfonts        - Listar las fuentes disponibles\n");
+    printf("  setfont <id>     - Cambiar la fuente\n");
+    printf("  testzerodiv      - Testea la excepcion 00 \n");
+    printf("  testinvalidcode  - Testea la excepcion 06 \n");
+    printf("\nProgramas disponibles:\n");
+    printf("  pongisgolf\n");
+    printf("\nControles:\n");
+    printf("  Enter - Ejecutar comando\n");
+    printf("  Backspace - Borrar caracter\n");
 }
 
 void cmd_clear() {
@@ -167,10 +172,10 @@ void cmd_clear() {
 
 void cmd_echo(char* args) {
     if (*args) {
-        shell_print(args);
+        printf("%s\n",args);
+    }else{
+        shell_newline();
     }
-   shell_newline();
-
 }
 
 void cmd_dateTime(){
@@ -296,21 +301,20 @@ void shell_set_font(font_type_t font_index) {
         shell_print_colored("Error: índice de fuente inválido\n", ERROR_COLOR);
         return;
     }
-    shell_newline();
+    cmd_clear();
     fontmanager_set_font(font_index);
     shell_print_colored("Fuente cambiada a: ", PROMPT_COLOR);
-    shell_print(fontmanager_get_font_name(font_index));
+    printf("%s\n",fontmanager_get_font_name(font_index));
     shell_newline();
 }
 // Muestra las fuentes disponibles
 void shell_list_fonts() {
     int count = fontmanager_get_font_count();
-    shell_print("Fuentes disponibles:\n");
+    printf("Fuentes disponibles:\n");
     for (int i = 0; i < count; i++) {
         const char* name = fontmanager_get_font_name(i);
-        shell_print("  ");
-        shell_print(name);
-        shell_newline();
+        printf("  Id: %d  -  ",i);
+        printf("%s\n",name);
     }
 }
 // Ejecutar comando
@@ -343,10 +347,6 @@ void execute_command() {
 	    cmd_test0Div();
     } else if (!strcmp(cmd_copy, "testinvalidcode")) {
 	    cmd_testInvalidCode();
-    } else if (!strcmp(cmd_copy, "pongisgolf")) {
-	    ((EntryPoint)pongisgolfModuleAddress)();    
-    } else if (!strcmp(cmd_copy, "SUS")) {
-	    cmd_amongus();
     } else if (!strcmp(cmd_copy, "listfonts")) {
         shell_list_fonts();
     } else if (!strcmp(cmd_copy, "setfont")) {
@@ -356,13 +356,15 @@ void execute_command() {
         } else {
             shell_print_colored("Uso: setfont <indice>\n", ERROR_COLOR);
         }
-
+    } else if (!strcmp(cmd_copy, "pongisgolf")) {
+	    ((EntryPoint)pongisgolfModuleAddress)();    
+    } else if (!strcmp(cmd_copy, "SUS")) {
+	    cmd_amongus();
     } else if (cmd_copy[0] != '\0') {
         shell_print_colored("Error: ", ERROR_COLOR);
-        shell_print("Comando desconocido '");
-        shell_print(cmd_copy);
-        shell_print("'\n");
-        shell_print("Escribe 'help' para ver comandos disponibles.\n");
+        printf("Comando desconocido '%s'\n",cmd_copy);
+
+        printf("Escribe 'help' para ver comandos disponibles.\n");
     }
 }
 
@@ -413,14 +415,15 @@ void hide_cursor() {
 void handle_keyboard_input() {
 	update_cursor();  
     // Actualizar estado de shift usando isKeyPressed
-    char c;
+    unsigned char c;
     if ( (c = getchar()) > 0) {
+
         // Manejar teclas especiales
         if (c == '\n') { // Enter
             shell_newline();
             execute_command();
 	        clear_buffer();
-	        shell_newline();
+	        //shell_newline();
             shell_print_prompt();
             return;
         }
@@ -440,64 +443,18 @@ void handle_keyboard_input() {
         }
             
         // Solo agregar caracteres imprimibles
-        if (c >= 32 && c <= 126 && buffer_pos < BUFFER_SIZE - 1) {
+        if (c && (buffer_pos < (BUFFER_SIZE - 1))) {
             command_buffer[buffer_pos++] = c;
             shell_putchar(c);
         }
     }
-
-    /*
-    update_cursor(); 
-    // Actualizar estado de shift usando isKeyPressed
-    int shift_pressed = isKeyPressed(LSHIFT_MAKECODE) || isKeyPressed(RSHIFT_MAKECODE); // Left/Right Shift
-    // Leer makecode del buffer usando read
-    uint8_t makecode;
-    if (read(0, (char*)&makecode, 1) > 0) {
-        
-        // no usar makecodes extendidos
-        if (makecode == 0xE0){
-            read(0, (char*)&makecode, 1);
-            return;
-        }
-        // Manejar teclas especiales
-        if (makecode == 0x1C) { // Enter
-            shell_newline();
-            execute_command();
-	        clear_buffer();
-	        shell_newline();
-            shell_print_prompt();
-            return;
-        }
-        if (makecode == 0x0E) { // Backspace
-            if (buffer_pos > 0) {
-                buffer_pos--;
-		        hide_cursor();
-                command_buffer[buffer_pos] = '\0';
-                if (cursor_x >= FONT_SIZE * FONT_BMP_SIZE) {
-                    cursor_x -= FONT_SIZE * FONT_BMP_SIZE;
-		            fbDrawChar(fb, ' ', FONT_COLOR, SHELL_COLOR, cursor_x, cursor_y, FONT_SIZE);
-                }
-            }
-            return;
-        }
-        
-        // Convertir makecode a ASCII
-        char ascii = getAsciiFromMakeCode(makecode, shift_pressed);
-        
-        // Solo agregar caracteres imprimibles
-        if (ascii != 0 && ascii >= 32 && ascii <= 126 && buffer_pos < BUFFER_SIZE - 1) {
-            command_buffer[buffer_pos++] = ascii;
-            shell_putchar(ascii);
-        }
-    }
-    */
 }
 
 void shell_welcome(){
     shell_print_colored("=================================================\n", PROMPT_COLOR);
     shell_print_colored("             SHELL v16.1\n", PROMPT_COLOR);
     shell_print_colored("=================================================\n", PROMPT_COLOR);
-    shell_print("Escribe 'help' para ver comandos disponibles.\n\n");
+    printf("Escribe 'help' para ver comandos disponibles.\n\n");
 }
 
 // Punto de entrada principal
@@ -513,18 +470,18 @@ int main() {
         fpsInit();
         clear_screen();
         clear_buffer();
+        fontmanager_set_font(1);
         shell_welcome();
         shell_print_prompt();
         firstEntry = 0;
     }
 
     while (1) {
-        char stdoutBuff [STDOUT_BUFFER_SIZE];
+        unsigned char stdoutBuff [STDOUT_BUFFER_SIZE];
         read(STDOUT,stdoutBuff,STDOUT_BUFFER_SIZE);
         if (strlen(stdoutBuff)>0){
             cursor_x = 0;
             shell_print(stdoutBuff);
-            shell_newline();
             shell_print_prompt();
         }
 

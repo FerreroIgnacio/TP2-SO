@@ -114,8 +114,8 @@ int areKeysPressed(int *makecodes, int count) {
 
 
 /* UTILIDADES STDIN */ 
-char getchar(){
-    char c = 0;
+unsigned char getchar(){
+    unsigned char c = 0;
     int count;
 
     // versión bloqueante
@@ -143,7 +143,7 @@ int scanf(const char *format, ...) {
             format++; 
             char buffer[STD_BUFF_SIZE];
             int bufIndex = 0;
-            char c;
+            unsigned char c;
 
             // Saltar marcadores de fin
             do {
@@ -470,7 +470,7 @@ void fbPutPixel(uint8_t * fb, uint32_t hexColor, uint64_t x, uint64_t y, uint64_
     fb[offset+2]   =  (hexColor >> 16) & 0xFF;
 }
 // Dibujar un caracter en la posición (x,y) del frame buffer
-void fbDrawChar(uint8_t *fb, char ascii, uint32_t hexColor, uint32_t backColor, uint64_t x, uint64_t y) {
+void fbDrawChar(uint8_t *fb, unsigned char ascii, uint32_t hexColor, uint32_t backColor, uint64_t x, uint64_t y) {
     font_info_t currentFont = fontmanager_get_current_font();
     int width = currentFont.width;
     int height = currentFont.height;
@@ -504,7 +504,7 @@ void fbDrawChar(uint8_t *fb, char ascii, uint32_t hexColor, uint32_t backColor, 
 void fbDrawText(uint8_t * fb, char* str, uint32_t hexColor, uint32_t backColor, uint64_t x, uint64_t y){
 	int i = 0;
 	while(str[i] != 0){
-		fbDrawChar(fb, str[i], hexColor, backColor, x, y);
+		fbDrawChar(fb, (unsigned char)str[i], hexColor, backColor, x, y);
 		x+= fontmanager_get_current_font().width; // Avanzar a la siguiente posición
 		i++;
 	}
