@@ -1,5 +1,5 @@
 #include <stddef.h>
-
+#include "pongisgolf.h"
 #include "../standard.h"
 // Variables globales
 
@@ -551,7 +551,7 @@ static uint64_t lastTick = 0;
 int player1Score = 0;
 int player2Score = 0;
 int ballControl = 0; // 0 = player1, 1 = player2, quien controla la pelota para saber de quien es el punto
-int main() {
+int runPongisGolf() {
     frameInit(&newFrame, newFb);
     frameInit(&newBackFrame, newBackFb);
     getVideoData(&width,&height,NULL,NULL);
@@ -571,6 +571,7 @@ int main() {
     player1Score = startLevel.spawnPosition[5].x;
 
     while(1) {
+        if (isKeyPressed(0x3C)) return 1;
         uint64_t currentTime = getBootTime();
         uint64_t deltaTime = currentTime - lastTick;
         lastTick = currentTime;

@@ -114,7 +114,6 @@ int main()
 
 	idtInit();
 	((EntryPoint)sampleCodeModuleAddress)();
-	//((EntryPoint)pongisgolfModuleAddress)();
 	
 	while(1);
 	return 0;
