@@ -17,28 +17,28 @@ uint16_t width=0, height=0, bpp=0, pitch=0;
 #define PLAYER_EYES_RADIUS 10
 #define PLAYER_PUPIL_RADIUS 7
 #define EYE_SEPARATION_ANGLE 40
-
 //precalculado * 1000 para no usar math.h
-static const int sinVec[360] = {
-    0, 17, 35, 52, 70, 87, 105, 122, 139, 156,
-    174, 191, 208, 225, 242, 259, 276, 292, 309, 326,
-    342, 358, 375, 391, 407, 423, 438, 454, 469, 485,
-    500, 515, 530, 545, 559, 574, 588, 602, 616, 629,
-    643, 656, 669, 682, 695, 707, 719, 731, 743, 755,
-    766, 777, 788, 799, 809, 819, 829, 839, 848, 857,
-    866, 875, 883, 891, 899, 906, 914, 921, 927, 934,
-    940, 946, 951, 956, 961, 966, 970, 974, 978, 982,
-    985, 988, 990, 993, 995, 996, 998, 999, 999, 1000,
-    1000, 1000, 999, 999, 998, 996, 995, 993, 990, 988,
-    985, 982, 978, 974, 970, 966, 961, 956, 951, 946,
-    940, 934, 927, 921, 914, 906, 899, 891, 883, 875,
-    866, 857, 848, 839, 829, 819, 809, 799, 788, 777,
-    766, 755, 743, 731, 719, 707, 695, 682, 669, 656,
-    643, 629, 616, 602, 588, 574, 559, 545, 530, 515,
-    500, 485, 469, 454, 438, 423, 407, 391, 375, 358,
-    342, 326, 309, 292, 276, 259, 242, 225, 208, 191,
-    174, 156, 139, 122, 105, 87, 70, 52, 35, 17,
-    0, -17, -35, -52, -70, -87, -105, -122, -139, -156,
+//0° apunta a la derecha, incrementa en sentido antihorario
+static const int64_t sinVec[360] = {
+       0,   17,   35,   52,   70,   87,  105,  122,  139,  156,
+     174,  191,  208,  225,  242,  259,  276,  292,  309,  326,
+     342,  358,  375,  391,  407,  423,  438,  454,  469,  485,
+     500,  515,  530,  545,  559,  574,  588,  602,  616,  629,
+     643,  656,  669,  682,  695,  707,  719,  731,  743,  755,
+     766,  777,  788,  799,  809,  819,  829,  839,  848,  857,
+     866,  875,  883,  891,  899,  906,  914,  921,  927,  934,
+     940,  946,  951,  956,  961,  966,  970,  974,  978,  982,
+     985,  988,  990,  993,  995,  996,  998,  999,  999, 1000,
+    1000, 1000,  999,  999,  998,  996,  995,  993,  990,  988,
+     985,  982,  978,  974,  970,  966,  961,  956,  951,  946,
+     940,  934,  927,  921,  914,  906,  899,  891,  883,  875,
+     866,  857,  848,  839,  829,  819,  809,  799,  788,  777,
+     766,  755,  743,  731,  719,  707,  695,  682,  669,  656,
+     643,  629,  616,  602,  588,  574,  559,  545,  530,  515,
+     500,  485,  469,  454,  438,  423,  407,  391,  375,  358,
+     342,  326,  309,  292,  276,  259,  242,  225,  208,  191,
+     174,  156,  139,  122,  105,   87,   70,   52,   35,   17,
+       0,  -17,  -35,  -52,  -70,  -87, -105, -122, -139, -156,
     -174, -191, -208, -225, -242, -259, -276, -292, -309, -326,
     -342, -358, -375, -391, -407, -423, -438, -454, -469, -485,
     -500, -515, -530, -545, -559, -574, -588, -602, -616, -629,
@@ -55,18 +55,21 @@ static const int sinVec[360] = {
     -643, -629, -616, -602, -588, -574, -559, -545, -530, -515,
     -500, -485, -469, -454, -438, -423, -407, -391, -375, -358,
     -342, -326, -309, -292, -276, -259, -242, -225, -208, -191,
-    -174, -156, -139, -122, -105, -87, -70, -52, -35, -17
+    -174, -156, -139, -122, -105,  -87,  -70,  -52,  -35,  -17
 };
 
-//devuelve seno * 1000, no se puede usar floating point SSE no init
-static int sin(int deg) {
+// Returns sine * 1000, no floating point needed
+static int64_t sin(int64_t deg) {
     while (deg < 0) deg += 360;
     while (deg >= 360) deg -= 360;
     return sinVec[deg];
 }
 
-static int cos(int deg) {
-    return sin(deg + 90);
+static int64_t cos(int64_t deg) {
+    deg += 90;
+    while (deg < 0) deg += 360;
+    while (deg >= 360) deg -= 360;
+    return sinVec[deg];
 }
 
 typedef struct PlayerStruct {
@@ -92,9 +95,9 @@ typedef struct ObjectStruct {
 } object_t;
 
 
-#define Vel_Step 5
-#define Vel_Cap 100
-#define Rot_Step 10
+#define Vel_Step 10 //velocities in pps
+#define Vel_Cap 90
+#define Rot_Step 5 //deg per 100ms
 
 /*
  * Updates player rotations and velocity when called
@@ -109,65 +112,46 @@ typedef struct ObjectStruct {
 #define KEY_K 0x25
 #define KEY_L 0x26
 
-void handleMovements() {
-    // Player 1 controls (WASD)
-    if (isKeyPressed(KEY_W)) {
-        if (player1.velocity < Vel_Cap) {
-            player1.velocity += Vel_Step;
-        }
-    }
-    if (isKeyPressed(KEY_S)) {
-        if (player1.velocity > -Vel_Cap) {
-            player1.velocity -= Vel_Step;
-        }
-    }
-    if (isKeyPressed(KEY_A)) {
-        player1.rotation += Rot_Step;
-        while (player1.rotation >= 360) {
-            player1.rotation -= 360;
-        }
-        while (player1.rotation < 0) {
-            player1.rotation += 360;
-        }
-    }
-    if (isKeyPressed(KEY_D)) {
-        player1.rotation -= Rot_Step;
-        while (player1.rotation >= 360) {
-            player1.rotation -= 360;
-        }
-        while (player1.rotation < 0) {
-            player1.rotation += 360;
-        }
-    }
+// 2. Fix the movement handling with better scaling
+void handleMovements(
+    uint64_t deltaTime,
+    player_t * player,
+    int32_t forwardMakeCode,
+    int32_t backMakeCode,
+    int32_t leftMakeCode,
+    int32_t rightMakeCode) {
 
-    // Player 2 controls (IJKL)
-    if (isKeyPressed(KEY_I)) {
-        if (player2.velocity < Vel_Cap) {
-            player2.velocity += Vel_Step;
+    if (isKeyPressed(forwardMakeCode)) {
+        if (isKeyPressed(forwardMakeCode)) {
+            int64_t cos_val = cos(player->rotation);  // -1000 to 1000
+            int64_t base_movement = (Vel_Step * deltaTime) / 100;  // Scale deltaTime down first
+            int64_t dx = (cos_val * base_movement) / 1000;
+            int64_t dy = (sin(player->rotation) * base_movement) / 1000;
+
+            player->x += dx;
+            player->y -= dy;
         }
     }
-    if (isKeyPressed(KEY_K)) {
-        if (player2.velocity > -Vel_Cap) {
-            player2.velocity -= Vel_Step;
-        }
+    if (isKeyPressed(backMakeCode)) {
+        int64_t cos_val = cos(player->rotation);  // -1000 to 1000
+        int64_t base_movement = (Vel_Step * deltaTime) / 100;  // Scale deltaTime down first
+        int64_t dx = (cos_val * base_movement) / 1000;
+        int64_t dy = (sin(player->rotation) * base_movement) / 1000;
+
+        player->x -= dx;
+        player->y += dy;
     }
-    if (isKeyPressed(KEY_J)) {
-        player2.rotation += Rot_Step;
-        while (player2.rotation >= 360) {
-            player2.rotation -= 360;
-        }
-        while (player2.rotation < 0) {
-            player2.rotation += 360;
-        }
+    if (isKeyPressed(leftMakeCode)) {
+    //    player->rotation += (Rot_Step * deltaTime) / (100 * 1000); // Scale by deltaTime
+        player->rotation += Rot_Step; // Scale by deltaTime
+   //     while (player->rotation > 360) player->rotation -= 360;
+     //   while (player->rotation < 0) player->rotation += 360;
     }
-    if (isKeyPressed(KEY_L)) {
-        player2.rotation -= Rot_Step;
-        while (player2.rotation >= 360) {
-            player2.rotation -= 360;
-        }
-        while (player2.rotation < 0) {
-            player2.rotation += 360;
-        }
+    if (isKeyPressed(rightMakeCode)) {
+       // player->rotation -= (Rot_Step * deltaTime) / (100 * 1000); // Scale by deltaTime
+        player->rotation -= Rot_Step; // Scale by deltaTime
+       // while (player->rotation > 360) player->rotation -= 360;
+       // while (player->rotation < 0) player->rotation += 360;
     }
 }
 
@@ -216,47 +200,49 @@ void drawPlayer(player_t p) {
     frameDrawCircle(frame, 0x000000, Lpupil.x, Lpupil.y, PLAYER_PUPIL_RADIUS);
     frameDrawCircle(frame, 0x000000, Rpupil.x, Rpupil.y, PLAYER_PUPIL_RADIUS);
 }
+void updatePlayerPos(point_t* newPos, player_t* player) {
+    // Update player position with boundary checking
+
+    // Check X boundaries
+    if (newPos->x < 0) {
+        player->x = 0;
+    } else if (newPos->x >= frame->width) {
+        player->x = frame->width - 1;
+    } else {
+        player->x = newPos->x;
+    }
+
+    // Check Y boundaries
+    if (newPos->y < 0) {
+        player->y = 0;
+    } else if (newPos->y >= frame->height) {
+        player->y = frame->height - 1;
+    } else {
+        player->y = newPos->y;
+    }
+}
+
 
 uint64_t lastPosUpdate = 0;
 void handleInput() {
-    //update player rotations and velocities
-    handleMovements();
-
-
     uint64_t currentTime = getBootTime();
     uint64_t deltaTime = currentTime - lastPosUpdate;
     lastPosUpdate = currentTime;
-
+    //update player rotations and velocities
     point_t newP1, newP2;
     // Convert velocity and time to position delta
     // velocity is already scaled by 1000, sin/cos return values * 1000
     // So we need to divide by 1000000 to get actual pixel movement
-    newP1.x = player1.x + (cos(player1.rotation) * player1.velocity * deltaTime) / 1000000;
-   // newP1.y = player1.y + (sin(player1.rotation) * player1.velocity * deltaTime) / 1000000;
-    newP1.y = player1.y - (sin(player1.rotation) * player1.velocity * deltaTime) / 1000000; // Nota el signo -
 
-    newP2.x = player2.x + (cos(player2.rotation) * player2.velocity * deltaTime) / 1000000;
-    newP2.y = player2.y - (sin(player2.rotation) * player2.velocity * deltaTime) / 1000000;
 
-   clearPlayer(player1);
-   clearPlayer(player2);
+    frameDrawInt(frame, deltaTime, 0xFF0000, 0x000000, 100, 100);
+    clearPlayer(player1);
+    clearPlayer(player2);
+    handleMovements(deltaTime, &player1, KEY_W, KEY_S, KEY_A, KEY_D);
+    handleMovements(deltaTime, &player2, KEY_I, KEY_K, KEY_J, KEY_L);
+    //updatePlayerPos(&newP1, &player1);
+    //updatePlayerPos(&newP2, &player2);
 
-    // Validar límites de pantalla
-
-    // Validar límites antes de asignar nuevas posiciones
-   // if (newP1.x >= PLAYER_RADIUS && newP1.x <= width - PLAYER_RADIUS) {
-        player1.x = newP1.x;
-  //  }
-  //  if (newP1.y >= PLAYER_RADIUS && newP1.y <= height - PLAYER_RADIUS) {
-        player1.y = newP1.y;
- //   }
-    // Validar límites para Player 2
-   // if (newP2.x >= PLAYER_RADIUS && newP2.x <= width - PLAYER_RADIUS) {
-        player2.x = newP2.x;
-   // }
-  //  if (newP2.y >= PLAYER_RADIUS && newP2.y <= height - PLAYER_RADIUS) {
-        player2.y = newP2.y;
-   // }
     drawPlayer(player1);
     drawPlayer(player2);
 }
@@ -272,16 +258,16 @@ void drawHole(hole_t holeToDraw) {
 uint8_t newFb [FRAMEBUFFER_SIZE];
 frame_t newFrame;
 
-uint8_t newBackFb [FRAMEBUFFER_SIZE];
-frame_t newBackFrame;
+//uint8_t newBackFb [FRAMEBUFFER_SIZE];
+//frame_t newBackFrame;
         
 int main() {
 
     frame = &newFrame;
     frameInit(frame, newFb);
 
-    backFrame = &newBackFrame;
-    frameInit(backFrame, newBackFb);
+   // backFrame = &newBackFrame;
+  //  frameInit(backFrame, newBackFb);
 
     getVideoData(&width,&height,&bpp,&pitch);
     
@@ -329,10 +315,10 @@ int main() {
     player1 = p1;
     player2 = p2;
 
-    frameFill(backFrame, BG_COLOR);
+  //  frameFill(backFrame, BG_COLOR);
     hole_t drawables[] = {target, *(hole_t*)&pit, *(hole_t*)&mount};
     for (int i = 0; i < sizeof(drawables) / sizeof(drawables[0]); i++) {
-        frameDrawCircle(backFrame, drawables[i].color, drawables[i].x, drawables[i].y, drawables[i].radius);
+ //       frameDrawCircle(backFrame, drawables[i].color, drawables[i].x, drawables[i].y, drawables[i].radius);
         frameDrawCircle(frame, drawables[i].color, drawables[i].x, drawables[i].y, drawables[i].radius);
     }
     uint64_t lastTick = 0;
@@ -340,10 +326,17 @@ int main() {
     drawPlayer(p2);
     lastPosUpdate = getBootTime();
     while(1) {
-      //  if (getBootTime() - lastTick > 1000 / FRAMES_PER_SECOND) {
-            handleInput();
-            setFrame(frame);
-            lastTick = getBootTime();
+        handleInput();
+        frameDrawInt(frame, player1.x, 0xFFFFFF, 0x000000, 0,0);
+        frameDrawInt(frame, player1.y, 0xFFFFFF, 0x000000, 0,50);
+        frameDrawInt(frame, player1.rotation, 0xFFFFFF, 0x000000, 0,100);
+        frameDrawInt(frame, player1.velocity, 0xFFFFFF, 0x000000, 0,150);
+
+        frameDrawInt(frame, player1.rotation, 0xFF0000, 0x000000, 0, height - 200);
+        frameDrawInt(frame, sin(player1.rotation), 0xFFFF, 0x000000, 0, height - 150);
+        frameDrawInt(frame, cos(player1.rotation), 0xFFFF00, 0x000000, 0, height - 100);
+        setFrame(frame);
+
      //   }
     }
     //for(int i = 10000000 ; i > 0 ; i --);
