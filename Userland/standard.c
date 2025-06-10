@@ -463,7 +463,7 @@ uint64_t fbGetSize (frame_t* fr){
 }
 
 // Inicializa el frame buffer 
-void frameInit(frame_t* fr, uint8_t* fb){
+frame_t * frameInit(frame_t* fr, uint8_t* fb){
     uint16_t width, height, bpp, pitch;
     getVideoData(&width, &height, &bpp, &pitch);
     fr->frameBuffer = fb;
@@ -471,6 +471,7 @@ void frameInit(frame_t* fr, uint8_t* fb){
     fr->height = height;
     fr->bpp = bpp;
     fr->pitch = pitch;
+    return fr;
 }
 // Dibujar un pixel en la posición (x,y) del frame buffer
 void framePutPixel(frame_t* fr, uint32_t hexColor, uint64_t x, uint64_t y) {
@@ -560,8 +561,120 @@ void frameDrawRectangle(frame_t* fr, uint32_t hexColor, uint64_t x, uint64_t y, 
         }
     }
 }
+
+void frameCopyRegion(uint64_t startX, uint64_t startY, uint64_t width, uint64_t height, frame_t* targetFrame, frame_t* sourceFrame) {
+    if (!targetFrame || !sourceFrame || width == 0 || height == 0) {
+        return;
+    }
+
+    // Calculate actual region bounds, clipping to both source and target frames
+    uint64_t endX = startX + width;
+    uint64_t endY = startY + height;
+
+    // Clip to source frame bounds
+    if (endX > sourceFrame->width) {
+        endX = sourceFrame->width;
+    }
+    if (endY > sourceFrame->height) {
+        endY = sourceFrame->height;
+    }
+
+    // Clip to target frame bounds
+    if (endX > targetFrame->width) {
+        endX = targetFrame->width;
+    }
+    if (endY > targetFrame->height) {
+        endY = targetFrame->height;
+    }
+
+    // If start coordinates are out of bounds, nothing to copy
+    if (startX >= endX || startY >= endY) {
+        return;
+    }
+
+    // Copy pixels byte by byte using bpp
+    uint16_t bytesPerPixel = sourceFrame->bpp / 8;
+
+    for (uint64_t y = startY; y < endY; y++) {
+        for (uint64_t x = startX; x < endX; x++) {
+            uint64_t sourceOffset = (y * sourceFrame->width + x) * bytesPerPixel;
+            uint64_t targetOffset = (y * targetFrame->width + x) * bytesPerPixel;
+
+            // Copy pixel byte by byte
+            for (uint16_t b = 0; b < bytesPerPixel; b++) {
+                targetFrame->frameBuffer[targetOffset + b] = sourceFrame->frameBuffer[sourceOffset + b];
+            }
+        }
+    }
+}
+
+
+void frameCopyCircle(uint64_t centerX, uint64_t centerY, uint64_t radius, frame_t* targetFrame, frame_t* sourceFrame) {
+    if (!targetFrame || !sourceFrame || radius == 0) {
+        return;
+    }
+
+    // Calculate bounding box (handle potential underflow with signed arithmetic)
+    int64_t minX_signed = (int64_t)centerX - (int64_t)radius;
+    int64_t minY_signed = (int64_t)centerY - (int64_t)radius;
+
+    uint64_t minX = (minX_signed < 0) ? 0 : (uint64_t)minX_signed;
+    uint64_t minY = (minY_signed < 0) ? 0 : (uint64_t)minY_signed;
+    uint64_t maxX = centerX + radius;
+    uint64_t maxY = centerY + radius;
+
+    // Clamp to both source and target frame bounds
+    if (maxX > sourceFrame->width) maxX = sourceFrame->width;
+    if (maxY > sourceFrame->height) maxY = sourceFrame->height;
+    if (maxX > targetFrame->width) maxX = targetFrame->width;
+    if (maxY > targetFrame->height) maxY = targetFrame->height;
+
+    // If the bounding box doesn't intersect with the frames, nothing to copy
+    if (minX >= maxX || minY >= maxY) {
+        return;
+    }
+
+    // Copy pixels byte by byte using bpp
+    uint16_t bytesPerPixel = sourceFrame->bpp / 8;
+
+    // Copy pixels within circle to same coordinates in target frame
+    for (uint64_t y = minY; y < maxY; y++) {
+        for (uint64_t x = minX; x < maxX; x++) {
+            int64_t dx = (int64_t)x - (int64_t)centerX;
+            int64_t dy = (int64_t)y - (int64_t)centerY;
+
+            if (dx * dx + dy * dy <= (int64_t)radius * (int64_t)radius) {
+                uint64_t sourceOffset = (y * sourceFrame->width + x) * bytesPerPixel;
+                uint64_t targetOffset = (y * targetFrame->width + x) * bytesPerPixel;
+
+                // Copy pixel byte by byte
+                for (uint16_t b = 0; b < bytesPerPixel; b++) {
+                    targetFrame->frameBuffer[targetOffset + b] = sourceFrame->frameBuffer[sourceOffset + b];
+                }
+            }
+        }
+    }
+}
+
+static uint64_t rand_seed = 0;
+void autoinit() {
+    if (rand_seed == 0) {
+        rand_seed = getBootTime();
+    }
+}
+
+uint32_t rand() {
+    autoinit();
+    // LCG formula
+    rand_seed = rand_seed * 1664525ULL + 1013904223ULL;
+    return (uint32_t)(rand_seed >> 32);
+}
+
+
+
 // Dibuja un círculo de r píxeles de radio en la posición (x,y)
 void frameDrawCircle(frame_t* fr, uint32_t hexColor, uint64_t x, uint64_t y, int64_t r){
+
     for(signed int dx = -r; dx <= r; dx++){
         for(int dy = -r; dy <= r; dy++){
             if(dx * dx + dy * dy <= r * r){
@@ -620,4 +733,8 @@ void playFreq(uint16_t freq, uint64_t ms){
     uint64_t start = getBootTime();
     while (getBootTime() - start < ms);
     stopSound();
+}
+
+void setFrameMasked(frame_t * fr, uint64_t maskColor) {
+    fbSetRegion(0,0, fr->width, fr->height, fr->frameBuffer, maskColor);
 }

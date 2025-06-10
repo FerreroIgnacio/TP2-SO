@@ -25,7 +25,7 @@
 
 
 // Variables globales
-static frame_t * frame;
+static frame_t * newFrame;
 static unsigned char command_buffer[BUFFER_SIZE];
 static int buffer_pos = 0;
 static int cursor_x = 0;
@@ -81,11 +81,11 @@ void shell_putchar(unsigned char c) {
         shell_newline();
         return;
     }
-    frameDrawChar(frame, c, FONT_COLOR, SHELL_COLOR, cursor_x, cursor_y);
+    frameDrawChar(newFrame, c, FONT_COLOR, SHELL_COLOR, cursor_x, cursor_y);
     font_info_t currentFont = fontmanager_get_current_font();
     cursor_x += FONT_SIZE * currentFont.width;
     
-    if (cursor_x >= frame->width) {
+    if (cursor_x >= newFrame->width) {
         shell_newline();
     }
 }
@@ -101,10 +101,10 @@ void shell_print_colored(const char* str, uint32_t color) {
         if (*str == '\n') {
             shell_newline();
         } else {
-	        frameDrawChar(frame, *str, color, SHELL_COLOR, cursor_x, cursor_y);
+	        frameDrawChar(newFrame, *str, color, SHELL_COLOR, cursor_x, cursor_y);
             font_info_t currentFont = fontmanager_get_current_font();
 			cursor_x += FONT_SIZE * currentFont.width;
-            if (cursor_x >= frame->width) {
+            if (cursor_x >= newFrame->width) {
                 shell_newline();
             }
         }
@@ -120,7 +120,7 @@ void shell_newline() {
     cursor_y += FONT_SIZE * currentFont.height + LINE_Y_PADDING;
     
     // Si llegamos al final de la pantalla, hacer scroll
-    if (cursor_y >= frame->height - currentFont.height) {
+    if (cursor_y >= newFrame->height - currentFont.height) {
         clear_screen();
         cursor_y = 0;
         shell_print_colored("--- Se limpio la pantalla (scroll) ---\n", PROMPT_COLOR);
@@ -143,7 +143,7 @@ void clear_buffer() {
 
 // Limpiar pantalla
 void clear_screen() {
-	frameFill (frame, SHELL_COLOR);
+	frameFill (newFrame, SHELL_COLOR);
     cursor_x = cursor_y = 0;
 }
 // Comandos disponibles
@@ -322,7 +322,7 @@ void execute_command() {
     if (buffer_pos == 0) return;
 
     // Borro el cursor antes de ejecutar comando
-    frameDrawChar(frame,' ', PROMPT_COLOR, SHELL_COLOR, cursor_x, cursor_y);
+    frameDrawChar(newFrame,' ', PROMPT_COLOR, SHELL_COLOR, cursor_x, cursor_y);
 
     command_buffer[buffer_pos] = '\0';
     
@@ -385,7 +385,7 @@ void update_cursor() {
     int should_be_drawn = cursor_visible;
     if (cursor_drawn != should_be_drawn) {
         char cursor_char = should_be_drawn ? '_' : ' ';
-	    frameDrawChar(frame, cursor_char, PROMPT_COLOR, SHELL_COLOR, cursor_x, cursor_y);
+	    frameDrawChar(newFrame, cursor_char, PROMPT_COLOR, SHELL_COLOR, cursor_x, cursor_y);
         cursor_drawn = should_be_drawn;
     }
 }
@@ -396,7 +396,7 @@ void reset_cursor() {
     last_cursor_time = getBootTime();
     if (!cursor_drawn) {
       font_info_t currentFont = fontmanager_get_current_font();
-	    frameDrawChar(frame, '_', PROMPT_COLOR, SHELL_COLOR, cursor_x, cursor_y);
+	    frameDrawChar(newFrame, '_', PROMPT_COLOR, SHELL_COLOR, cursor_x, cursor_y);
         cursor_drawn = 1;
     }
 }
@@ -404,7 +404,7 @@ void reset_cursor() {
 // Función para ocultar cursor (llamar antes de escribir texto)
 void hide_cursor() {
     if (cursor_drawn) {
-	    frameDrawChar(frame, ' ', SHELL_COLOR, SHELL_COLOR, cursor_x, cursor_y);
+	    frameDrawChar(newFrame, ' ', SHELL_COLOR, SHELL_COLOR, cursor_x, cursor_y);
         cursor_drawn = 0;
     }
 }
@@ -433,7 +433,7 @@ void handle_keyboard_input() {
                 command_buffer[buffer_pos] = '\0';
                 if (cursor_x >= FONT_SIZE * currentFont.width) {
                     cursor_x -= FONT_SIZE * currentFont.width;
-		            frameDrawChar(frame, ' ', FONT_COLOR, SHELL_COLOR, cursor_x, cursor_y);
+		            frameDrawChar(newFrame, ' ', FONT_COLOR, SHELL_COLOR, cursor_x, cursor_y);
                 }
             }
             return;
@@ -457,13 +457,11 @@ void shell_welcome(){
 // Punto de entrada principal
 uint8_t newFb [FRAMEBUFFER_SIZE]; // CAMBIAR POR MALLOC
 
-frame_t newFrame;
-
 int main() {
 
     if (firstEntry){  
-        frame = &newFrame;
-        frameInit(frame, newFb);
+       // newFrame = &newFrame;
+        frameInit(newFrame, newFb);
         fpsInit();
         clear_screen();
         clear_buffer();
@@ -485,7 +483,7 @@ int main() {
         for (int i = 0 ; i < KEYS_PER_LOOP ; i++)
             handle_keyboard_input();
 
-        setFrame(frame);
+        setFrame(newFrame);
     }
     
     shell_main();

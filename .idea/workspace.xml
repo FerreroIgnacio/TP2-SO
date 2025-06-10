@@ -6,12 +6,13 @@
   <component name="BackendCodeEditorMiscSettings">
     <option name="/Default/Housekeeping/FeatureSuggestion/FeatureSuggestionManager/DisabledSuggesters/=SwitchToGoToActionSuggester/@EntryIndexedValue" value="true" type="bool" />
     <option name="/Default/Housekeeping/GlobalSettingsUpgraded/IsUpgraded/@EntryValue" value="true" type="bool" />
+    <option name="/Default/Housekeeping/LiveTemplatesHousekeeping/HotspotSessionHintIsShown/@EntryValue" value="true" type="bool" />
     <option name="/Default/Housekeeping/OptionsDialog/SelectedPageId/@EntryValue" value="CppFormatterOtherPage" type="string" />
     <option name="/Default/RiderDebugger/RiderRestoreDecompile/RestoreDecompileSetting/@EntryValue" value="false" type="bool" />
   </component>
-  <component name="CMakePresetLoader"><![CDATA[{
-  "useNewFormat": true
-}]]></component>
+  <component name="CMakePresetLoader">{
+  &quot;useNewFormat&quot;: true
+}</component>
   <component name="CMakeProjectFlavorService">
     <option name="flavorId" value="CMakePlainProjectFlavor" />
   </component>
@@ -45,12 +46,7 @@
       <change afterPath="$PROJECT_DIR$/Kernel/include/videoDriver.h" afterDir="false" />
       <change afterPath="$PROJECT_DIR$/Kernel/keyboardDriver.c" afterDir="false" />
       <change afterPath="$PROJECT_DIR$/Kernel/videoDriver.c" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/.clang" beforeDir="false" afterPath="$PROJECT_DIR$/.clang" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/.idea/.gitignore" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/.idea/editor.xml" beforeDir="false" afterPath="$PROJECT_DIR$/.idea/editor.xml" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/.idea/misc.xml" beforeDir="false" afterPath="$PROJECT_DIR$/.idea/misc.xml" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/.idea/vcs.xml" beforeDir="false" afterPath="$PROJECT_DIR$/.idea/vcs.xml" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/CMakeLists.txt" beforeDir="false" afterPath="$PROJECT_DIR$/CMakeLists.txt" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/.idea/workspace.xml" beforeDir="false" afterPath="$PROJECT_DIR$/.idea/workspace.xml" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/Kernel/Makefile" beforeDir="false" afterPath="$PROJECT_DIR$/Kernel/Makefile" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/Kernel/asm/libasm.asm" beforeDir="false" />
       <change beforePath="$PROJECT_DIR$/Kernel/asm/libasm.o" beforeDir="false" />
@@ -66,8 +62,8 @@
       <change beforePath="$PROJECT_DIR$/Kernel/moduleLoader.c" beforeDir="false" afterPath="$PROJECT_DIR$/Kernel/moduleLoader.c" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/Kernel/moduleLoader.o" beforeDir="false" />
       <change beforePath="$PROJECT_DIR$/Kernel/naiveConsole.o" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/Userland/.standard.c.swp" beforeDir="false" />
       <change beforePath="$PROJECT_DIR$/Userland/PongisGolf/pongisgolf.c" beforeDir="false" afterPath="$PROJECT_DIR$/Userland/PongisGolf/pongisgolf.c" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/Userland/Shell/shell.c" beforeDir="false" afterPath="$PROJECT_DIR$/Userland/Shell/shell.c" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/Userland/standard.c" beforeDir="false" afterPath="$PROJECT_DIR$/Userland/standard.c" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/Userland/standard.h" beforeDir="false" afterPath="$PROJECT_DIR$/Userland/standard.h" afterDir="false" />
     </list>
@@ -111,7 +107,7 @@
   </component>
   <component name="PropertiesComponent"><![CDATA[{
   "keyToString": {
-    "CMake Application.Unnamed.executor": "Run",
+    "CMake Application.Unnamed.executor": "Debug",
     "ModuleVcsDetector.initialDetectionPerformed": "true",
     "RunOnceActivity.RadMigrateCodeStyle": "true",
     "RunOnceActivity.ShowReadmeOnStart": "true",
@@ -130,17 +126,17 @@
     "node.js.selected.package.eslint": "(autodetect)",
     "node.js.selected.package.tslint": "(autodetect)",
     "nodejs_package_manager_path": "npm",
-    "settings.editor.selected.configurable": "preferences.sourceCode.C/C++",
+    "settings.editor.selected.configurable": "preferences.pluginManager",
     "vue.rearranger.settings.migration": "true"
   }
 }]]></component>
   <component name="RunManager" selected="CMake Application.Unnamed">
-    <configuration default="true" type="CLionExternalRunConfiguration" factoryName="Application" REDIRECT_INPUT="false" ELEVATE="false" USE_EXTERNAL_CONSOLE="false" EMULATE_TERMINAL="false" PASS_PARENT_ENVS_2="true">
+    <configuration name="Unnamed" type="CMakeRunConfiguration" factoryName="Application" nameIsGenerated="true" REDIRECT_INPUT="false" ELEVATE="false" USE_EXTERNAL_CONSOLE="false" EMULATE_TERMINAL="false" PASS_PARENT_ENVS_2="true" CONFIG_NAME="Debug" RUN_PATH="$PROJECT_DIR$/CMakeLists.txt" EXPLICIT_BUILD_TARGET_NAME="all">
       <method v="2">
-        <option name="CLION.EXTERNAL.BUILD" enabled="true" />
+        <option name="com.jetbrains.cidr.execution.CidrBuildBeforeRunTaskProvider$BuildBeforeRunTask" enabled="true" />
       </method>
     </configuration>
-    <configuration name="Unnamed" type="CMakeRunConfiguration" factoryName="Application" nameIsGenerated="true" REDIRECT_INPUT="false" ELEVATE="false" USE_EXTERNAL_CONSOLE="false" EMULATE_TERMINAL="false" PASS_PARENT_ENVS_2="true" CONFIG_NAME="Debug" RUN_PATH="$PROJECT_DIR$/CMakeLists.txt" EXPLICIT_BUILD_TARGET_NAME="all">
+    <configuration default="true" type="CMakeRunConfiguration" factoryName="Application" REDIRECT_INPUT="false" ELEVATE="false" USE_EXTERNAL_CONSOLE="false" EMULATE_TERMINAL="false" PASS_PARENT_ENVS_2="true">
       <method v="2">
         <option name="com.jetbrains.cidr.execution.CidrBuildBeforeRunTaskProvider$BuildBeforeRunTask" enabled="true" />
       </method>
@@ -244,7 +240,8 @@
       <workItem from="1749528081228" duration="415000" />
       <workItem from="1749528504025" duration="102000" />
       <workItem from="1749528838788" duration="171000" />
-      <workItem from="1749529024337" duration="11517000" />
+      <workItem from="1749529024337" duration="17628000" />
+      <workItem from="1749568441725" duration="19451000" />
     </task>
     <servers />
   </component>
