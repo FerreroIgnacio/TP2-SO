@@ -149,17 +149,4 @@ void playFreq(uint16_t freq, uint64_t ms);
 void startSound(uint16_t freq);
 void stopSound();
 
-
-
-/* MANEJO DEL MODO VIDEO V2 */
-/******NO USAR ESTA PARTE******/
-// 
-//void fbSetRegion(uint32_t topLeftX, uint32_t topLeftY, uint32_t width, uint32_t height, uint8_t* bmp, uint32_t maskColor);
-/* Iguales a las de arriba, pero utilizando backColor */
-/*
-void drawCharHighlight(uint32_t x, uint32_t y, char c, uint32_t color, uint32_t backColor);
-void drawTextHighlight(uint32_t x, uint32_t y, const char* str, uint32_t color, uint32_t backColor);
-void drawIntHighlight(uint32_t x, uint32_t y, int value, uint32_t color, uint32_t backColor);
-*/
-
 #endif
