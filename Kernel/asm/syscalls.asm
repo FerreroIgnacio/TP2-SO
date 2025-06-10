@@ -104,27 +104,33 @@ bucle:
 ;       del divisor (por 0x42) - generar una onda cuadrada - valores en binario (no BCD)
 ; 0x61: 
 
-sys_playSound:              ; en rdi la freq deseada
+sys_playSound:              ; en rdi ya está la freq deseada
+
+    cmp rdi, 18             ; Verificar rango válido (18 Hz - 20000 Hz)
+    jb  end
+    cmp rdi, 20000
+    ja  end
+
     push rax
     push rdx
-
-    mov rax, 1193180        ; freq del pit
-    xor rdx, rdx            ; limpiar rdx (dividir solo con lo que está en rax)
-    div rdi                 ; obtener divisor a enviar al pit
 
     mov al, 0xB6            ; config pit
     out 0x43, al
 
+    mov rax, 1193180        ; freq del pit
+    xor rdx, rdx            ; limpiar rdx (dividir solo con lo que está en rax)
+    div rdi                 ; obtener divisor a enviar al pit
     out 0x42, al            ; enviar LSB
     mov al, ah              ; AL = MSB
     out 0x42, al            ; enviar MSB
 
-    in al, 0x61             ; poner los bits 0 y 1 en 1. (conectar en canal 2 al speaker y encenderlo)
-    or al, 0x03
+    in  al, 0x61            ; poner los bits 0 y 1 en 1. (conectar en canal 2 al speaker y encenderlo)
+    or  al, 0x03
     out 0x61, al
 
     pop rdx
     pop rax
+end:   
     ret 
 
 sys_stopSound:
