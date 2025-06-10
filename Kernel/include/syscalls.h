@@ -19,6 +19,9 @@
 #define SYSCALL_SET_FRAMEBUFFER 11
 #define SYSCALL_SET_FRAMEBUFFER_REGION 12
 
+#define SYSCALL_PLAY_SOUND 20
+#define SYSCALL_STOP_SOUND 21
+
 
 int sys_read(int fd, char* buffer, uint64_t count);
 
@@ -43,5 +46,9 @@ void sys_put_pixel(uint32_t hexColor, uint64_t x, uint64_t y);
 void sys_set_framebuffer(uint8_t * fb);
 
 void sys_set_framebuffer_region(uint32_t topLeftX, uint32_t topLeftY, uint32_t width, uint32_t height, uint8_t* bmp, uint32_t maskColor);
+
+void sys_playSound(uint16_t freq);
+void sys_stopSound();
+
 
 #endif

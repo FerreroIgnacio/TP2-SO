@@ -2,7 +2,6 @@
 #include <stdarg.h>
 
 
-
 /* MANEJO DE STRINGS */
 int strlen(const char *str){
     int len = 0;
@@ -316,7 +315,7 @@ void puthexupper(uint64_t value){               // %X %P
         putchar(buffer[j]);
     }
 }
-// Falta agregar soporte para double
+// Agregar soporte para double
 /*
 void putdouble(double value, int precision) {   // %f
     if (value < 0) {
@@ -420,7 +419,7 @@ uint64_t printf(const char * format, ...){
                     putoct(va_arg(args,uint64_t));
                     break;
 
-                // Falta agregar soporte para float / double    
+                // Agregar soporte para float / double    
                 /*
                 case '.':
                     c = *format++;
@@ -457,28 +456,35 @@ uint64_t printf(const char * format, ...){
 
 /* MANEJO DEL MODO VIDEO */
 // Obtener tamaño de la pantalla.
-uint64_t fbGetSize (){
-    uint16_t height, pitch;
-    getVideoData(0, &height, 0, &pitch);
-    return pitch * height;
+extern void fbSet(uint8_t*);
+
+uint64_t fbGetSize (frame_t* fr){
+    return fr->pitch * fr->height;
+}
+
+// Inicializa el frame buffer 
+void frameInit(frame_t* fr, uint8_t* fb){
+    uint16_t width, height, bpp, pitch;
+    getVideoData(&width, &height, &bpp, &pitch);
+    fr->frameBuffer = fb;
+    fr->width = width;
+    fr->height = height;
+    fr->bpp = bpp;
+    fr->pitch = pitch;
 }
 // Dibujar un pixel en la posición (x,y) del frame buffer
-void fbPutPixel(uint8_t * fb, uint32_t hexColor, uint64_t x, uint64_t y, uint64_t bpp, uint64_t pitch) {
-    uint64_t offset = (x * (bpp/8)) + (y * pitch);
-    fb[offset]     =  (hexColor) & 0xFF;
-    fb[offset+1]   =  (hexColor >> 8) & 0xFF; 
-    fb[offset+2]   =  (hexColor >> 16) & 0xFF;
+void framePutPixel(frame_t* fr, uint32_t hexColor, uint64_t x, uint64_t y) {
+    uint64_t offset = (x * (fr->bpp/8)) + (y * fr->pitch);
+    fr->frameBuffer[offset]     =  (hexColor) & 0xFF;
+    fr->frameBuffer[offset+1]   =  (hexColor >> 8) & 0xFF; 
+    fr->frameBuffer[offset+2]   =  (hexColor >> 16) & 0xFF;
 }
 // Dibujar un caracter en la posición (x,y) del frame buffer
-void fbDrawChar(uint8_t *fb, unsigned char ascii, uint32_t hexColor, uint32_t backColor, uint64_t x, uint64_t y) {
+void frameDrawChar(frame_t* fr, unsigned char ascii, uint32_t hexColor, uint32_t backColor, uint64_t x, uint64_t y) {
     font_info_t currentFont = fontmanager_get_current_font();
     int width = currentFont.width;
     int height = currentFont.height;
     int bytes_per_row = (width + 7) / 8;
-
-    // Obtener bpp y pitch del modo de video actual
-    uint16_t bpp, pitch;
-    getVideoData(0, 0, &bpp, &pitch);
 
     uint8_t *bmp = (uint8_t *)currentFont.data + (ascii * currentFont.bytes_per_char);
 
@@ -496,21 +502,21 @@ void fbDrawChar(uint8_t *fb, unsigned char ascii, uint32_t hexColor, uint32_t ba
 
             int pixel_on = bmp[byte_offset] & (1 << bit_index);
             uint32_t color = pixel_on ? hexColor : backColor;
-            fbPutPixel(fb, color, x + col, y + row, bpp, pitch);
+            framePutPixel(fr, color, x + col, y + row);
         }
     }
 }
 // Dibujar string en la posición (x,y) del frame buffer
-void fbDrawText(uint8_t * fb, char* str, uint32_t hexColor, uint32_t backColor, uint64_t x, uint64_t y){
+void frameDrawText(frame_t* fr, char* str, uint32_t hexColor, uint32_t backColor, uint64_t x, uint64_t y){
 	int i = 0;
 	while(str[i] != 0){
-		fbDrawChar(fb, (unsigned char)str[i], hexColor, backColor, x, y);
+		frameDrawChar(fr, (unsigned char)str[i], hexColor, backColor, x, y);
 		x+= fontmanager_get_current_font().width; // Avanzar a la siguiente posición
 		i++;
 	}
 }
 // Dibujar número en la posición (x,y) del frame buffer
-void fbDrawInt(uint8_t * fb, int num, uint32_t hexColor, uint32_t backColor, uint64_t x, uint64_t y){
+void frameDrawInt(frame_t* fr, int num, uint32_t hexColor, uint32_t backColor, uint64_t x, uint64_t y){
     char buffer[12];
     int i = 0;
     
@@ -539,60 +545,55 @@ void fbDrawInt(uint8_t * fb, int num, uint32_t hexColor, uint32_t backColor, uin
     }
     
     buffer[i] = '\0';
-    fbDrawText(fb, buffer, hexColor, backColor, x, y);
+    frameDrawText(fr, buffer, hexColor, backColor, x, y);
 }
 // Dibuja un rectángulo de w pixeles por h pixeles en la posición (x,y)
-void fbDrawRectangle(uint8_t * fb, uint32_t hexColor, uint64_t x, uint64_t y, uint64_t w, uint64_t h){
-    uint16_t width,height,bpp,pitch;
-    getVideoData(&width,&height,&bpp,&pitch);
-
+void frameDrawRectangle(frame_t* fr, uint32_t hexColor, uint64_t x, uint64_t y, uint64_t w, uint64_t h){
     for(uint64_t i = 0; i < h; i++){
         for(uint64_t j = 0; j < w; j++){
             uint64_t pixelX = x + j;
             uint64_t pixelY = y + i;
 
-            if(pixelX < width && pixelY < height) {
-                fbPutPixel(fb,hexColor,pixelX, pixelY,bpp,pitch);
+            if(pixelX < fr->width && pixelY < fr->height) {
+                framePutPixel(fr,hexColor,pixelX, pixelY);
             }
         }
     }
 }
 // Dibuja un círculo de r píxeles de radio en la posición (x,y)
-void fbDrawCircle(uint8_t * fb, uint32_t hexColor, uint64_t x, uint64_t y, int64_t r){
-    uint16_t width,height,bpp,pitch;
-    getVideoData(&width,&height,&bpp,&pitch);
-    
+void frameDrawCircle(frame_t* fr, uint32_t hexColor, uint64_t x, uint64_t y, int64_t r){
     for(signed int dx = -r; dx <= r; dx++){
         for(int dy = -r; dy <= r; dy++){
             if(dx * dx + dy * dy <= r * r){
                 uint64_t pixelX = x + dx;
                 uint64_t pixelY = y + dy;
-                if(pixelX >= 0 && pixelY >= 0 && pixelX < width && pixelY < height) {
-                    fbPutPixel(fb,hexColor,pixelX, pixelY,bpp,pitch);
+                if(pixelX >= 0 && pixelY >= 0 && pixelX < fr->width && pixelY < fr->height) {
+                    framePutPixel(fr,hexColor,pixelX, pixelY);
                 }
 	    }
 	}
    }
 }
 // Llenar el frame bufer con hexColor
-void fbFill(uint8_t * fb, uint32_t hexColor){
-    uint16_t bpp, pitch, width, height;
-    getVideoData(&width, &height, &bpp, &pitch);
+void frameFill(frame_t* fr, uint32_t hexColor){
     uint8_t r = (hexColor >> 16) & 0xFF;
     uint8_t g = (hexColor >> 8) & 0xFF;
     uint8_t b = hexColor & 0xFF;
-    uint8_t bytesPerPixel = bpp / 8;
+    uint8_t bytesPerPixel = fr->bpp / 8;
     
-    for (uint16_t y = 0; y < height; y++) {
-        for (uint16_t x = 0; x < width; x++) {
-            uint64_t offset = y * pitch + x * bytesPerPixel;
-            fb[offset] = b;
-            fb[offset + 1] = g;
-            fb[offset + 2] = r;
+    for (uint16_t y = 0; y < fr->height; y++) {
+        for (uint16_t x = 0; x < fr->width; x++) {
+            uint64_t offset = y * fr->pitch + x * bytesPerPixel;
+            fr->frameBuffer[offset] = b;
+            fr->frameBuffer[offset + 1] = g;
+            fr->frameBuffer[offset + 2] = r;
         }
     }
 }
 
+void setFrame(frame_t* fr){
+    fbSet(fr->frameBuffer);
+}
 
 /* CÁLCULO DE FPS */ 
 uint64_t framesCount, timerCount;
@@ -613,6 +614,13 @@ uint64_t getFps(){
     return fps;
 };
 
+/* SONIDO */
+void playFreq(uint16_t freq, uint64_t ms){
+    startSound(freq);
+    uint64_t start = getBootTime();
+    while (getBootTime() - start < ms);
+    stopSound();
+}
 
 
 
@@ -695,7 +703,7 @@ void drawCharHighlight(uint32_t x, uint32_t y, char ascii, uint32_t color, uint3
     for (uint32_t row = 0; row < FONT_HEIGHT; row++) {  
       //char * bmp = font8x8_basic[(unsigned char)ascii];
 	font_info_t currentFont = fontmanager_get_current_font();
-	uint8_t bits = currentFont.data + (ascii * currentFont.bytes_per_char);
+	uint64_t bits = (uint64_t)(currentFont.data + (ascii * currentFont.bytes_per_char));
 
         for (uint32_t col = 0; col < FONT_WIDTH; col++) { 
             if (bits & (1 << col)) {

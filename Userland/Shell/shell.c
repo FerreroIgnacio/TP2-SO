@@ -25,8 +25,7 @@
 
 
 // Variables globales
-uint8_t * fb;
-static uint16_t width, height, bpp, pitch;
+static frame_t * frame;
 static unsigned char command_buffer[BUFFER_SIZE];
 static int buffer_pos = 0;
 static int cursor_x = 0;
@@ -82,11 +81,11 @@ void shell_putchar(unsigned char c) {
         shell_newline();
         return;
     }
-    fbDrawChar(fb, c, FONT_COLOR, SHELL_COLOR, cursor_x, cursor_y);
+    frameDrawChar(frame, c, FONT_COLOR, SHELL_COLOR, cursor_x, cursor_y);
     font_info_t currentFont = fontmanager_get_current_font();
     cursor_x += FONT_SIZE * currentFont.width;
     
-    if (cursor_x >= width) {
+    if (cursor_x >= frame->width) {
         shell_newline();
     }
 }
@@ -102,10 +101,10 @@ void shell_print_colored(const char* str, uint32_t color) {
         if (*str == '\n') {
             shell_newline();
         } else {
-	        fbDrawChar(fb, *str, color, SHELL_COLOR, cursor_x, cursor_y);
+	        frameDrawChar(frame, *str, color, SHELL_COLOR, cursor_x, cursor_y);
             font_info_t currentFont = fontmanager_get_current_font();
 			cursor_x += FONT_SIZE * currentFont.width;
-            if (cursor_x >= width) {
+            if (cursor_x >= frame->width) {
                 shell_newline();
             }
         }
@@ -121,7 +120,7 @@ void shell_newline() {
     cursor_y += FONT_SIZE * currentFont.height + LINE_Y_PADDING;
     
     // Si llegamos al final de la pantalla, hacer scroll
-    if (cursor_y >= height - currentFont.height) {
+    if (cursor_y >= frame->height - currentFont.height) {
         clear_screen();
         cursor_y = 0;
         shell_print_colored("--- Se limpio la pantalla (scroll) ---\n", PROMPT_COLOR);
@@ -144,7 +143,7 @@ void clear_buffer() {
 
 // Limpiar pantalla
 void clear_screen() {
-	fbFill (fb, SHELL_COLOR);
+	frameFill (frame, SHELL_COLOR);
     cursor_x = cursor_y = 0;
 }
 // Comandos disponibles
@@ -323,12 +322,12 @@ void execute_command() {
     if (buffer_pos == 0) return;
 
     // Borro el cursor antes de ejecutar comando
-    fbDrawChar(fb,' ', PROMPT_COLOR, SHELL_COLOR, cursor_x, cursor_y);
+    frameDrawChar(frame,' ', PROMPT_COLOR, SHELL_COLOR, cursor_x, cursor_y);
 
     command_buffer[buffer_pos] = '\0';
     
     char cmd_copy[BUFFER_SIZE];
-    strcpy(cmd_copy, command_buffer);
+    strcpy(cmd_copy, (char*)command_buffer);
     char* args = find_args(cmd_copy);
     
     if (!strcmp(cmd_copy, "help")) {
@@ -386,7 +385,7 @@ void update_cursor() {
     int should_be_drawn = cursor_visible;
     if (cursor_drawn != should_be_drawn) {
         char cursor_char = should_be_drawn ? '_' : ' ';
-	    fbDrawChar(fb, cursor_char, PROMPT_COLOR, SHELL_COLOR, cursor_x, cursor_y);
+	    frameDrawChar(frame, cursor_char, PROMPT_COLOR, SHELL_COLOR, cursor_x, cursor_y);
         cursor_drawn = should_be_drawn;
     }
 }
@@ -397,7 +396,7 @@ void reset_cursor() {
     last_cursor_time = getBootTime();
     if (!cursor_drawn) {
       font_info_t currentFont = fontmanager_get_current_font();
-	    fbDrawChar(fb, '_', PROMPT_COLOR, SHELL_COLOR, cursor_x, cursor_y);
+	    frameDrawChar(frame, '_', PROMPT_COLOR, SHELL_COLOR, cursor_x, cursor_y);
         cursor_drawn = 1;
     }
 }
@@ -405,7 +404,7 @@ void reset_cursor() {
 // Función para ocultar cursor (llamar antes de escribir texto)
 void hide_cursor() {
     if (cursor_drawn) {
-	    fbDrawChar(fb, ' ', SHELL_COLOR, SHELL_COLOR, cursor_x, cursor_y);
+	    frameDrawChar(frame, ' ', SHELL_COLOR, SHELL_COLOR, cursor_x, cursor_y);
         cursor_drawn = 0;
     }
 }
@@ -417,13 +416,11 @@ void handle_keyboard_input() {
     // Actualizar estado de shift usando isKeyPressed
     unsigned char c;
     if ( (c = getchar()) > 0) {
-
         // Manejar teclas especiales
         if (c == '\n') { // Enter
             shell_newline();
             execute_command();
 	        clear_buffer();
-	        //shell_newline();
             shell_print_prompt();
             return;
         }
@@ -436,7 +433,7 @@ void handle_keyboard_input() {
                 command_buffer[buffer_pos] = '\0';
                 if (cursor_x >= FONT_SIZE * currentFont.width) {
                     cursor_x -= FONT_SIZE * currentFont.width;
-		            fbDrawChar(fb, ' ', FONT_COLOR, SHELL_COLOR, cursor_x, cursor_y);
+		            frameDrawChar(frame, ' ', FONT_COLOR, SHELL_COLOR, cursor_x, cursor_y);
                 }
             }
             return;
@@ -460,13 +457,13 @@ void shell_welcome(){
 // Punto de entrada principal
 uint8_t newFb [FRAMEBUFFER_SIZE]; // CAMBIAR POR MALLOC
 
-
+frame_t newFrame;
 
 int main() {
 
-    if (firstEntry){
-        fb = newFb;
-        getVideoData(&width,&height,&bpp,&pitch);
+    if (firstEntry){  
+        frame = &newFrame;
+        frameInit(frame, newFb);
         fpsInit();
         clear_screen();
         clear_buffer();
@@ -479,16 +476,16 @@ int main() {
     while (1) {
         unsigned char stdoutBuff [STDOUT_BUFFER_SIZE];
         read(STDOUT,stdoutBuff,STDOUT_BUFFER_SIZE);
-        if (strlen(stdoutBuff)>0){
+        if (strlen((char*)stdoutBuff)>0){
             cursor_x = 0;
-            shell_print(stdoutBuff);
+            shell_print((char*)stdoutBuff);
             shell_print_prompt();
         }
 
         for (int i = 0 ; i < KEYS_PER_LOOP ; i++)
             handle_keyboard_input();
 
-        fbSet(fb);
+        setFrame(frame);
     }
     
     shell_main();

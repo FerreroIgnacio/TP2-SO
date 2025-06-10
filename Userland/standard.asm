@@ -9,7 +9,8 @@ GLOBAL getVideoData
 GLOBAL putPixel
 GLOBAL fbSet
 GLOBAL fbSetRegion
-
+GLOBAL startSound
+GLOBAL stopSound
 EXTERN incFramesCount
 
 SECTION .text
@@ -63,6 +64,17 @@ fbSet:
     int     0x80
     call    incFramesCount
     ret
+
+startSound:
+    mov     rax, 0x14     ; syscall número 20
+    int     0x80          ; llamar a syscall
+    ret
+
+stopSound:
+    mov     rax, 0x15     ; syscall número 21
+    int     0x80          ; llamar a syscall
+    ret
+
 
 ;fbSetRegion(uint32_t topLeftX, uint32_t topLeftY, uint32_t width, uint32_t height, uint8_t* bmp, uint32_t maskColor)
 fbSetRegion:

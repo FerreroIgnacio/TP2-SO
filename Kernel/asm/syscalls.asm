@@ -2,6 +2,9 @@ GLOBAL sys_getTime
 GLOBAL sys_getDate
 GLOBAL saveRegisters
 GLOBAL sys_getRegisters
+GLOBAL sys_playSound
+GLOBAL sys_stopSound
+
 
 section .text
 
@@ -93,6 +96,41 @@ bucle:
     add rsi, 8
     add rdi, 8
     loop bucle
+    ret
+
+; para audio se usan 3 puertos en e/s:
+; 0x42: divisor: la frecuencia en el speaker se obtiene al dividir la frecuencia base (1.193.180 Hz) por el valor en este registro
+; 0x43: configura el pit, guardando 0xB6, se configura para: el canal 2 (speaker) - enviar primero la parte baja y luego la alta
+;       del divisor (por 0x42) - generar una onda cuadrada - valores en binario (no BCD)
+; 0x61: 
+
+sys_playSound:              ; en rdi la freq deseada
+    push rax
+    push rdx
+
+    mov rax, 1193180        ; freq del pit
+    xor rdx, rdx            ; limpiar rdx (dividir solo con lo que está en rax)
+    div rdi                 ; obtener divisor a enviar al pit
+
+    mov al, 0xB6            ; config pit
+    out 0x43, al
+
+    out 0x42, al            ; enviar LSB
+    mov al, ah              ; AL = MSB
+    out 0x42, al            ; enviar MSB
+
+    in al, 0x61             ; poner los bits 0 y 1 en 1. (conectar en canal 2 al speaker y encenderlo)
+    or al, 0x03
+    out 0x61, al
+
+    pop rdx
+    pop rax
+    ret 
+
+sys_stopSound:
+    in al, 0x61
+    and al, 0xFC            ;poner los bits 0 y 1 en 0. (apagar el speaker)
+    out 0x61, al
     ret
 
 section .bss

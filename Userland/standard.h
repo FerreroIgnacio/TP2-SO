@@ -12,6 +12,7 @@
 #define STDOUT 1
 #define STDERR 2
 #define STD_BUFF_SIZE 4096
+#define FRAMEBUFFER_SIZE 100000000
 
 /* MANEJO DE STRINGS */
 int strlen(const char *str);
@@ -103,37 +104,38 @@ uint64_t printf(const char * format, ... );
 
 
 /* MANEJO DEL MODO VIDEO */
-typedef struct videoData{
-    uint8_t * fb;
+typedef struct frame{
+    uint8_t* frameBuffer;
     uint16_t width;
     uint16_t height;
     uint16_t bpp;
     uint16_t pitch;
-} videoData_t;
+} frame_t;
 // Cambia el color del pixel (x,y) a hexColor
 extern void putPixel(uint32_t hexColor, uint64_t x, uint64_t y);
 // Guarda en los punteros los datos de la pantalla.
 // Si no se quiere guardar un dato, colocar NULL como argumento;
 extern void getVideoData(uint16_t* width, uint16_t* height, uint16_t* bpp, uint16_t* pitch);
-// retorna el tamaño del Framebuffer
+// retorna el tamaño del Framebuffer en hardware
 uint64_t fbGetSize ();
-// Cambia el pixel (x,y) del frame buffer por hexColor
-void fbPutPixel(uint8_t * fb, uint32_t hexColor, uint64_t x, uint64_t y, uint64_t bpp, uint64_t pitch);
-// Dibujar caracter en la posición (y,x) del frame buffer
-void fbDrawChar(uint8_t * fb, unsigned char ascii, uint32_t hexColor, uint32_t backColor, uint64_t x, uint64_t y);
-// Dibujar string en la posición (y,x) del frame buffer
-void fbDrawText(uint8_t * fb, char* str, uint32_t hexColor, uint32_t backColor, uint64_t x, uint64_t y);
-// Dibujar número en la posición (y,x) del frame buffer
-void fbDrawInt(uint8_t * fb, int num, uint32_t hexColor, uint32_t backColor, uint64_t x, uint64_t y);
-// Dibuja un rectángulo de w pixeles por h pixeles en la posición (x,y)
-void fbDrawRectangle(uint8_t * fb, uint32_t hexColor, uint64_t x, uint64_t y, uint64_t w, uint64_t h);
-// Dibuja un círculo de r píxeles de radio en la posición (x,y)
-void fbDrawCircle(uint8_t * fb, uint32_t hexColor, uint64_t x, uint64_t y, int64_t r);
-// Llenar el frame bufer con hexColor
-void fbFill (uint8_t * fb, uint32_t hexColor);
-// Muestra fb en pantalla. fb es un vector de al menos fbGetSize() posiciones
-void fbSet(uint8_t * fb);
-
+// Inicializa el frame
+void frameInit(frame_t* fr, uint8_t* fb);
+// Cambia el pixel (x,y) del frame por hexColor
+void framePutPixel(frame_t* fr, uint32_t hexColor, uint64_t x, uint64_t y);
+// Dibujar caracter en la posición (y,x) del frame
+void frameDrawChar(frame_t* fr, unsigned char ascii, uint32_t hexColor, uint32_t backColor, uint64_t x, uint64_t y);
+// Dibujar string en la posición (y,x) del frame
+void frameDrawText(frame_t* fr, char* str, uint32_t hexColor, uint32_t backColor, uint64_t x, uint64_t y);
+// Dibujar número en la posición (y,x) del frame
+void frameDrawInt(frame_t* fr, int num, uint32_t hexColor, uint32_t backColor, uint64_t x, uint64_t y);
+// Dibuja un rectángulo de w pixeles por h pixeles en la posición (x,y) del frame
+void frameDrawRectangle(frame_t* fr, uint32_t hexColor, uint64_t x, uint64_t y, uint64_t w, uint64_t h);
+// Dibuja un círculo de r píxeles de radio en la posición (x,y) del frame
+void frameDrawCircle(frame_t* fr, uint32_t hexColor, uint64_t x, uint64_t y, int64_t r);
+// Llenar el frame con hexColor
+void frameFill (frame_t* fr, uint32_t hexColor);
+// Carga el frame en hardware
+void setFrame(frame_t* fr);
 
 /* CÁLCULO DE FPS */ 
 // Inicia el contador de frames
@@ -142,6 +144,10 @@ void fpsInit();
 uint64_t getFps();
 
 
+/* SONIDO */
+void playFreq(uint16_t freq, uint64_t ms);
+void startSound(uint16_t freq);
+void stopSound();
 
 
 

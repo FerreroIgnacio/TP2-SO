@@ -36,6 +36,12 @@ int syscallHandler(int syscall_num, uint64_t arg1, uint64_t arg2, uint64_t arg3,
         case SYSCALL_SET_FRAMEBUFFER_REGION:
             sys_set_framebuffer_region((uint32_t)arg1, (uint32_t)arg2, (uint32_t)arg3, (uint32_t)arg4, (uint8_t*)arg5, (uint32_t)arg6);
             return 1;
+        case SYSCALL_PLAY_SOUND:
+            sys_playSound((uint16_t)arg1);
+            return 1;
+        case SYSCALL_STOP_SOUND:
+            sys_stopSound();
+            return 1;
         default:
             return -1;
     }
