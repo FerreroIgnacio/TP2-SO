@@ -1,5 +1,5 @@
 #include <stddef.h>
-#include "pongisgolf.h"
+
 #include "../standard.h"
 // Variables globales
 
@@ -22,7 +22,7 @@ static uint16_t width=0, height=0;
 
 #define MINTARGETS 1
 #define MAXTARGETS 3
-#define TARGET_MAXSIZE 50
+#define TARGET_MAXSIZE 150
 #define TARGET_MINSIZE (BALL_MAXSIZE + 5)
 #define TARGET_COLOR 0x000000
 
@@ -185,9 +185,9 @@ static object_t mount = {
 
 
 
-#define Vel_Step 10 //velocities in pps
+#define Vel_Step 40
 #define Vel_Cap 90
-#define Rot_Step 5 //deg per 100ms
+#define Rot_Step 7
 
 /*
  * Updates player rotations and velocity when called
@@ -374,61 +374,81 @@ int checkPlayerCollision(player_t *p1, player_t *p2) {
 }
 
 /*
- * Retorna 1 si el jugador especificado colisiona con el agujero, 0 si no
+ * Retorna el número de colisiones detectadas con las pelotas
+ * Modifica las posiciones de las pelotas que colisionan
  */
-int checkBallCollision(player_t player, hole_t *hole) {
-    int64_t dx = player.x - hole->x;
-    int64_t dy = player.y - hole->y;
-    int64_t distanceSquared = dx*dx + dy*dy;
+int checkBallCollisions(player_t player, hole_t *balls, int ballCount) {
+    int collisions = 0;
 
-    int64_t minDistance = PLAYER_RADIUS + hole->radius;
-    int64_t minDistanceSquared = minDistance * minDistance;
+    for (int i = 0; i < ballCount; i++) {
+        hole_t *ball = &balls[i];
 
-    // if not colliding
-    if (distanceSquared >= minDistanceSquared) {
-        return 0;
-    }
+        int64_t dx = player.x - ball->x;
+        int64_t dy = player.y - ball->y;
+        int64_t distanceSquared = dx*dx + dy*dy;
 
-    // collision detected - move ball
-    if (distanceSquared == 0) {
-        hole->x += hole->radius;
-    } else {
-        int64_t distance = 0;
-        int64_t temp = distanceSquared;
+        int64_t minDistance = PLAYER_RADIUS + ball->radius;
+        int64_t minDistanceSquared = minDistance * minDistance;
 
-        // Aproximacion sqrt
-        int64_t root = 0;
-        int64_t bit = 1 << 30;
-        while (bit > temp) bit >>= 2;
-        while (bit != 0) {
-            if (temp >= root + bit) {
-                temp -= root + bit;
-                root += bit << 1;
-            }
-            root >>= 1;
-            bit >>= 2;
+        // Si no hay colisión, continuar
+        if (distanceSquared >= minDistanceSquared) {
+            continue;
         }
-        distance = root;
 
-        // overlap depth
-        int64_t overlap = minDistance - distance;
+        // Colisión detectada
+        if (distanceSquared == 0) {
+            // Caso especial: posiciones idénticas
+            ball->x += minDistance;
+        } else {
+            // Calcular distancia usando aproximación más simple y confiable
+            int64_t distance = 0;
+            int64_t temp = distanceSquared;
 
-        // Normalizar dircetion vec
-        int64_t nx = (dx * 1000) / distance; // Fixed-point scaling
-        int64_t ny = (dy * 1000) / distance;
+            // Método de Newton simplificado para raíz cuadrada
+            int64_t x = temp;
+            int64_t y = (x + 1) / 2;
+            while (y < x) {
+                x = y;
+                y = (x + temp / x) / 2;
+            }
+            distance = x;
 
-        //Move hole away from player
-        hole->x -= (nx * overlap) / 1000;
-        hole->y -= (ny * overlap) / 1000;
+            // Calcular overlap
+            int64_t overlap = minDistance - distance;
+
+            // Asegurar que hay overlap significativo
+            if (overlap <= 0) {
+                continue;
+            }
+
+            // Vector de dirección normalizado (de jugador hacia pelota)
+            // Usar factor de escala más conservador
+            const int64_t SCALE = 1000;
+
+            int64_t nx = (-dx * SCALE) / distance;
+            int64_t ny = (-dy * SCALE) / distance;
+
+            // Mover la pelota ALEJÁNDOLA del jugador
+            ball->x += (nx * overlap) / SCALE;
+            ball->y += (ny * overlap) / SCALE;
+        }
+
+        // CORRECCIÓN: Límites de pantalla (width/height estaban intercambiados)
+        if (ball->x < ball->radius) {
+            ball->x = ball->radius;
+        }
+        if (ball->x > width - ball->radius) {
+            ball->x = width - ball->radius;
+        }
+        if (ball->y < ball->radius) {
+            ball->y = ball->radius;
+        }
+        if (ball->y > height - ball->radius) {
+            ball->y = height - ball->radius;
+        }
+
+        collisions++;
     }
-
-    // Bounds checking
-    if (hole->x < hole->radius) hole->x = hole->radius;
-    if (hole->x > newFrame.width - hole->radius) hole->x = newFrame.width - hole->radius;
-    if (hole->y < hole->radius) hole->y = hole->radius;
-    if (hole->y > newFrame.height - hole->radius) hole->y = newFrame.height - hole->radius;
-
-    return 1;
 }
 
 int checkHoleInclusion(hole_t *outerHole, hole_t *innerHole) {
@@ -475,6 +495,40 @@ void playSound(int freq, uint64_t ms) {
 void respawnSound() {
     playSound(1000, 1000);
 }
+void scoreSound() {
+    playSound(800, 200);
+}
+
+int checkCircleCollision(int64_t x1, int64_t y1, int64_t r1, int64_t x2, int64_t y2, int64_t r2) {
+    int64_t dx = x1 - x2;
+    int64_t dy = y1 - y2;
+    int64_t distanceSquared = dx * dx + dy * dy;
+    int64_t radiusSum = r1 + r2;
+    return distanceSquared < (radiusSum * radiusSum);
+}
+// Función auxiliar para verificar si un spawn está libre de colisiones con targets
+int isSpawnSafe(int64_t spawnX, int64_t spawnY, level_t* level) {
+    // Verificar colisión con todos los targets
+    for (int i = 0; i < level->targetsCount; i++) {
+        if (checkCircleCollision(spawnX, spawnY, PLAYER_RADIUS,
+                               level->targets[i].x, level->targets[i].y, level->targets[i].radius)) {
+            return 0;
+                               }
+    }
+
+    // Opcionalmente también verificar colisión con objetos peligrosos (pozos)
+    for (int i = 0; i < level->objectsCount; i++) {
+        if (!level->objects[i].isMountain) { // Si es un pozo
+            if (checkCircleCollision(spawnX, spawnY, PLAYER_RADIUS,
+                                   level->objects[i].hole.x, level->objects[i].hole.y,
+                                   level->objects[i].hole.radius)) {
+                return 0;
+                                   }
+        }
+    }
+
+    return 1;
+}
 
 level_t generateLevel() {
     level_t level = {0}; // Initialize all to zero
@@ -518,8 +572,23 @@ level_t generateLevel() {
 
     // Generate spawn points
     for (int i = 0; i < SPAWNCOUNT; i++) {
-        level.spawnPosition[i].x = rand() % (width - PLAYER_RADIUS * 2) + PLAYER_RADIUS;
-        level.spawnPosition[i].y = rand() % (height - PLAYER_RADIUS * 2) + PLAYER_RADIUS;
+        int validSpawn = 0;
+
+        while (!validSpawn) {
+            level.spawnPosition[i].x = rand() % (width - PLAYER_RADIUS * 2) + PLAYER_RADIUS;
+            level.spawnPosition[i].y = rand() % (height - PLAYER_RADIUS * 2) + PLAYER_RADIUS;
+
+            validSpawn = 1; // Asumir que es válido
+
+            // Solo verificar que no esté exactamente en el centro de un target
+            for (int j = 0; j < level.targetsCount; j++) {
+                if (level.spawnPosition[i].x == level.targets[j].x &&
+                    level.spawnPosition[i].y == level.targets[j].y) {
+                    validSpawn = 0;
+                    break;
+                    }
+            }
+        }
     }
 
     return level;
@@ -534,9 +603,6 @@ frame_t * drawLevelBackgroundToFrame(frame_t * frame, level_t level, uint64_t ba
     for (int i = 0; i < level.targetsCount; i++) {
         drawHole(frame,level.targets[i]);
     }
-    for (int i = 0; i < level.ballsCount; i++) {
-        drawHole(frame, level.balls[i]);
-    }
     return frame;
 }
 frame_t * drawLevelToFrame(frame_t * frame, level_t level, uint64_t backgroundColor) {
@@ -545,12 +611,15 @@ frame_t * drawLevelToFrame(frame_t * frame, level_t level, uint64_t backgroundCo
     for (int i = 0; i < 2; i++) {
         drawPlayer(frame, players[i]);
     }
+    for (int i = 0; i < level.ballsCount; i++) {
+        drawHole(frame, level.balls[i]);
+    }
 }
 
 static uint64_t lastTick = 0;
 int player1Score = 0;
 int player2Score = 0;
-int ballControl = 0; // 0 = player1, 1 = player2, quien controla la pelota para saber de quien es el punto
+int ballControl = 0; // 0 = player1, 1 = player2, quien controla la pelota para saber de quien es el punto, -1 ambos ganan los dos
 int runPongisGolf() {
     frameInit(&newFrame, newFb);
     frameInit(&newBackFrame, newBackFb);
@@ -568,8 +637,6 @@ int runPongisGolf() {
     drawLevelBackgroundToFrame(&newBackFrame, startLevel, BG_COLOR);
     drawLevelToFrame(&newFrame, startLevel, BG_COLOR);
 
-    player1Score = startLevel.spawnPosition[5].x;
-
     while(1) {
         if (isKeyPressed(0x3C)) return 1;
         uint64_t currentTime = getBootTime();
@@ -585,43 +652,74 @@ int runPongisGolf() {
 
         checkPlayerCollision(&player1, &player2);
 
-        frameCopyCircle(ball.x, ball.y, ball.radius + CIRCLE_REDRAW_MARGIN, &newFrame, &newBackFrame);
-        checkBallCollision(player1, &ball);
-        checkBallCollision(player2, &ball);
-
-        //Re-spawns
-        if (checkIsPlayerInHole(&player1, &targetHole)){
-            player1.x = 50;
-            player1.y = 50;
-            respawnSound();
+        for (int i = 0; i < startLevel.ballsCount; i++) {
+            hole_t ball = startLevel.balls[i];
+            frameCopyCircle(ball.x, ball.y, ball.radius + CIRCLE_REDRAW_MARGIN, &newFrame, &newBackFrame);
         }
-        if (checkIsPlayerInHole(&player2, &targetHole)){
-            player2.x = 300;
-            player2.y = 50;
-            respawnSound();
+        int collisions1 = checkBallCollisions(player1, startLevel.balls, startLevel.ballsCount);
+        int collisions2 = checkBallCollisions(player2, startLevel.balls, startLevel.ballsCount);
+
+        // Actualizar quién controla la pelota
+        if (collisions1 > 0 && collisions2 > 0) {
+            ballControl = -1; // Indica que ambos jugadores tocaron la pelota
         }
-
-
-
-        if (checkHoleInclusion(&targetHole, &ball)) {
-            if (ballControl == 0) {
-                player1Score++;
-            } else {
-                player2Score++;
+        else if (collisions1 > 0) {
+            ballControl = 0; // Player 1 tocó la pelota
+        }
+        else if (collisions2 > 0) {
+            ballControl = 1; // Player 2 tocó la pelota
+        }
+        //Re-spawns & scoring
+        for (int i = 0; i < startLevel.targetsCount; i++) {
+            hole_t aux = startLevel.targets[i];
+            if (checkIsPlayerInHole(&player1, &aux)){
+                player1.x = startLevel.spawnPosition[0].x;
+                player1.y = startLevel.spawnPosition[0].y;
+                respawnSound();
             }
-            ball.x = 50;
-            ball.y = 350;
+            if (checkIsPlayerInHole(&player2, &aux)){
+                player2.x = startLevel.spawnPosition[1].x;
+                player2.y = startLevel.spawnPosition[1].y;
+                respawnSound();
+            }
         }
+        for (int i = 0; i < startLevel.targetsCount; i++) {
+            for (int j = 0; j < startLevel.ballsCount; j++) {
+                // Verificar si la pelota está dentro del target
+                if (checkHoleInclusion(&startLevel.targets[i], &startLevel.balls[j])) {
+                    // ¡GOL! Sumar punto al jugador que controló la pelota
+                    if (ballControl == 0) {
+                        player1Score++;
+                    } else {
+                        player2Score++;
+                    }
+
+                    // Respawn de la pelota en posición aleatoria
+                    startLevel.balls[j].x = rand() % (width - startLevel.balls[j].radius * 2) + startLevel.balls[j].radius;
+                    startLevel.balls[j].y = rand() % (height - startLevel.balls[j].radius * 2) + startLevel.balls[j].radius;
+
+                    // Opcional: sonido de gol
+                    scoreSound();
+                }
+            }
+        }
+
 
         int textLen = 15;
         drawPlayer(&newFrame, player1);
         drawPlayer(&newFrame, player2);
+
+        for (int i = 0; i < startLevel.ballsCount; i++) {
+            hole_t ball = startLevel.balls[i];
+            drawHole(&newFrame, ball);
+        }
+
         frameDrawText(&newFrame, "Player 1 score:", PLAYER1_COLOR, 0x000000, 10, 10);
         frameDrawInt(&newFrame, player1Score, PLAYER1_COLOR, 0x000000, 10 + textLen * fontmanager_get_current_font().width, 10);
         frameDrawText(&newFrame, "Player 2 score:", PLAYER2_COLOR, 0x000000, width - (textLen + 5) * fontmanager_get_current_font().width, 10);
-        frameDrawInt(&newFrame, player1Score, PLAYER2_COLOR, 0x000000,  width - 5 * fontmanager_get_current_font().width, 10);
-
-        frameDrawCircle(&newFrame, ball.color, ball.x, ball.y, ball.radius);
+        frameDrawInt(&newFrame, player2Score, PLAYER2_COLOR, 0x000000,  width - 5 * fontmanager_get_current_font().width, 10);
+       // frameDrawInt(&newFrame, s, 0xFF0000, 000000, 0, 0 );
+        //frameDrawCircle(&newFrame, ball.color, ball.x, ball.y, ball.radius);
 
         setFrame(&newFrame);
 
