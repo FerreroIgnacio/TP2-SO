@@ -1,11 +1,11 @@
+#include <stddef.h>
+
 #include "../standard.h"
 // Variables globales
 
 static frame_t * frame;
 static frame_t * backFrame;
-
-
-uint16_t width=0, height=0, bpp=0, pitch=0;
+static uint16_t width=0, height=0;
 
 
 #define BG_COLOR 0x009999
@@ -80,19 +80,65 @@ typedef struct PlayerStruct {
     int64_t velocity;
 } player_t;
 
-static player_t player1;
-static player_t player2;
-
 typedef struct HoleStruct {
     int64_t x;
     int64_t y;
     uint16_t radius;
     uint64_t color;
 } hole_t;
+
 typedef struct ObjectStruct {
     hole_t hole;
     uint8_t isMountain; // 1 if mountain, 0 si es agujero
 } object_t;
+
+/* Object instances */
+static player_t player1 = {
+    .x = 100,
+    .y = 100,
+    .rotation = 0,
+    .color = PLAYER1_COLOR,
+    .velocity = 0
+};
+static player_t player2 = {
+    .x = 700,
+    .y = 500,
+    .rotation = 35,
+    .color = PLAYER2_COLOR,
+    .velocity = 0
+};
+
+static hole_t targetHole = {
+    .x = 500,
+    .y = 500,
+    .radius = 80,
+    .color = 0x000000
+};
+
+static hole_t ball = {
+    .x = 50,
+    .y = 350,
+    .radius = 20,
+    .color = 0xBBBBBB
+};
+static object_t pit = {
+    {
+        .x = 200,
+        .y = 200,
+        .radius = 80,
+        .color = 0x005555
+    },
+    .isMountain = 0
+};
+static object_t mount = {
+    {
+        .x = 400,
+        .y = 200,
+        .radius = 80,
+        .color = 0x00AAAA
+    },
+    .isMountain = 1
+};
 
 
 #define Vel_Step 10 //velocities in pps
@@ -158,7 +204,7 @@ void handleMovements(
 typedef struct point {
     int64_t x, y;
 } point_t;
-void getPlayerEyePos(player_t p, point_t * Lcenter, point_t * Rcenter) {
+static void getPlayerEyePos(player_t p, point_t * Lcenter, point_t * Rcenter) {
     int left_eye_angle = p.rotation - EYE_SEPARATION_ANGLE;
     int right_eye_angle = p.rotation + EYE_SEPARATION_ANGLE;
     Lcenter->x = p.x + PLAYER_RADIUS * cos(left_eye_angle) / 1000;
@@ -166,8 +212,7 @@ void getPlayerEyePos(player_t p, point_t * Lcenter, point_t * Rcenter) {
     Rcenter->x = p.x + PLAYER_RADIUS * cos(right_eye_angle) / 1000;
     Rcenter->y = p.y - PLAYER_RADIUS * sin(right_eye_angle) / 1000; // Signo - para invertir Y
 }
-
-void getPlayerPupilPos(player_t p, point_t * Lpupil, point_t * Rpupil) {
+static void getPlayerPupilPos(player_t p, point_t * Lpupil, point_t * Rpupil) {
     point_t Leye, Reye;
     getPlayerEyePos(p, &Leye, &Reye);
 
@@ -222,119 +267,252 @@ void updatePlayerPos(point_t* newPos, player_t* player) {
     }
 }
 
+/*
+ * Mueve los jugadores para resolver las colisiones
+ * Retorna 1 si ambos jugadores colisionan, 0 si no
+ */
+int checkPlayerCollision(player_t *p1, player_t *p2) {
+    int64_t dx = p1->x - p2->x;
+    int64_t dy = p1->y - p2->y;
+    int64_t distanceSquared = dx*dx + dy*dy;
 
-uint64_t lastPosUpdate = 0;
-void handleInput() {
-    uint64_t currentTime = getBootTime();
-    uint64_t deltaTime = currentTime - lastPosUpdate;
-    lastPosUpdate = currentTime;
-    //update player rotations and velocities
-    point_t newP1, newP2;
-    // Convert velocity and time to position delta
-    // velocity is already scaled by 1000, sin/cos return values * 1000
-    // So we need to divide by 1000000 to get actual pixel movement
+    //Distancia minima para colisionar
+    int64_t minDistance = 2 * PLAYER_RADIUS;
+    int64_t minDistanceSquared = minDistance * minDistance;
 
+    //Si no colisiono no hago nada mas
+    if (distanceSquared >= minDistanceSquared) {
+        return 0;
+    }
 
-    frameDrawInt(frame, deltaTime, 0xFF0000, 0x000000, 100, 100);
-    clearPlayer(player1);
-    clearPlayer(player2);
-    handleMovements(deltaTime, &player1, KEY_W, KEY_S, KEY_A, KEY_D);
-    handleMovements(deltaTime, &player2, KEY_I, KEY_K, KEY_J, KEY_L);
-    //updatePlayerPos(&newP1, &player1);
-    //updatePlayerPos(&newP2, &player2);
+    // Collision detected - resolve overlap
+    if (distanceSquared == 0) {
+        // Special case: exactly on top of each other
+        p1->x += PLAYER_RADIUS;
+        p2->x -= PLAYER_RADIUS;
+    } else {
+        // Calculate actual distance (approximate without sqrt)
+        int64_t distance = 0;
+        int64_t temp = distanceSquared;
 
-    drawPlayer(player1);
-    drawPlayer(player2);
+        // Fast integer square root approximation
+        int64_t root = 0;
+        int64_t bit = 1 << 30; // Second-to-top bit set
+        while (bit > temp) bit >>= 2;
+        while (bit != 0) {
+            if (temp >= root + bit) {
+                temp -= root + bit;
+                root += bit << 1;
+            }
+            root >>= 1;
+            bit >>= 2;
+        }
+        distance = root;
+
+        // Calculate overlap depth
+        int64_t overlap = minDistance - distance;
+
+        // Normalize direction vector
+        int64_t nx = (dx * 1000) / distance; // Fixed-point scaling
+        int64_t ny = (dy * 1000) / distance;
+
+        // Move players apart by half the overlap each
+        p1->x += (nx * overlap) / 2000; // Divide by 2 and scaling factor
+        p1->y += (ny * overlap) / 2000;
+        p2->x -= (nx * overlap) / 2000;
+        p2->y -= (ny * overlap) / 2000;
+    }
+
+    // Ensure players stay within bounds
+    if (p1->x < PLAYER_RADIUS) p1->x = PLAYER_RADIUS;
+    if (p1->x > frame->width - PLAYER_RADIUS) p1->x = frame->width - PLAYER_RADIUS;
+    if (p1->y < PLAYER_RADIUS) p1->y = PLAYER_RADIUS;
+    if (p1->y > frame->height - PLAYER_RADIUS) p1->y = frame->height - PLAYER_RADIUS;
+
+    if (p2->x < PLAYER_RADIUS) p2->x = PLAYER_RADIUS;
+    if (p2->x > frame->width - PLAYER_RADIUS) p2->x = frame->width - PLAYER_RADIUS;
+    if (p2->y < PLAYER_RADIUS) p2->y = PLAYER_RADIUS;
+    if (p2->y > frame->height - PLAYER_RADIUS) p2->y = frame->height - PLAYER_RADIUS;
+
+    return 1;
+}
+
+/*
+ * Retorna 1 si el jugador especificado colisiona con el agujero, 0 si no
+ */
+int checkBallCollision(player_t player, hole_t *hole) {
+    int64_t dx = player.x - hole->x;
+    int64_t dy = player.y - hole->y;
+    int64_t distanceSquared = dx*dx + dy*dy;
+
+    int64_t minDistance = PLAYER_RADIUS + hole->radius;
+    int64_t minDistanceSquared = minDistance * minDistance;
+
+    // if not colliding
+    if (distanceSquared >= minDistanceSquared) {
+        return 0;
+    }
+
+    // collision detected - move ball
+    if (distanceSquared == 0) {
+        hole->x += hole->radius;
+    } else {
+        int64_t distance = 0;
+        int64_t temp = distanceSquared;
+
+        // Aproximacion sqrt
+        int64_t root = 0;
+        int64_t bit = 1 << 30;
+        while (bit > temp) bit >>= 2;
+        while (bit != 0) {
+            if (temp >= root + bit) {
+                temp -= root + bit;
+                root += bit << 1;
+            }
+            root >>= 1;
+            bit >>= 2;
+        }
+        distance = root;
+
+        // overlap depth
+        int64_t overlap = minDistance - distance;
+
+        // Normalizar dircetion vec
+        int64_t nx = (dx * 1000) / distance; // Fixed-point scaling
+        int64_t ny = (dy * 1000) / distance;
+
+        //Move hole away from player
+        hole->x -= (nx * overlap) / 1000;
+        hole->y -= (ny * overlap) / 1000;
+    }
+
+    // Bounds checking
+    if (hole->x < hole->radius) hole->x = hole->radius;
+    if (hole->x > frame->width - hole->radius) hole->x = frame->width - hole->radius;
+    if (hole->y < hole->radius) hole->y = hole->radius;
+    if (hole->y > frame->height - hole->radius) hole->y = frame->height - hole->radius;
+
+    return 1;
+}
+
+int checkHoleInclusion(hole_t *outerHole, hole_t *innerHole) {
+    // Distancia entre centros
+    int64_t dx = outerHole->x - innerHole->x;
+    int64_t dy = outerHole->y - innerHole->y;
+    int64_t distanceSquared = dx*dx + dy*dy;
+
+    // Distancia máxima permitida entre los agujeros (Tolerancia de radios)
+    int64_t maxAllowedDistance = outerHole->radius - innerHole->radius;
+
+    if (maxAllowedDistance < 0) {
+        return 0;
+    }
+
+    //Comparo modulos
+    int64_t maxAllowedDistanceSquared = maxAllowedDistance * maxAllowedDistance;
+    return (distanceSquared <= maxAllowedDistanceSquared);
+}
+
+int checkIsPlayerInHole(player_t *player, hole_t *hole) {
+    hole_t auxHole = {
+        .x = player->x,
+        .y = player->y,
+        .radius = PLAYER_RADIUS,
+        .color = 0xFF00FF
+    };
+    return checkHoleInclusion(hole, &auxHole);
 }
 
 void drawHole(hole_t holeToDraw) {
     frameDrawCircle(frame, holeToDraw.color, holeToDraw.x, holeToDraw.y, holeToDraw.radius);
 }
-#define FRAMES_PER_SECOND 144
-
-
-
 
 uint8_t newFb [FRAMEBUFFER_SIZE];
 frame_t newFrame;
 
-//uint8_t newBackFb [FRAMEBUFFER_SIZE];
-//frame_t newBackFrame;
-        
-int main() {
+uint8_t newBackFb [FRAMEBUFFER_SIZE];
+frame_t newBackFrame;
 
+void playSound(int freq, uint64_t ms) {
+    startSound(freq);
+    uint64_t start = getBootTime();
+    while (getBootTime() - start < ms);
+    stopSound();
+}
+void respawnSound() {
+    playSound(1000, 1000);
+}
+
+static uint64_t lastTick = 0;
+int player1Score = 0;
+int player2Score = 0;
+int ballControl = 0; // 0 = player1, 1 = player2, quien controla la pelota para saber de quien es el punto
+int main() {
     frame = &newFrame;
     frameInit(frame, newFb);
-
-   // backFrame = &newBackFrame;
-  //  frameInit(backFrame, newBackFb);
-
-    getVideoData(&width,&height,&bpp,&pitch);
-    
+    backFrame = &newBackFrame;
+    frameInit(backFrame, newBackFb);
+    getVideoData(&width,&height,NULL,NULL);
     frameFill(frame, BG_COLOR);
-    hole_t target = {
-        .x = 50,
-        .y = 350,
-        .radius = 20,
-        .color = 0x0A0A0A
-    };
-    object_t pit = {
-        {
-            .x = 200,
-            .y = 200,
-            .radius = 80,
-            .color = 0x005555
-        },
-        .isMountain = 0
-    };
-    object_t mount = {
-         {
-            .x = 400,
-            .y = 200,
-            .radius = 80,
-            .color = 0x00AAAA
-        },
-        .isMountain = 1
-    };
-
-
-    player_t p1 = {
-        .x = 100,
-        .y = 100,
-        .rotation = 0,
-        .color = PLAYER1_COLOR,
-        .velocity = 0
-    };
-    player_t p2 = {
-        .x = 500,
-        .y = 500,
-        .rotation = 35,
-        .color = PLAYER2_COLOR,
-        .velocity = 0
-    };
-    player1 = p1;
-    player2 = p2;
-
-  //  frameFill(backFrame, BG_COLOR);
-    hole_t drawables[] = {target, *(hole_t*)&pit, *(hole_t*)&mount};
+    frameFill(backFrame, BG_COLOR);
+    hole_t drawables[] = {ball, *(hole_t*)&pit, *(hole_t*)&mount, targetHole};
     for (int i = 0; i < sizeof(drawables) / sizeof(drawables[0]); i++) {
- //       frameDrawCircle(backFrame, drawables[i].color, drawables[i].x, drawables[i].y, drawables[i].radius);
+        frameDrawCircle(backFrame, drawables[i].color, drawables[i].x, drawables[i].y, drawables[i].radius);
         frameDrawCircle(frame, drawables[i].color, drawables[i].x, drawables[i].y, drawables[i].radius);
     }
-    uint64_t lastTick = 0;
-    drawPlayer(p1);
-    drawPlayer(p2);
-    lastPosUpdate = getBootTime();
+    lastTick = getBootTime();
+    fontmanager_set_font(2);
     while(1) {
-        handleInput();
-        frameDrawInt(frame, player1.x, 0xFFFFFF, 0x000000, 0,0);
-        frameDrawInt(frame, player1.y, 0xFFFFFF, 0x000000, 0,50);
-        frameDrawInt(frame, player1.rotation, 0xFFFFFF, 0x000000, 0,100);
-        frameDrawInt(frame, player1.velocity, 0xFFFFFF, 0x000000, 0,150);
+        uint64_t currentTime = getBootTime();
+        uint64_t deltaTime = currentTime - lastTick;
+        lastTick = currentTime;
 
-        frameDrawInt(frame, player1.rotation, 0xFF0000, 0x000000, 0, height - 200);
-        frameDrawInt(frame, sin(player1.rotation), 0xFFFF, 0x000000, 0, height - 150);
-        frameDrawInt(frame, cos(player1.rotation), 0xFFFF00, 0x000000, 0, height - 100);
+
+        clearPlayer(player1);
+        clearPlayer(player2);
+
+        handleMovements(deltaTime, &player1, KEY_W, KEY_S, KEY_A, KEY_D);
+        handleMovements(deltaTime, &player2, KEY_I, KEY_K, KEY_J, KEY_L);
+
+        checkPlayerCollision(&player1, &player2);
+
+        frameDrawCircle(frame, BG_COLOR, ball.x, ball.y, ball.radius);
+        checkBallCollision(player1, &ball);
+        checkBallCollision(player2, &ball);
+
+        //Re-spawns
+        if (checkIsPlayerInHole(&player1, &targetHole)){
+            player1.x = 50;
+            player1.y = 50;
+            respawnSound();
+        }
+        if (checkIsPlayerInHole(&player2, &targetHole)){
+            player2.x = 300;
+            player2.y = 50;
+            respawnSound();
+        }
+
+
+
+        if (checkHoleInclusion(&targetHole, &ball)) {
+            if (ballControl == 0) {
+                player1Score++;
+            } else {
+                player2Score++;
+            }
+            ball.x = 50;
+            ball.y = 350;
+        }
+
+        int textLen = 15;
+        frameDrawText(frame, "Player 1 score:", PLAYER1_COLOR, 0x000000, 10, 10);
+        frameDrawInt(frame, player1Score, PLAYER1_COLOR, 0x000000, 10 + textLen * fontmanager_get_current_font().width, 10);
+        frameDrawText(frame, "Player 2 score:", PLAYER2_COLOR, 0x000000, width - (textLen + 5) * fontmanager_get_current_font().width, 10);
+        frameDrawInt(frame, player1Score, PLAYER2_COLOR, 0x000000,  width - 5 * fontmanager_get_current_font().width, 10);
+        drawPlayer(player1);
+        drawPlayer(player2);
+        frameDrawCircle(frame, ball.color, ball.x, ball.y, ball.radius);
+
         setFrame(frame);
 
      //   }
