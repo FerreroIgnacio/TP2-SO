@@ -143,6 +143,11 @@ void fpsInit();
 // Promedio de Frames Por Segundo desde la úĺtima llamada a getFps()
 uint64_t getFps();
 
+//Carga un bitmap directamente al hardware, para modificaciones selectivas sin tener que copiar un frame entero, utiliza una mascara
+void fbSetRegion(uint32_t topLeftX, uint32_t topLeftY, uint32_t width, uint32_t height, uint8_t* bmp, uint32_t maskColor);
+
+void frameCopyRegion(uint64_t startX, uint64_t startY, uint64_t width, uint64_t height, frame_t* targetFrame, frame_t* sourceFrame);
+void frameCopyCircle(uint64_t centerX, uint64_t centerY, uint64_t radius, frame_t* targetFrame, frame_t* sourceFrame);
 
 /* SONIDO */
 void playFreq(uint16_t freq, uint64_t ms);

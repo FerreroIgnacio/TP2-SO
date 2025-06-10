@@ -63,6 +63,8 @@
       <change beforePath="$PROJECT_DIR$/Kernel/moduleLoader.o" beforeDir="false" />
       <change beforePath="$PROJECT_DIR$/Kernel/naiveConsole.o" beforeDir="false" />
       <change beforePath="$PROJECT_DIR$/Userland/PongisGolf/pongisgolf.c" beforeDir="false" afterPath="$PROJECT_DIR$/Userland/PongisGolf/pongisgolf.c" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/Userland/standard.c" beforeDir="false" afterPath="$PROJECT_DIR$/Userland/standard.c" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/Userland/standard.h" beforeDir="false" afterPath="$PROJECT_DIR$/Userland/standard.h" afterDir="false" />
     </list>
     <option name="SHOW_DIALOG" value="false" />
     <option name="HIGHLIGHT_CONFLICTS" value="true" />
@@ -233,7 +235,7 @@
       <workItem from="1749528504025" duration="102000" />
       <workItem from="1749528838788" duration="171000" />
       <workItem from="1749529024337" duration="17628000" />
-      <workItem from="1749568441725" duration="11305000" />
+      <workItem from="1749568441725" duration="15290000" />
     </task>
     <servers />
   </component>

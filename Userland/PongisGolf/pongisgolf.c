@@ -17,6 +17,9 @@ static uint16_t width=0, height=0;
 #define PLAYER_EYES_RADIUS 10
 #define PLAYER_PUPIL_RADIUS 7
 #define EYE_SEPARATION_ANGLE 40
+
+#define CIRCLE_REDRAW_MARGIN 5
+
 //precalculado * 1000 para no usar math.h
 //0° apunta a la derecha, incrementa en sentido antihorario
 static const int64_t sinVec[360] = {
@@ -227,11 +230,15 @@ static void getPlayerPupilPos(player_t p, point_t * Lpupil, point_t * Rpupil) {
 }
 
 void clearPlayer(player_t p) {
-    frameDrawCircle(frame, BG_COLOR, p.x, p.y, PLAYER_RADIUS);
+   // frameDrawCircle(frame, BG_COLOR, p.x, p.y, PLAYER_RADIUS);
+    frameCopyCircle(p.x, p.y,PLAYER_RADIUS + CIRCLE_REDRAW_MARGIN, frame, backFrame);
+  //  frameCopyRegion(p.x - PLAYER_RADIUS, p.y - PLAYER_RADIUS,
+         //           2 * PLAYER_RADIUS, 2 * PLAYER_RADIUS,
+         //           frame, backFrame);
     point_t Leye, Reye;
     getPlayerEyePos(p, &Leye, &Reye);
-    frameDrawCircle(frame, BG_COLOR, Leye.x, Leye.y, PLAYER_EYES_RADIUS);
-    frameDrawCircle(frame, BG_COLOR, Reye.x, Reye.y, PLAYER_EYES_RADIUS);
+    frameCopyCircle(Leye.x,Leye.y, PLAYER_EYES_RADIUS + CIRCLE_REDRAW_MARGIN, frame, backFrame);
+    frameCopyCircle(Reye.x,Reye.y, PLAYER_EYES_RADIUS + CIRCLE_REDRAW_MARGIN, frame, backFrame);
 }
 void drawPlayer(player_t p) {
     frameDrawCircle(frame, p.color, p.x, p.y, PLAYER_RADIUS);
@@ -455,7 +462,7 @@ int main() {
     getVideoData(&width,&height,NULL,NULL);
     frameFill(frame, BG_COLOR);
     frameFill(backFrame, BG_COLOR);
-    hole_t drawables[] = {ball, *(hole_t*)&pit, *(hole_t*)&mount, targetHole};
+    hole_t drawables[] = {*(hole_t*)&pit, *(hole_t*)&mount, targetHole};
     for (int i = 0; i < sizeof(drawables) / sizeof(drawables[0]); i++) {
         frameDrawCircle(backFrame, drawables[i].color, drawables[i].x, drawables[i].y, drawables[i].radius);
         frameDrawCircle(frame, drawables[i].color, drawables[i].x, drawables[i].y, drawables[i].radius);
@@ -476,7 +483,7 @@ int main() {
 
         checkPlayerCollision(&player1, &player2);
 
-        frameDrawCircle(frame, BG_COLOR, ball.x, ball.y, ball.radius);
+        frameCopyCircle(ball.x, ball.y, ball.radius + CIRCLE_REDRAW_MARGIN, frame, backFrame);
         checkBallCollision(player1, &ball);
         checkBallCollision(player2, &ball);
 
@@ -505,12 +512,13 @@ int main() {
         }
 
         int textLen = 15;
+        drawPlayer(player1);
+        drawPlayer(player2);
         frameDrawText(frame, "Player 1 score:", PLAYER1_COLOR, 0x000000, 10, 10);
         frameDrawInt(frame, player1Score, PLAYER1_COLOR, 0x000000, 10 + textLen * fontmanager_get_current_font().width, 10);
         frameDrawText(frame, "Player 2 score:", PLAYER2_COLOR, 0x000000, width - (textLen + 5) * fontmanager_get_current_font().width, 10);
         frameDrawInt(frame, player1Score, PLAYER2_COLOR, 0x000000,  width - 5 * fontmanager_get_current_font().width, 10);
-        drawPlayer(player1);
-        drawPlayer(player2);
+
         frameDrawCircle(frame, ball.color, ball.x, ball.y, ball.radius);
 
         setFrame(frame);
