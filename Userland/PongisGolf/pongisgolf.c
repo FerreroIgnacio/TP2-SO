@@ -3,9 +3,34 @@
 #include "../standard.h"
 // Variables globales
 
-static frame_t * frame;
-static frame_t * backFrame;
+static uint8_t newFb [FRAMEBUFFER_SIZE];
+static frame_t newFrame;
+
+static uint8_t newBackFb [FRAMEBUFFER_SIZE];
+static frame_t newBackFrame;
+
 static uint16_t width=0, height=0;
+
+#define SPAWNCOUNT 16
+#define MINOBJECT 1 // Mínimo de objetos por nivel
+#define MAXOBJECTS 3
+
+#define OBJECT_MAXSIZE 130
+#define OBJECT_MINSIZE 50
+#define PIT_COLOR 0x005555
+#define MOUNTAIN_COLOR 0x00AAAA
+
+#define MINTARGETS 1
+#define MAXTARGETS 3
+#define TARGET_MAXSIZE 50
+#define TARGET_MINSIZE (BALL_MAXSIZE + 5)
+#define TARGET_COLOR 0x000000
+
+#define MINBALLS 1
+#define MAXBALLS 3
+#define BALL_MAXSIZE 40
+#define BALL_MINSIZE 10
+#define BALL_COLOR 0xCCCCCC
 
 
 #define BG_COLOR 0x009999
@@ -95,6 +120,20 @@ typedef struct ObjectStruct {
     uint8_t isMountain; // 1 if mountain, 0 si es agujero
 } object_t;
 
+typedef struct point {
+    int64_t x, y;
+} point_t;
+
+typedef struct LevelStruct {
+    object_t  objects[MAXOBJECTS];
+    uint64_t objectsCount;
+    hole_t targets[MAXOBJECTS];
+    uint16_t targetsCount;
+    hole_t balls[MAXBALLS];
+    uint16_t ballsCount;
+    point_t spawnPosition[SPAWNCOUNT];
+} level_t;
+
 /* Object instances */
 static player_t player1 = {
     .x = 100,
@@ -144,6 +183,8 @@ static object_t mount = {
 };
 
 
+
+
 #define Vel_Step 10 //velocities in pps
 #define Vel_Cap 90
 #define Rot_Step 5 //deg per 100ms
@@ -172,8 +213,8 @@ void handleMovements(
 
     if (isKeyPressed(forwardMakeCode)) {
         if (isKeyPressed(forwardMakeCode)) {
-            int64_t cos_val = cos(player->rotation);  // -1000 to 1000
-            int64_t base_movement = (Vel_Step * deltaTime) / 100;  // Scale deltaTime down first
+            int64_t cos_val = cos(player->rotation);  // -1000,1000
+            int64_t base_movement = (Vel_Step * deltaTime) / 100;
             int64_t dx = (cos_val * base_movement) / 1000;
             int64_t dy = (sin(player->rotation) * base_movement) / 1000;
 
@@ -182,8 +223,8 @@ void handleMovements(
         }
     }
     if (isKeyPressed(backMakeCode)) {
-        int64_t cos_val = cos(player->rotation);  // -1000 to 1000
-        int64_t base_movement = (Vel_Step * deltaTime) / 100;  // Scale deltaTime down first
+        int64_t cos_val = cos(player->rotation);  // -1000,1000
+        int64_t base_movement = (Vel_Step * deltaTime) / 100;
         int64_t dx = (cos_val * base_movement) / 1000;
         int64_t dy = (sin(player->rotation) * base_movement) / 1000;
 
@@ -191,22 +232,13 @@ void handleMovements(
         player->y += dy;
     }
     if (isKeyPressed(leftMakeCode)) {
-    //    player->rotation += (Rot_Step * deltaTime) / (100 * 1000); // Scale by deltaTime
         player->rotation += Rot_Step; // Scale by deltaTime
-   //     while (player->rotation > 360) player->rotation -= 360;
-     //   while (player->rotation < 0) player->rotation += 360;
     }
     if (isKeyPressed(rightMakeCode)) {
-       // player->rotation -= (Rot_Step * deltaTime) / (100 * 1000); // Scale by deltaTime
         player->rotation -= Rot_Step; // Scale by deltaTime
-       // while (player->rotation > 360) player->rotation -= 360;
-       // while (player->rotation < 0) player->rotation += 360;
     }
 }
 
-typedef struct point {
-    int64_t x, y;
-} point_t;
 static void getPlayerEyePos(player_t p, point_t * Lcenter, point_t * Rcenter) {
     int left_eye_angle = p.rotation - EYE_SEPARATION_ANGLE;
     int right_eye_angle = p.rotation + EYE_SEPARATION_ANGLE;
@@ -229,18 +261,17 @@ static void getPlayerPupilPos(player_t p, point_t * Lpupil, point_t * Rpupil) {
     Rpupil->y = Reye.y - pupil_distance * sin(right_eye_angle) / 1000; // Signo - para invertir Y
 }
 
-void clearPlayer(player_t p) {
-   // frameDrawCircle(frame, BG_COLOR, p.x, p.y, PLAYER_RADIUS);
-    frameCopyCircle(p.x, p.y,PLAYER_RADIUS + CIRCLE_REDRAW_MARGIN, frame, backFrame);
-  //  frameCopyRegion(p.x - PLAYER_RADIUS, p.y - PLAYER_RADIUS,
-         //           2 * PLAYER_RADIUS, 2 * PLAYER_RADIUS,
-         //           frame, backFrame);
+void clearPlayer(frame_t * frame, player_t p) {
+    frameCopyCircle(p.x, p.y,PLAYER_RADIUS + CIRCLE_REDRAW_MARGIN, frame, &newBackFrame);
     point_t Leye, Reye;
     getPlayerEyePos(p, &Leye, &Reye);
-    frameCopyCircle(Leye.x,Leye.y, PLAYER_EYES_RADIUS + CIRCLE_REDRAW_MARGIN, frame, backFrame);
-    frameCopyCircle(Reye.x,Reye.y, PLAYER_EYES_RADIUS + CIRCLE_REDRAW_MARGIN, frame, backFrame);
+    frameCopyCircle(Leye.x,Leye.y, PLAYER_EYES_RADIUS + CIRCLE_REDRAW_MARGIN, frame, &newBackFrame);
+    frameCopyCircle(Reye.x,Reye.y, PLAYER_EYES_RADIUS + CIRCLE_REDRAW_MARGIN, frame, &newBackFrame);
 }
-void drawPlayer(player_t p) {
+/*
+ * Dibuja el jugador en el frame especificado
+ */
+void drawPlayer(frame_t * frame, player_t p) {
     frameDrawCircle(frame, p.color, p.x, p.y, PLAYER_RADIUS);
     point_t Leye, Reye;
     getPlayerEyePos(p, &Leye, &Reye);
@@ -253,13 +284,11 @@ void drawPlayer(player_t p) {
     frameDrawCircle(frame, 0x000000, Rpupil.x, Rpupil.y, PLAYER_PUPIL_RADIUS);
 }
 void updatePlayerPos(point_t* newPos, player_t* player) {
-    // Update player position with boundary checking
-
     // Check X boundaries
     if (newPos->x < 0) {
         player->x = 0;
-    } else if (newPos->x >= frame->width) {
-        player->x = frame->width - 1;
+    } else if (newPos->x >= newFrame.width) {
+        player->x = newFrame.width - 1;
     } else {
         player->x = newPos->x;
     }
@@ -267,8 +296,8 @@ void updatePlayerPos(point_t* newPos, player_t* player) {
     // Check Y boundaries
     if (newPos->y < 0) {
         player->y = 0;
-    } else if (newPos->y >= frame->height) {
-        player->y = frame->height - 1;
+    } else if (newPos->y >= newFrame.height) {
+        player->y = newFrame.height - 1;
     } else {
         player->y = newPos->y;
     }
@@ -332,14 +361,14 @@ int checkPlayerCollision(player_t *p1, player_t *p2) {
 
     // Ensure players stay within bounds
     if (p1->x < PLAYER_RADIUS) p1->x = PLAYER_RADIUS;
-    if (p1->x > frame->width - PLAYER_RADIUS) p1->x = frame->width - PLAYER_RADIUS;
+    if (p1->x > newFrame.width - PLAYER_RADIUS) p1->x = newFrame.width - PLAYER_RADIUS;
     if (p1->y < PLAYER_RADIUS) p1->y = PLAYER_RADIUS;
-    if (p1->y > frame->height - PLAYER_RADIUS) p1->y = frame->height - PLAYER_RADIUS;
+    if (p1->y > newFrame.height - PLAYER_RADIUS) p1->y = newFrame.height - PLAYER_RADIUS;
 
     if (p2->x < PLAYER_RADIUS) p2->x = PLAYER_RADIUS;
-    if (p2->x > frame->width - PLAYER_RADIUS) p2->x = frame->width - PLAYER_RADIUS;
+    if (p2->x > newFrame.width - PLAYER_RADIUS) p2->x = newFrame.width - PLAYER_RADIUS;
     if (p2->y < PLAYER_RADIUS) p2->y = PLAYER_RADIUS;
-    if (p2->y > frame->height - PLAYER_RADIUS) p2->y = frame->height - PLAYER_RADIUS;
+    if (p2->y > newFrame.height - PLAYER_RADIUS) p2->y = newFrame.height - PLAYER_RADIUS;
 
     return 1;
 }
@@ -395,9 +424,9 @@ int checkBallCollision(player_t player, hole_t *hole) {
 
     // Bounds checking
     if (hole->x < hole->radius) hole->x = hole->radius;
-    if (hole->x > frame->width - hole->radius) hole->x = frame->width - hole->radius;
+    if (hole->x > newFrame.width - hole->radius) hole->x = newFrame.width - hole->radius;
     if (hole->y < hole->radius) hole->y = hole->radius;
-    if (hole->y > frame->height - hole->radius) hole->y = frame->height - hole->radius;
+    if (hole->y > newFrame.height - hole->radius) hole->y = newFrame.height - hole->radius;
 
     return 1;
 }
@@ -430,15 +459,12 @@ int checkIsPlayerInHole(player_t *player, hole_t *hole) {
     return checkHoleInclusion(hole, &auxHole);
 }
 
-void drawHole(hole_t holeToDraw) {
+void drawHole(frame_t * frame, hole_t holeToDraw) {
     frameDrawCircle(frame, holeToDraw.color, holeToDraw.x, holeToDraw.y, holeToDraw.radius);
 }
-
-uint8_t newFb [FRAMEBUFFER_SIZE];
-frame_t newFrame;
-
-uint8_t newBackFb [FRAMEBUFFER_SIZE];
-frame_t newBackFrame;
+void drawObject(frame_t * frame, object_t objectToDraw) {
+    drawHole(frame, objectToDraw.hole);
+}
 
 void playSound(int freq, uint64_t ms) {
     startSound(freq);
@@ -450,40 +476,115 @@ void respawnSound() {
     playSound(1000, 1000);
 }
 
+level_t generateLevel() {
+    level_t level = {0}; // Initialize all to zero
+
+    // Generate objects
+    level.objectsCount = (rand() % (MAXOBJECTS - MINOBJECT + 1)) + MINOBJECT;
+    for (int i = 0; i < level.objectsCount; i++) {
+        int isMountain = rand() % 2;
+        level.objects[i] = (object_t){
+            .hole = {
+                .x = rand() % (width - OBJECT_MAXSIZE) + OBJECT_MINSIZE,
+                .y = rand() % (height - OBJECT_MAXSIZE) + OBJECT_MINSIZE,
+                .radius = (rand() % (OBJECT_MAXSIZE - OBJECT_MINSIZE)) + OBJECT_MINSIZE,
+                .color = isMountain ? MOUNTAIN_COLOR : PIT_COLOR,
+            },
+            .isMountain = isMountain
+        };
+    }
+
+    // Generate targets
+    level.targetsCount = (rand() % (MAXTARGETS - MINTARGETS + 1)) + MINTARGETS;
+    for (int i = 0; i < level.targetsCount; i++) {
+        level.targets[i] = (hole_t){
+            .x = rand() % (width - TARGET_MAXSIZE) + TARGET_MINSIZE,
+            .y = rand() % (height - TARGET_MAXSIZE) + TARGET_MINSIZE,
+            .radius = (rand() % (TARGET_MAXSIZE - TARGET_MINSIZE)) + TARGET_MINSIZE,
+            .color = TARGET_COLOR
+        };
+    }
+
+    // Generate balls
+    level.ballsCount = (rand() % (MAXBALLS - MINBALLS + 1)) + MINBALLS;
+    for (int i = 0; i < level.ballsCount; i++) {
+        level.balls[i] = (hole_t){
+            .x = rand() % (width - BALL_MAXSIZE) + BALL_MINSIZE,
+            .y = rand() % (height - BALL_MAXSIZE) + BALL_MINSIZE,
+            .radius = (rand() % (BALL_MAXSIZE - BALL_MINSIZE)) + BALL_MINSIZE,
+            .color = BALL_COLOR
+        };
+    }
+
+    // Generate spawn points
+    for (int i = 0; i < SPAWNCOUNT; i++) {
+        level.spawnPosition[i].x = rand() % (width - PLAYER_RADIUS * 2) + PLAYER_RADIUS;
+        level.spawnPosition[i].y = rand() % (height - PLAYER_RADIUS * 2) + PLAYER_RADIUS;
+    }
+
+    return level;
+}
+
+
+frame_t * drawLevelBackgroundToFrame(frame_t * frame, level_t level, uint64_t backgroundColor) {
+    frameFill(frame, backgroundColor);
+    for (int i = 0; i < level.objectsCount; i++) {
+        drawObject(frame, level.objects[i]);
+    }
+    for (int i = 0; i < level.targetsCount; i++) {
+        drawHole(frame,level.targets[i]);
+    }
+    for (int i = 0; i < level.ballsCount; i++) {
+        drawHole(frame, level.balls[i]);
+    }
+    return frame;
+}
+frame_t * drawLevelToFrame(frame_t * frame, level_t level, uint64_t backgroundColor) {
+    drawLevelBackgroundToFrame(frame, level, backgroundColor);
+    player_t players[2] = {player1, player2};
+    for (int i = 0; i < 2; i++) {
+        drawPlayer(frame, players[i]);
+    }
+}
+
 static uint64_t lastTick = 0;
 int player1Score = 0;
 int player2Score = 0;
 int ballControl = 0; // 0 = player1, 1 = player2, quien controla la pelota para saber de quien es el punto
 int main() {
-    frame = &newFrame;
-    frameInit(frame, newFb);
-    backFrame = &newBackFrame;
-    frameInit(backFrame, newBackFb);
+    frameInit(&newFrame, newFb);
+    frameInit(&newBackFrame, newBackFb);
     getVideoData(&width,&height,NULL,NULL);
-    frameFill(frame, BG_COLOR);
-    frameFill(backFrame, BG_COLOR);
-    hole_t drawables[] = {*(hole_t*)&pit, *(hole_t*)&mount, targetHole};
-    for (int i = 0; i < sizeof(drawables) / sizeof(drawables[0]); i++) {
-        frameDrawCircle(backFrame, drawables[i].color, drawables[i].x, drawables[i].y, drawables[i].radius);
-        frameDrawCircle(frame, drawables[i].color, drawables[i].x, drawables[i].y, drawables[i].radius);
-    }
+
     lastTick = getBootTime();
     fontmanager_set_font(2);
+    level_t startLevel = generateLevel();
+    player1.x = startLevel.spawnPosition[0].x;
+    player1.y = startLevel.spawnPosition[0].y;
+
+    player2.x = startLevel.spawnPosition[1].x;
+    player2.y = startLevel.spawnPosition[1].y;
+
+    drawLevelBackgroundToFrame(&newBackFrame, startLevel, BG_COLOR);
+    drawLevelToFrame(&newFrame, startLevel, BG_COLOR);
+
+    player1Score = startLevel.spawnPosition[5].x;
+
     while(1) {
         uint64_t currentTime = getBootTime();
         uint64_t deltaTime = currentTime - lastTick;
         lastTick = currentTime;
 
 
-        clearPlayer(player1);
-        clearPlayer(player2);
+        clearPlayer(&newFrame, player1);
+        clearPlayer(&newFrame, player2);
 
         handleMovements(deltaTime, &player1, KEY_W, KEY_S, KEY_A, KEY_D);
         handleMovements(deltaTime, &player2, KEY_I, KEY_K, KEY_J, KEY_L);
 
         checkPlayerCollision(&player1, &player2);
 
-        frameCopyCircle(ball.x, ball.y, ball.radius + CIRCLE_REDRAW_MARGIN, frame, backFrame);
+        frameCopyCircle(ball.x, ball.y, ball.radius + CIRCLE_REDRAW_MARGIN, &newFrame, &newBackFrame);
         checkBallCollision(player1, &ball);
         checkBallCollision(player2, &ball);
 
@@ -512,16 +613,16 @@ int main() {
         }
 
         int textLen = 15;
-        drawPlayer(player1);
-        drawPlayer(player2);
-        frameDrawText(frame, "Player 1 score:", PLAYER1_COLOR, 0x000000, 10, 10);
-        frameDrawInt(frame, player1Score, PLAYER1_COLOR, 0x000000, 10 + textLen * fontmanager_get_current_font().width, 10);
-        frameDrawText(frame, "Player 2 score:", PLAYER2_COLOR, 0x000000, width - (textLen + 5) * fontmanager_get_current_font().width, 10);
-        frameDrawInt(frame, player1Score, PLAYER2_COLOR, 0x000000,  width - 5 * fontmanager_get_current_font().width, 10);
+        drawPlayer(&newFrame, player1);
+        drawPlayer(&newFrame, player2);
+        frameDrawText(&newFrame, "Player 1 score:", PLAYER1_COLOR, 0x000000, 10, 10);
+        frameDrawInt(&newFrame, player1Score, PLAYER1_COLOR, 0x000000, 10 + textLen * fontmanager_get_current_font().width, 10);
+        frameDrawText(&newFrame, "Player 2 score:", PLAYER2_COLOR, 0x000000, width - (textLen + 5) * fontmanager_get_current_font().width, 10);
+        frameDrawInt(&newFrame, player1Score, PLAYER2_COLOR, 0x000000,  width - 5 * fontmanager_get_current_font().width, 10);
 
-        frameDrawCircle(frame, ball.color, ball.x, ball.y, ball.radius);
+        frameDrawCircle(&newFrame, ball.color, ball.x, ball.y, ball.radius);
 
-        setFrame(frame);
+        setFrame(&newFrame);
 
      //   }
     }

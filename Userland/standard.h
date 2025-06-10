@@ -111,6 +111,8 @@ typedef struct frame{
     uint16_t bpp;
     uint16_t pitch;
 } frame_t;
+
+
 // Cambia el color del pixel (x,y) a hexColor
 extern void putPixel(uint32_t hexColor, uint64_t x, uint64_t y);
 // Guarda en los punteros los datos de la pantalla.
@@ -119,7 +121,8 @@ extern void getVideoData(uint16_t* width, uint16_t* height, uint16_t* bpp, uint1
 // retorna el tamaño del Framebuffer en hardware
 uint64_t fbGetSize ();
 // Inicializa el frame
-void frameInit(frame_t* fr, uint8_t* fb);
+// Devuelve el mismo puntero al frame que le pasamos como argumento
+frame_t * frameInit(frame_t* fr, uint8_t* fb);
 // Cambia el pixel (x,y) del frame por hexColor
 void framePutPixel(frame_t* fr, uint32_t hexColor, uint64_t x, uint64_t y);
 // Dibujar caracter en la posición (y,x) del frame
@@ -153,5 +156,7 @@ void frameCopyCircle(uint64_t centerX, uint64_t centerY, uint64_t radius, frame_
 void playFreq(uint16_t freq, uint64_t ms);
 void startSound(uint16_t freq);
 void stopSound();
+
+uint32_t rand();
 
 #endif

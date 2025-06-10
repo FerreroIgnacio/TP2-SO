@@ -463,7 +463,7 @@ uint64_t fbGetSize (frame_t* fr){
 }
 
 // Inicializa el frame buffer 
-void frameInit(frame_t* fr, uint8_t* fb){
+frame_t * frameInit(frame_t* fr, uint8_t* fb){
     uint16_t width, height, bpp, pitch;
     getVideoData(&width, &height, &bpp, &pitch);
     fr->frameBuffer = fb;
@@ -471,6 +471,7 @@ void frameInit(frame_t* fr, uint8_t* fb){
     fr->height = height;
     fr->bpp = bpp;
     fr->pitch = pitch;
+    return fr;
 }
 // Dibujar un pixel en la posición (x,y) del frame buffer
 void framePutPixel(frame_t* fr, uint32_t hexColor, uint64_t x, uint64_t y) {
@@ -654,6 +655,21 @@ void frameCopyCircle(uint64_t centerX, uint64_t centerY, uint64_t radius, frame_
         }
     }
 }
+
+static uint64_t rand_seed = 0;
+void autoinit() {
+    if (rand_seed == 0) {
+        rand_seed = getBootTime();
+    }
+}
+
+uint32_t rand() {
+    autoinit();
+    // LCG formula
+    rand_seed = rand_seed * 1664525ULL + 1013904223ULL;
+    return (uint32_t)(rand_seed >> 32);
+}
+
 
 
 // Dibuja un círculo de r píxeles de radio en la posición (x,y)
