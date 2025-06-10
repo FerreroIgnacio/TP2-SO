@@ -243,7 +243,7 @@ void cmd_testInvalidCode(){
 
 
 //Altamente experimental, despues la borramos total es un amongus(sus) junto al soporte de unicode
-
+//La mejora mascota de debugging en mi todo mi desarollo universitario
 //Temporalmente desabilitada :(
 void cmd_amongus() {
   /*
@@ -356,7 +356,10 @@ void execute_command() {
             shell_print_colored("Uso: setfont <indice>\n", ERROR_COLOR);
         }
     } else if (!strcmp(cmd_copy, "pongisgolf")) {
-	    runPongisGolf();    
+        //Guardo la fuente actual pues pongis usa una fuente mas grande para que los caracteres sean facilmente visibles
+        int current_font = fontmanager_get_current_font_index();
+	    runPongisGolf();
+        shell_set_font(current_font);
     } else if (!strcmp(cmd_copy, "SUS")) {
 	    cmd_amongus();
     } else if (cmd_copy[0] != '\0') {

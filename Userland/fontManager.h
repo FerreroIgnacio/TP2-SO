@@ -26,6 +26,7 @@ typedef struct {
 
 typedef struct {
     font_type_t current_font;       // Currently selected font
+    int currentIndex;               // Index of the current font in the array
     font_info_t fonts[FONT_TYPE_COUNT]; // Font information array
     int initialized;               // Initialization status
 } font_manager_t;
@@ -40,6 +41,8 @@ extern const unsigned char console_font_16x32[];
 int fontmanager_set_font(font_type_t font_type);
 
 font_info_t fontmanager_get_current_font();
+
+int fontmanager_get_current_font_index();
 
 uint8_t fontmanager_get_font_count();
 

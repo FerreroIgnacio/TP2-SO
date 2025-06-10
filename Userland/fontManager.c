@@ -41,6 +41,7 @@ static const font_info_t font_infos[FONT_TYPE_COUNT] = {
 
 static font_manager_t g_font_manager = {
     .current_font = FONT_8x8_BASIC,
+    .currentIndex = 0,
     .initialized = 0,
     .fonts = {0} // Initialize fonts array to zero
     //.fonts = font_infos,
@@ -83,4 +84,7 @@ const char* fontmanager_get_font_name(font_type_t index) {
         return "Invalid font index";
     }
     return g_font_manager.fonts[index].name;
+}
+int fontmanager_get_current_font_index() {
+    return g_font_manager.currentIndex;
 }

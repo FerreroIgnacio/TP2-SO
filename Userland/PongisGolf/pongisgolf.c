@@ -106,6 +106,7 @@ typedef struct PlayerStruct {
     int64_t rotation;
     uint64_t color;
     int64_t velocity;
+    int64_t speedMult; //Speed multiplier 100 default
 } player_t;
 
 typedef struct HoleStruct {
@@ -140,14 +141,16 @@ static player_t player1 = {
     .y = 100,
     .rotation = 0,
     .color = PLAYER1_COLOR,
-    .velocity = 0
+    .velocity = 0,
+    .speedMult = 100 // Default speed multiplier
 };
 static player_t player2 = {
     .x = 700,
     .y = 500,
     .rotation = 35,
     .color = PLAYER2_COLOR,
-    .velocity = 0
+    .velocity = 0,
+    .speedMult = 100 // Default speed multiplier
 };
 
 static hole_t targetHole = {
@@ -185,9 +188,8 @@ static object_t mount = {
 
 
 
-#define Vel_Step 40
-#define Vel_Cap 90
-#define Rot_Step 7
+#define Vel_Step 25
+#define Rot_Step 10
 
 /*
  * Updates player rotations and velocity when called
@@ -206,39 +208,85 @@ static object_t mount = {
 void handleMovements(
     uint64_t deltaTime,
     player_t * player,
+    level_t level,
     int32_t forwardMakeCode,
     int32_t backMakeCode,
     int32_t leftMakeCode,
     int32_t rightMakeCode) {
 
-    if (isKeyPressed(forwardMakeCode)) {
-        if (isKeyPressed(forwardMakeCode)) {
-            int64_t cos_val = cos(player->rotation);  // -1000,1000
-            int64_t base_movement = (Vel_Step * deltaTime) / 100;
-            int64_t dx = (cos_val * base_movement) / 1000;
-            int64_t dy = (sin(player->rotation) * base_movement) / 1000;
+    // Check if player is in any object and adjust speed multiplier
+    player->speedMult = 100; // Default speed
 
-            player->x += dx;
-            player->y -= dy;
+    for (int i = 0; i < level.objectsCount; i++) {
+        hole_t playerHole = {
+            .x = player->x,
+            .y = player->y,
+            .radius = PLAYER_RADIUS,
+            .color = 0xFF00FF
+        };
+
+        if (checkHoleInclusion(&level.objects[i].hole, &playerHole)) {
+            if (level.objects[i].isMountain) {
+                player->speedMult = 180; // Faster on mountains
+            } else {
+                player->speedMult = 40;  // Slower in pits
+            }
+            break; // Use the first object found
         }
     }
-    if (isKeyPressed(backMakeCode)) {
+
+    if (isKeyPressed(forwardMakeCode)) {
         int64_t cos_val = cos(player->rotation);  // -1000,1000
-        int64_t base_movement = (Vel_Step * deltaTime) / 100;
+        int64_t base_movement = (Vel_Step * deltaTime * player->speedMult) / 10000; // Apply speedMult
         int64_t dx = (cos_val * base_movement) / 1000;
         int64_t dy = (sin(player->rotation) * base_movement) / 1000;
 
-        player->x -= dx;
-        player->y += dy;
+        int64_t new_x = player->x + dx;
+        int64_t new_y = player->y - dy;
+
+        // Bounds checking - keep player center within screen
+        if (new_x >= 0 && new_x < width) {
+            player->x = new_x;
+        }
+        if (new_y >= 0 && new_y < height) {
+            player->y = new_y;
+        }
     }
+
+    if (isKeyPressed(backMakeCode)) {
+        int64_t cos_val = cos(player->rotation);  // -1000,1000
+        int64_t base_movement = (Vel_Step * deltaTime * player->speedMult) / 10000; // Apply speedMult
+        int64_t dx = (cos_val * base_movement) / 1000;
+        int64_t dy = (sin(player->rotation) * base_movement) / 1000;
+
+        int64_t new_x = player->x - dx;
+        int64_t new_y = player->y + dy;
+
+        // Bounds checking - keep player center within screen
+        if (new_x >= 0 && new_x < width) {
+            player->x = new_x;
+        }
+        if (new_y >= 0 && new_y < height) {
+            player->y = new_y;
+        }
+    }
+
     if (isKeyPressed(leftMakeCode)) {
-        player->rotation += Rot_Step; // Scale by deltaTime
+        player->rotation += Rot_Step;
+        // Normalize rotation to 0-359 range
+        if (player->rotation >= 360) {
+            player->rotation -= 360;
+        }
     }
+
     if (isKeyPressed(rightMakeCode)) {
-        player->rotation -= Rot_Step; // Scale by deltaTime
+        player->rotation -= Rot_Step;
+        // Normalize rotation to 0-359 range
+        if (player->rotation < 0) {
+            player->rotation += 360;
+        }
     }
 }
-
 static void getPlayerEyePos(player_t p, point_t * Lcenter, point_t * Rcenter) {
     int left_eye_angle = p.rotation - EYE_SEPARATION_ANGLE;
     int right_eye_angle = p.rotation + EYE_SEPARATION_ANGLE;
@@ -449,6 +497,7 @@ int checkBallCollisions(player_t player, hole_t *balls, int ballCount) {
 
         collisions++;
     }
+    return collisions;
 }
 
 int checkHoleInclusion(hole_t *outerHole, hole_t *innerHole) {
@@ -486,17 +535,20 @@ void drawObject(frame_t * frame, object_t objectToDraw) {
     drawHole(frame, objectToDraw.hole);
 }
 
+
+
+static uint64_t soundEndTime = 0;
 void playSound(int freq, uint64_t ms) {
     startSound(freq);
     uint64_t start = getBootTime();
-    while (getBootTime() - start < ms);
-    stopSound();
+  //  while (getBootTime() - start < ms);
+    soundEndTime = start + ms;
 }
 void respawnSound() {
-    playSound(1000, 1000);
+    playSound(200, 50);
 }
 void scoreSound() {
-    playSound(800, 200);
+    playSound(1000, 20);
 }
 
 int checkCircleCollision(int64_t x1, int64_t y1, int64_t r1, int64_t x2, int64_t y2, int64_t r2) {
@@ -647,8 +699,8 @@ int runPongisGolf() {
         clearPlayer(&newFrame, player1);
         clearPlayer(&newFrame, player2);
 
-        handleMovements(deltaTime, &player1, KEY_W, KEY_S, KEY_A, KEY_D);
-        handleMovements(deltaTime, &player2, KEY_I, KEY_K, KEY_J, KEY_L);
+        handleMovements(deltaTime, &player1, startLevel, KEY_W, KEY_S, KEY_A, KEY_D);
+        handleMovements(deltaTime, &player2, startLevel, KEY_I, KEY_K, KEY_J, KEY_L);
 
         checkPlayerCollision(&player1, &player2);
 
@@ -669,7 +721,7 @@ int runPongisGolf() {
         else if (collisions2 > 0) {
             ballControl = 1; // Player 2 tocó la pelota
         }
-        //Re-spawns & scoring
+        //Re-spawns
         for (int i = 0; i < startLevel.targetsCount; i++) {
             hole_t aux = startLevel.targets[i];
             if (checkIsPlayerInHole(&player1, &aux)){
@@ -688,7 +740,11 @@ int runPongisGolf() {
                 // Verificar si la pelota está dentro del target
                 if (checkHoleInclusion(&startLevel.targets[i], &startLevel.balls[j])) {
                     // ¡GOL! Sumar punto al jugador que controló la pelota
-                    if (ballControl == 0) {
+                    if (ballControl == -1) {
+                        player1Score++;
+                        player2Score++;
+                    }
+                    else if (ballControl == 0) {
                         player1Score++;
                     } else {
                         player2Score++;
@@ -722,6 +778,10 @@ int runPongisGolf() {
         //frameDrawCircle(&newFrame, ball.color, ball.x, ball.y, ball.radius);
 
         setFrame(&newFrame);
+        if (soundEndTime != 0 && soundEndTime < getBootTime()) {
+            stopSound();
+            soundEndTime = 0;
+        }
 
      //   }
     }
