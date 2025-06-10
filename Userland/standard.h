@@ -154,23 +154,12 @@ void stopSound();
 /* MANEJO DEL MODO VIDEO V2 */
 /******NO USAR ESTA PARTE******/
 // 
-void fbSetRegion(uint32_t topLeftX, uint32_t topLeftY, uint32_t width, uint32_t height, uint8_t* bmp, uint32_t maskColor);
-// Dibuja un pixel en (x, y) con color RGB
-void setPixel(uint32_t x, uint32_t y, uint32_t color);
-// Dibuja un rectángulo de tamaño w x h en (x, y)
-void drawRect(uint32_t x, uint32_t y, uint32_t w, uint32_t h, uint32_t color);
-// Dibuja un círculo centrado en (x, y) con radio r
-void drawCircle(uint32_t x, uint32_t y, uint32_t r, uint32_t color);
-// Dibuja el carácter ASCII c (fuente 8x8) en (x, y)
-void drawChar(uint32_t x, uint32_t y, char c, uint32_t color);
-// Dibuja texto plano en (x, y) (usa fuente 8x8)
-void drawText(uint32_t x, uint32_t y, const char* str, uint32_t color);
-// Dibuja un entero como texto decimal en (x, y)
-void drawInt(uint32_t x, uint32_t y, int value, uint32_t color);
+//void fbSetRegion(uint32_t topLeftX, uint32_t topLeftY, uint32_t width, uint32_t height, uint8_t* bmp, uint32_t maskColor);
 /* Iguales a las de arriba, pero utilizando backColor */
+/*
 void drawCharHighlight(uint32_t x, uint32_t y, char c, uint32_t color, uint32_t backColor);
 void drawTextHighlight(uint32_t x, uint32_t y, const char* str, uint32_t color, uint32_t backColor);
 void drawIntHighlight(uint32_t x, uint32_t y, int value, uint32_t color, uint32_t backColor);
-
+*/
 
 #endif

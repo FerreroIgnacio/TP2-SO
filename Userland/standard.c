@@ -139,7 +139,7 @@ int scanf(const char *format, ...) {
 
     while (*format) {
         if (*format == '%') {
-            format++; 
+            format++;
             char buffer[STD_BUFF_SIZE];
             int bufIndex = 0;
             unsigned char c;
@@ -153,7 +153,7 @@ int scanf(const char *format, ...) {
             // el código es bloqueante, hasta no encontrar un caracter de fin no sigue ejecutando.
             while (c==0||(c != ' ' && c != '\n' && c != '\r' && c != '\t' && c != '\v' && c != '\b' && bufIndex < STD_BUFF_SIZE - 1)) {
                 if(c!=0){
-                buffer[bufIndex++] = c;
+                    buffer[bufIndex++] = c;
                 }
                 c = getchar();
             }
@@ -621,141 +621,3 @@ void playFreq(uint16_t freq, uint64_t ms){
     while (getBootTime() - start < ms);
     stopSound();
 }
-
-
-
-/* MANEJO DEL MODO VIDEO V2 */
-/******NO USAR ESTA PARTE******/
-/* Funciones mejoradas con fbSetRegion B) */
-/*
- * dado que el formato es RGB no RGBA este valor no se usa nunca
- * lo podemos utilizar cuando no quiero utilizar la mascara
- * Si quisieramos expandir a RGBA o algun formato con mayor bpp
- * basta con cambiar el tipo de los parametros de color y setear NO_COLOR_MASK a un valor fuera del rango del bpp
- */
-#define NO_COLOR_MASK 0xFFFFFF + 1
-#define BPP 3
-#define TEMP_ALLOC_LEN 500 //despues reemplazamos por malloc(width, height);
-
-/*
- * Dado dos colores genera un color de mascara diferente a ellos dos
- */
-uint32_t generateMaskColor(uint32_t colorA, uint32_t colorB){
-	if(colorA + 1 == colorB){
-		return colorB + 1;
-	}
-	return colorA + 1;
-}		
-void setPixel(uint32_t x, uint32_t y, uint32_t color) {
-    uint8_t bmp[BPP];
-    bmp[0] = color & 0xFF;
-    bmp[1] = (color >> 8) & 0xFF;
-    bmp[2] = (color >> 16) & 0xFF;
-    fbSetRegion(x, y, 1, 1, bmp, color + 1 /* no mask */);
-}
-void drawRect(uint32_t x, uint32_t y, uint32_t width, uint32_t height, uint32_t color) {
-    uint8_t bmp[TEMP_ALLOC_LEN][TEMP_ALLOC_LEN][BPP];
-    uint32_t maskColor = color + 1;
-    for (uint32_t j = 0; j < height; j++)
-        for (uint32_t i = 0; i < width; i++) {
-            bmp[j][i][0] = color & 0xFF;
-            bmp[j][i][1] = (color >> 8) & 0xFF;
-            bmp[j][i][2] = (color >> 16) & 0xFF;
-        }
-    fbSetRegion(x, y, width, height, (uint8_t*)bmp, maskColor); // sin máscara
-}
-void drawCircle(uint32_t x, uint32_t y, uint32_t r, uint32_t color) {
-    uint32_t d = r * 2 + 1;
-    uint8_t bmp[TEMP_ALLOC_LEN][TEMP_ALLOC_LEN][3];
-    uint32_t maskColor = color + 1;
-    for (uint32_t j = 0; j < d; j++) {
-        for (uint32_t i = 0; i < d; i++) {
-            int dx = (int)i - (int)r;
-            int dy = (int)j - (int)r;
-            if (dx * dx + dy * dy <= r * r) {
-                bmp[j][i][0] = color & 0xFF;
-                bmp[j][i][1] = (color >> 8) & 0xFF;
-                bmp[j][i][2] = (color >> 16) & 0xFF;
-            } else {
-                bmp[j][i][0] = (maskColor) & 0xFF;
-                bmp[j][i][1] = (maskColor >> 8) & 0xFF;
-                bmp[j][i][2] = (maskColor >> 16) & 0xFF;
-            }
-        }
-    }
-
-    fbSetRegion(x - r, y - r, d, d, (uint8_t*)bmp, maskColor);
-}
-void drawChar(uint32_t x, uint32_t y, char ascii, uint32_t color){
-	drawCharHighlight(x, y, ascii, color, NO_COLOR_MASK);
-}
-void drawCharHighlight(uint32_t x, uint32_t y, char ascii, uint32_t color, uint32_t backColor) {
-    if ((uint8_t)ascii > 127) return;
-
-    uint8_t bmp[FONT_HEIGHT][FONT_WIDTH][BPP];
-    uint32_t maskColor = generateMaskColor(color, backColor);
-    int hasBackground = (backColor != NO_COLOR_MASK);  
-    
-    if(!hasBackground){
-        backColor = maskColor;  
-    }
-    
-    for (uint32_t row = 0; row < FONT_HEIGHT; row++) {  
-      //char * bmp = font8x8_basic[(unsigned char)ascii];
-	font_info_t currentFont = fontmanager_get_current_font();
-	uint64_t bits = (uint64_t)(currentFont.data + (ascii * currentFont.bytes_per_char));
-
-        for (uint32_t col = 0; col < FONT_WIDTH; col++) { 
-            if (bits & (1 << col)) {
-                bmp[row][col][0] = color & 0xFF;
-                bmp[row][col][1] = (color >> 8) & 0xFF;
-                bmp[row][col][2] = (color >> 16) & 0xFF;
-            } else {
-                bmp[row][col][0] = backColor & 0xFF;
-                bmp[row][col][1] = (backColor >> 8) & 0xFF;
-                bmp[row][col][2] = (backColor >> 16) & 0xFF;
-            }
-        }
-    }
-    
-    fbSetRegion(x, y, FONT_WIDTH, FONT_HEIGHT, (uint8_t*)bmp, 
-                hasBackground ? NO_COLOR_MASK : maskColor);
-}
-void drawTextHighlight(uint32_t x, uint32_t y, const char* str, uint32_t color, uint32_t backColor) {
-    while (*str) {
-        drawCharHighlight(x, y, *str, color, backColor);
-        x += FONT_WIDTH;
-        str++;
-    }
-}
-void drawText(uint32_t x, uint32_t y, const char* str, uint32_t color) {
-	drawTextHighlight(x,y, str, color, NO_COLOR_MASK);
-}
-void drawInt(uint32_t x, uint32_t y, int value, uint32_t color){
-	drawIntHighlight(x,y,value,color, NO_COLOR_MASK);
-}
-void drawIntHighlight(uint32_t x, uint32_t y, int value, uint32_t color, uint32_t backColor) {
-    char buf[TEMP_ALLOC_LEN];
-    int i = TEMP_ALLOC_LEN - 1;
-    buf[i--] = '\0';
-    int negative = 0;
-
-    if (value == 0) {
-        buf[i--] = '0';
-    } else {
-        if (value < 0) {
-            negative = 1;
-            value = -value;
-        }
-        while (value && i >= 0) {
-            buf[i--] = '0' + (value % 10);
-            value /= 10;
-        }
-        if (negative && i >= 0)
-            buf[i--] = '-';
-    }
-
-    drawTextHighlight(x, y, &buf[i + 1], color, backColor);
-}
-
-
