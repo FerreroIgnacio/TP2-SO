@@ -17,7 +17,7 @@ static const font_info_t font_infos[FONT_TYPE_COUNT] = {
         .bytes_per_char = 8,
         .name = "8x8 Basic Font",
         .data = font8x8_basic,
-        .mirrored = 0 // Not mirrored, readable format
+        .mirrored = 0 
     },
     [FONT_8x16_HUBENCHANG0515] = {
         .width = 8,
@@ -26,7 +26,7 @@ static const font_info_t font_infos[FONT_TYPE_COUNT] = {
         .bytes_per_char = 16,
         .name = "8x16 hubenchang0515",
         .data = font8x16,
-        .mirrored = 1 // Not mirrored, readable format
+        .mirrored = 1 
     },
     [FONT_16x32_CONSOLE] = {
         .width = 16,
@@ -43,12 +43,12 @@ static font_manager_t g_font_manager = {
     .current_font = FONT_8x8_BASIC,
     .currentIndex = 0,
     .initialized = 0,
-    .fonts = {{0}} // Initialize fonts array to zero
+    .fonts = {{0}} 
 };
 
-// Initialize the font manager
+// Inicializar font manager
 static void fontmanager_init() {
-    // Copy font_infos to g_font_manager.fonts
+    // Copiar font_infos a g_font_manager.fonts
     for (int i = 0; i < FONT_TYPE_COUNT; i++) {
         g_font_manager.fonts[i] = font_infos[i];
     }
@@ -57,7 +57,7 @@ static void fontmanager_init() {
 
 int fontmanager_set_font(font_type_t font_type) {
   if(g_font_manager.initialized == 0) {
-      fontmanager_init(); // Initialize if not already done
+      fontmanager_init(); // Inicializar si no se hizo todavía
       }
     if (!g_font_manager.initialized || font_type >= FONT_TYPE_COUNT) {
         return 0;
@@ -70,7 +70,7 @@ int fontmanager_set_font(font_type_t font_type) {
 
 font_info_t fontmanager_get_current_font() {
   if(g_font_manager.initialized == 0) {
-      fontmanager_init(); // Initialize if not already done
+      fontmanager_init(); // Inicializar si no se hizo todavía
       }
     return g_font_manager.fonts[g_font_manager.current_font];
 }

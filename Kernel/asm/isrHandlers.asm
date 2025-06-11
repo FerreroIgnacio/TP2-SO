@@ -166,7 +166,7 @@ syscallInterruptHandler:
     mov rcx, rdx        ; arg3 (original rdx) -> rcx
     mov rdx, rsi        ; arg2 (original rsi) -> rdx
     mov rsi, rdi        ; arg1 (original rdi) -> rsi
-    mov rdi, rax        ; syscall number      -> rdi
+    mov rdi, rax        ; syscall num         -> rdi
 
     call syscallHandler
     add rsp, 8          

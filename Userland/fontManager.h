@@ -7,28 +7,28 @@
 #include <stdint.h>
 #define MAX_FONTNAME_LENGTH 255
 
-typedef enum {
-    FONT_8x8_BASIC = 0,     // 8x8 monochrome bitmap font
-    FONT_8x16_HUBENCHANG0515,        // 8x16 CodePage 437 font
-    FONT_16x32_CONSOLE,     // 16x32 console font
-    FONT_TYPE_COUNT         // Total number of font types
+typedef enum {                       // fuentes cargadas
+    FONT_8x8_BASIC = 0,              // 8x8 monochrome bitmap font
+    FONT_8x16_HUBENCHANG0515,        // 8x16 HUBENCHANG0515 font
+    FONT_16x32_CONSOLE,              // 16x32 console font
+    FONT_TYPE_COUNT                  
 } font_type_t;
 
 typedef struct {
-    uint8_t width;          // Character width in pixels
-    uint8_t height;         // Character height in pixels
-    uint16_t char_count;    // Number of characters in font
-    uint16_t bytes_per_char;// Bytes per character data
-    char name[MAX_FONTNAME_LENGTH];       // Font name/description
-    const void* data;       // Pointer to font data
-    int mirrored;     //on if is not on readable format
+    uint8_t width;                  // Char width en pixels
+    uint8_t height;                 // Char height en pixels
+    uint16_t char_count;            // Chars en la fuente
+    uint16_t bytes_per_char;        // Bytes por cada char
+    char name[MAX_FONTNAME_LENGTH]; // nombre/desc
+    const void* data;               // puntero a la fuente
+    int mirrored;                   
 } font_info_t;
 
 typedef struct {
-    font_type_t current_font;       // Currently selected font
-    int currentIndex;               // Index of the current font in the array
-    font_info_t fonts[FONT_TYPE_COUNT]; // Font information array
-    int initialized;               // Initialization status
+    font_type_t current_font;       // fuente actual
+    int currentIndex;               // indice de la fuente en el array
+    font_info_t fonts[FONT_TYPE_COUNT]; 
+    int initialized;               
 } font_manager_t;
 
 

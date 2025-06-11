@@ -164,47 +164,6 @@ static player_t player2 = {
 };
 
 static int ballsLastTouch [MAXBALLS];
-/*
-static hole_t targetHole = {
-    .x = 500,
-    .y = 500,
-    .radius = 80,
-    .color = 0x000000
-};
-
-
-
-
-static hole_t ball = {
-    .x = 50,
-    .y = 350,
-    .radius = 20,
-    .color = 0xBBBBBB
-};
-
-
-
-static object_t pit = {
-    {
-        .x = 200,
-        .y = 200,
-        .radius = 80,
-        .color = 0x005555
-    },
-    .isMountain = 0
-};
-static object_t mount = {
-    {
-        .x = 400,
-        .y = 200,
-        .radius = 80,
-        .color = 0x00AAAA
-    },
-    .isMountain = 1
-};
-
-*/
-
 
 #define Vel_Step 25
 #define Rot_Step 10
@@ -221,17 +180,8 @@ static object_t mount = {
 #define KEY_RIGHT 0xE04D
 #define KEY_DOWN 0xE050
 
-// 2. Fix the movement handling with better scaling
-void handleMovements(
-    uint64_t deltaTime,
-    player_t * player,
-    level_t level,
-    int32_t forwardMakeCode,
-    int32_t backMakeCode,
-    int32_t leftMakeCode,
-    int32_t rightMakeCode) {
 
-    // Check if player is in any object and adjust speed multiplier
+static void handleMovements( uint64_t deltaTime,player_t * player,level_t level,int32_t forwardMakeCode, int32_t backMakeCode, int32_t leftMakeCode, int32_t rightMakeCode) {
     player->speedMult = 100; // Default speed
 
     for (int i = 0; i < level.objectsCount; i++) {
@@ -242,26 +192,27 @@ void handleMovements(
             .color = 0xFF00FF
         };
 
+        // control de velocidades
         if (checkHoleInclusion(&level.objects[i].hole, &playerHole)) {
             if (level.objects[i].isMountain) {
-                player->speedMult = 180; // Faster on mountains
+                player->speedMult = 180; 
             } else {
-                player->speedMult = 40;  // Slower in pits
+                player->speedMult = 40;  
             }
-            break; // Use the first object found
+            break; 
         }
     }
 
     if (isKeyPressed(forwardMakeCode)) {
         int64_t cos_val = cos(player->rotation);  // -1000,1000
-        int64_t base_movement = (Vel_Step * deltaTime * player->speedMult) / 10000; // Apply speedMult
+        int64_t base_movement = (Vel_Step * deltaTime * player->speedMult) / 10000; // Aplicar speedMult
         int64_t dx = (cos_val * base_movement) / 1000;
         int64_t dy = (sin(player->rotation) * base_movement) / 1000;
 
         int64_t new_x = player->x + dx;
         int64_t new_y = player->y - dy;
 
-        // Bounds checking - keep player center within screen
+        // Bounds check
         if (new_x >= 0 && new_x < width) {
             player->x = new_x;
         }
@@ -272,14 +223,14 @@ void handleMovements(
 
     if (isKeyPressed(backMakeCode)) {
         int64_t cos_val = cos(player->rotation);  // -1000,1000
-        int64_t base_movement = (Vel_Step * deltaTime * player->speedMult) / 10000; // Apply speedMult
+        int64_t base_movement = (Vel_Step * deltaTime * player->speedMult) / 10000; // Aplicar speedMult
         int64_t dx = (cos_val * base_movement) / 1000;
         int64_t dy = (sin(player->rotation) * base_movement) / 1000;
 
         int64_t new_x = player->x - dx;
         int64_t new_y = player->y + dy;
 
-        // Bounds checking - keep player center within screen
+        // Bounds check
         if (new_x >= 0 && new_x < width) {
             player->x = new_x;
         }
@@ -290,7 +241,7 @@ void handleMovements(
 
     if (isKeyPressed(leftMakeCode)) {
         player->rotation += Rot_Step;
-        // Normalize rotation to 0-359 range
+        // normalizar rotación a 0-359
         if (player->rotation >= 360) {
             player->rotation -= 360;
         }
@@ -326,16 +277,15 @@ static void getPlayerPupilPos(player_t p, point_t * Lpupil, point_t * Rpupil) {
     Rpupil->y = Reye.y - pupil_distance * sin(right_eye_angle) / 1000; // Signo - para invertir Y
 }
 
-void clearPlayer(frame_t * frame, player_t p) {
+static void clearPlayer(frame_t * frame, player_t p) {
     frameCopyCircle(p.x, p.y,PLAYER_RADIUS + CIRCLE_REDRAW_MARGIN, frame, &newBackFrame);
     point_t Leye, Reye;
     getPlayerEyePos(p, &Leye, &Reye);
     frameCopyCircle(Leye.x,Leye.y, PLAYER_EYES_RADIUS + CIRCLE_REDRAW_MARGIN, frame, &newBackFrame);
     frameCopyCircle(Reye.x,Reye.y, PLAYER_EYES_RADIUS + CIRCLE_REDRAW_MARGIN, frame, &newBackFrame);
 }
-/*
- * Dibuja el jugador en el frame especificado
- */
+
+//Dibuja el jugador en el frame especificado
 void drawPlayer(frame_t * frame, player_t p) {
     frameDrawCircle(frame, p.color, p.x, p.y, PLAYER_RADIUS);
     point_t Leye, Reye;
@@ -349,7 +299,7 @@ void drawPlayer(frame_t * frame, player_t p) {
     frameDrawCircle(frame, 0x000000, Rpupil.x, Rpupil.y, PLAYER_PUPIL_RADIUS);
 }
 void updatePlayerPos(point_t* newPos, player_t* player) {
-    // Check X boundaries
+    // Check X
     if (newPos->x < 0) {
         player->x = 0;
     } else if (newPos->x >= newFrame.width) {
@@ -358,7 +308,7 @@ void updatePlayerPos(point_t* newPos, player_t* player) {
         player->x = newPos->x;
     }
 
-    // Check Y boundaries
+    // Check Y
     if (newPos->y < 0) {
         player->y = 0;
     } else if (newPos->y >= newFrame.height) {
@@ -386,19 +336,18 @@ int checkPlayerCollision(player_t *p1, player_t *p2) {
         return 0;
     }
 
-    // Collision detected - resolve overlap
+    // Colision detectada - resolve overlap
     if (distanceSquared == 0) {
-        // Special case: exactly on top of each other
         p1->x += PLAYER_RADIUS;
         p2->x -= PLAYER_RADIUS;
     } else {
-        // Calculate actual distance (approximate without sqrt)
+        // Calcular distancia
         int64_t distance = 0;
         int64_t temp = distanceSquared;
 
-        // Fast integer square root approximation
+        // Aproximar distancia
         int64_t root = 0;
-        int64_t bit = 1 << 30; // Second-to-top bit set
+        int64_t bit = 1 << 30; 
         while (bit > temp) bit >>= 2;
         while (bit != 0) {
             if (temp >= root + bit) {
@@ -410,15 +359,15 @@ int checkPlayerCollision(player_t *p1, player_t *p2) {
         }
         distance = root;
 
-        // Calculate overlap depth
+        // Calcular overlap depth
         int64_t overlap = minDistance - distance;
 
-        // Normalize direction vector
-        int64_t nx = (dx * 1000) / distance; // Fixed-point scaling
+        // Normalizar vector
+        int64_t nx = (dx * 1000) / distance; 
         int64_t ny = (dy * 1000) / distance;
 
-        // Move players apart by half the overlap each
-        p1->x += (nx * overlap) / 2000; // Divide by 2 and scaling factor
+        // Mover players 
+        p1->x += (nx * overlap) / 2000;
         p1->y += (ny * overlap) / 2000;
         p2->x -= (nx * overlap) / 2000;
         p2->y -= (ny * overlap) / 2000;
@@ -560,7 +509,6 @@ static uint64_t soundEndTime = 0;
 void playSound(int freq, uint64_t ms) {
     startSound(freq);
     uint64_t start = getBootTime();
-  //  while (getBootTime() - start < ms);
     soundEndTime = start + ms;
 }
 void respawnSound() {
@@ -745,7 +693,7 @@ int runPongisGolf() {
             for (int j = 0; j < startLevel.ballsCount; j++) {
                 // Verificar si la pelota está dentro del target
                 if (checkHoleInclusion(&startLevel.targets[i], &startLevel.balls[j])) {
-                    // ¡GOL! Sumar punto al jugador que controló la pelota
+                    // GOL! Sumar punto al jugador que controló la pelota
                     if (ballsLastTouch[j] == player1.id) {
                         player1Score++;
                     } else if(ballsLastTouch[j] == player2.id) {
