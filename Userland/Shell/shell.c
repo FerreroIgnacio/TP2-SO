@@ -151,7 +151,7 @@ void cmd_help() {
     printf("Comandos disponibles:\n");
     printf("  help             - Mostrar comandos disponibles\n");
     printf("  clear            - Limpiar pantalla\n");
-    printf("  echo             - Mostrar texto\n");
+    printf("  echo <message>    - Mostrar texto en pantalla\n");
     printf("  datetime         - Mostrar fecha y hora UTC-0 \n");
     printf("  registers        - Imprimir registros guardados (F1)\n");
     printf("  listfonts        - Listar las fuentes disponibles\n");
@@ -248,7 +248,7 @@ void cmd_testInvalidCode(){
 void shell_set_font(font_type_t font_index) {
     int count = fontmanager_get_font_count();
     if (font_index < 0 || font_index >= count) {
-        shell_print_colored("Error: índice de fuente inválido\n", ERROR_COLOR);
+        shell_print_colored("Error: indice de fuente inválido\n", ERROR_COLOR);
         return;
     }
     cmd_clear();

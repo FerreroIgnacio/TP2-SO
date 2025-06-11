@@ -62,10 +62,7 @@
       <change beforePath="$PROJECT_DIR$/Kernel/moduleLoader.c" beforeDir="false" afterPath="$PROJECT_DIR$/Kernel/moduleLoader.c" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/Kernel/moduleLoader.o" beforeDir="false" />
       <change beforePath="$PROJECT_DIR$/Kernel/naiveConsole.o" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/Userland/PongisGolf/pongisgolf.c" beforeDir="false" afterPath="$PROJECT_DIR$/Userland/PongisGolf/pongisgolf.c" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/Userland/Shell/shell.c" beforeDir="false" afterPath="$PROJECT_DIR$/Userland/Shell/shell.c" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/Userland/fontManager.c" beforeDir="false" afterPath="$PROJECT_DIR$/Userland/fontManager.c" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/Userland/fontManager.h" beforeDir="false" afterPath="$PROJECT_DIR$/Userland/fontManager.h" afterDir="false" />
     </list>
     <option name="SHOW_DIALOG" value="false" />
     <option name="HIGHLIGHT_CONFLICTS" value="true" />
