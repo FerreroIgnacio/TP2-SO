@@ -111,6 +111,11 @@ int areKeysPressed(int *makecodes, int count) {
     return 1;
 }
 
+// borra todo el file descriptor
+void flush(int fd){
+    unsigned char buff[STD_BUFF_SIZE];
+    read(fd,buff,STD_BUFF_SIZE);
+}
 
 /* UTILIDADES STDIN */ 
 unsigned char getchar(){

@@ -20,7 +20,7 @@ typedef struct {
     uint16_t char_count;    // Number of characters in font
     uint16_t bytes_per_char;// Bytes per character data
     char name[MAX_FONTNAME_LENGTH];       // Font name/description
-    void* data;       // Pointer to font data
+    const void* data;       // Pointer to font data
     int mirrored;     //on if is not on readable format
 } font_info_t;
 

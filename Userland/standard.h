@@ -82,7 +82,8 @@ typedef struct registers{
 // Guarda en regs la captura de los registros realizada con F1
 void getRegisters(registers_t* regs);
 
-
+// borra todo el file descriptor
+void flush(int fd);
 
 /* UTILIDADES STDIN */ 
 unsigned char getchar();

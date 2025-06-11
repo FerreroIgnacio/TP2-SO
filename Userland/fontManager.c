@@ -43,9 +43,9 @@ static font_manager_t g_font_manager = {
     .current_font = FONT_8x8_BASIC,
     .currentIndex = 0,
     .initialized = 0,
-    .fonts = {0} // Initialize fonts array to zero
-    //.fonts = font_infos,
+    .fonts = {{0}} // Initialize fonts array to zero
 };
+
 // Initialize the font manager
 static void fontmanager_init() {
     // Copy font_infos to g_font_manager.fonts
@@ -64,6 +64,7 @@ int fontmanager_set_font(font_type_t font_type) {
     }
 
     g_font_manager.current_font = font_type;
+    g_font_manager.currentIndex = font_type;
     return 1;
 }
 

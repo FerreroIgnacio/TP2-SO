@@ -242,55 +242,6 @@ void cmd_testInvalidCode(){
 }
 
 
-//Altamente experimental, despues la borramos total es un amongus(sus) junto al soporte de unicode
-//La mejora mascota de debugging en mi todo mi desarollo universitario
-//Temporalmente desabilitada :(
-void cmd_amongus() {
-  /*
-  // Guardar posición actual del cursor
-    uint64_t start_x = cursor_x;
-    uint64_t start_y = cursor_y;
-    
-    // Array con las líneas del Among Us art
-    const char* amongus_lines[] = {
-        "⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⢀⣀⣤⣤⣤⣀⣀⣀⣀⡀⠀⠀⠀⠀⠀⠀⠀",
-        "⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⢀⣼⠟⠉⠉⠉⠉⠉⠉⠉⠙⠻⢶⣄⠀⠀⠀⠀⠀",
-        "⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⣾⡏⠀⠀⠀⠀⠀⠀    ⠀⠙⣷⡀⠀⠀⠀",
-        "⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⣸⡟⠀⣠⣶⠛⠛⠛⠛⠛⠛⠳⣦⡀⠀⠘⣿⡄⠀⠀",
-        "⠀⠀⠀⠀⠀⠀⠀⠀⠀⢠⣿⠁⠀⢹⣿⣦⣀⣀⣀⣀⣀⣠⣼⡇⠀⠀⠸⣷⠀⠀",
-        "⠀⠀⠀⠀⠀⠀⠀⠀⠀⣼⡏⠀⠀⠀⠉⠛⠿⠿⠿⠿⠛⠋⠁⠀⠀⠀⠀⣿",
-        "⠀⠀    ⠀⠀⢠⣿⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⢻⡇⠀",
-        "      ⠀⠀⣸⡇⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⢸⡇⠀",
-        "⠀⠀⠀⠀⠀⠀⠀⠀⣿⠁⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀ ⠀⢸⣧⠀",
-        "⠀⠀⠀⠀⠀⠀⠀⢸⡿⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀ ⠈⣿⠀",
-        "⠀⠀⠀⠀⠀⠀⠀⣾⡇⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀ ⠀⣿⠀",
-        "⠀⠀⠀⠀⠀⠀⠀⣿⠃⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀  ⠀⠀⠀⠀⣿⠀",
-        "⠀⠀⠀⠀⠀⠀⢰⣿⠀⠀⠀⠀⣠⡶⠶⠿⠿⠿⠿⢷⣦⠀⠀⠀⠀⠀    ⣿⠀",
-        "⠀⠀⣀⣀⣀⠀⣸⡇⠀⠀⠀⠀⣿⡀⠀⠀⠀⠀⠀⠀⣿⡇⠀⠀⠀⠀⠀⠀  ⣿⠀",
-        "⣠⡿⠛⠛⠛⠛⠻⠀⠀⠀⠀⠀⢸⣇⠀⠀⠀⠀⠀⠀⣿⠇⠀⠀⠀⠀⠀ ⠀⣿⠀",
-        "⢻⣇⠀⠀⠀⠀⠀⠀⠀⠀⠀⢀⣼⡟⠀⠀⢀⣤⣤⣴⣿⠀⠀⠀⠀⠀⠀ ⠀⣿⠀",
-        "⠈⠙⢷⣶⣦⣤⣤⣤⣴⣶⣾⠿⠛⠁⢀⣶⡟⠉⠀⠀⠀⠀⠀⠀⠀⠀⠀⢀⡟⠀",
-        "             ⠀⠈⣿⣆⡀⠀⠀⠀⠀⠀⠀⢀⣠⣴⡾⠃⠀",
-        "⠀          ⠀⠀⠀⠀⠈⠛⠻⢿⣿⣾⣿⡿⠿⠟⠋⠁⠀⠀⠀",
-        0
-    };
-    
-    // Dibujar cada línea usando la función Unicode
-    for (int i = 0; amongus_lines[i] != 0; i++) {
-        drawTextUnicode(amongus_lines[i], FONT_COLOR, SHELL_COLOR, 
-                       start_x, start_y + i * FONT_SIZE * FONT_BMP_SIZE, FONT_SIZE);
-    }
-    shell_print(".                             Nachito is sus  2aASDASD     		\n");
-    
-    cursor_y = start_y + (sizeof(amongus_lines)/sizeof(amongus_lines[0]) - 1) * FONT_SIZE;
-    cursor_x = start_x;
-    shell_newline();
-
-   */
-}
-
-
-
 //Crea la funcion para cambiar de fuente
 //Crea la funcion para cambiar de fuente
 // Cambia la fuente actual por el índice dado
@@ -359,9 +310,7 @@ void execute_command() {
         //Guardo la fuente actual pues pongis usa una fuente mas grande para que los caracteres sean facilmente visibles
         int current_font = fontmanager_get_current_font_index();
 	    runPongisGolf();
-        shell_set_font(current_font);
-    } else if (!strcmp(cmd_copy, "SUS")) {
-	    cmd_amongus();
+        fontmanager_set_font(current_font);
     } else if (cmd_copy[0] != '\0') {
         shell_print_colored("Error: ", ERROR_COLOR);
         printf("Comando desconocido '%s'\n",cmd_copy);
@@ -398,7 +347,6 @@ void reset_cursor() {
     cursor_visible = 1;
     last_cursor_time = getBootTime();
     if (!cursor_drawn) {
-      font_info_t currentFont = fontmanager_get_current_font();
 	    frameDrawChar(frame, '_', PROMPT_COLOR, SHELL_COLOR, cursor_x, cursor_y);
         cursor_drawn = 1;
     }
