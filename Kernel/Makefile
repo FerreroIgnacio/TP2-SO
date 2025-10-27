@@ -1,6 +1,6 @@
 include Makefile.inc
 KERNEL = kernel.bin
-SOURCES = $(wildcard *.c)
+SOURCES = $(wildcard *.c) $(wildcard mm/*.c)
 SOURCES_ASM = $(filter-out asm/loader.asm, $(wildcard asm/*.asm))
 
 OBJECTS = $(SOURCES:.c=.o)
@@ -23,4 +23,4 @@ asm/loader.o: asm/loader.asm
 	$(ASM) $(ASMFLAGS) $< -o $@
 
 clean:
-	rm -f *.o asm/*.o *.bin
+	rm -f *.o asm/*.o mm/*.o *.bin

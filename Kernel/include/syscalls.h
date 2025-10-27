@@ -22,6 +22,11 @@
 #define SYSCALL_PLAY_SOUND 20
 #define SYSCALL_STOP_SOUND 21
 
+#define SYSCALL_MALLOC 30
+#define SYSCALL_CALLOC 31
+#define SYSCALL_REALLOC 32
+#define SYSCALL_FREE 33
+
 
 int sys_read(int fd, char* buffer, uint64_t count);
 
@@ -50,5 +55,9 @@ void sys_set_framebuffer_region(uint32_t topLeftX, uint32_t topLeftY, uint32_t w
 void sys_playSound(uint16_t freq);
 void sys_stopSound();
 
+void *sys_malloc(uint64_t size);
+void *sys_calloc(uint64_t count, uint64_t size);
+void *sys_realloc(void *ptr, uint64_t size);
+void sys_free(void *ptr);
 
 #endif

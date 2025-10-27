@@ -7,6 +7,7 @@
 #include <keyboardDriver.h>
 #include <idtInit.h>
 #include <stdout.h>
+#include <mm.h>
 extern uint8_t text;
 extern uint8_t rodata;
 extern uint8_t data;
@@ -15,6 +16,8 @@ extern uint8_t endOfKernelBinary;
 extern uint8_t endOfKernel;
 
 static const uint64_t PageSize = 0x1000;
+static const uint64_t StackPages = 8;
+static const uintptr_t HeapAlignment = 16;
 
 extern void putPixel(uint32_t hexColor, uint64_t x, uint64_t y);
 
@@ -26,6 +29,16 @@ static void * const pongisgolfModuleAddress = (void*)0x600000;
 
 typedef int (*EntryPoint)();
 
+static void initialize_memory_manager(void) {
+	uint8_t *heap_start = (uint8_t *)&endOfKernel + (PageSize * StackPages);
+	uintptr_t aligned_start = ((uintptr_t)heap_start + (HeapAlignment - 1)) & ~(HeapAlignment - 1);
+	uint8_t *heap_end = (uint8_t *)sampleCodeModuleAddress;
+
+	if (heap_end > (uint8_t *)aligned_start) {
+		mm_init((void *)aligned_start, (size_t)(heap_end - (uint8_t *)aligned_start));
+	}
+}
+
 
 void clearBSS(void * bssAddress, uint64_t bssSize)
 {
@@ -36,7 +49,7 @@ void * getStackBase()
 {
 	return (void*)(
 		(uint64_t)&endOfKernel
-		+ PageSize * 8				//The size of the stack itself, 32KiB
+		+ PageSize * StackPages		//The size of the stack itself, 32KiB
 		- sizeof(uint64_t)			//Begin at the top of the stack
 	);
 }
@@ -111,7 +124,7 @@ int main()
 	ncPrint("[Finished]");
 	
 
-
+	initialize_memory_manager();
 	idtInit();
 	((EntryPoint)sampleCodeModuleAddress)();
 	

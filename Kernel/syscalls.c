@@ -4,8 +4,9 @@
 #include <stdout.h>
 #include <keyboardDriver.h>
 #include <isrHandlers.h>
+#include <mm.h>
 
-int syscallHandler(int syscall_num, uint64_t arg1, uint64_t arg2, uint64_t arg3, uint64_t arg4, uint64_t arg5, uint64_t arg6) {
+uint64_t syscallHandler(int syscall_num, uint64_t arg1, uint64_t arg2, uint64_t arg3, uint64_t arg4, uint64_t arg5, uint64_t arg6) {
     switch(syscall_num) {
         case SYSCALL_READ: // read
             return sys_read((int)arg1, (char*)arg2, (uint64_t)arg3);
@@ -41,6 +42,15 @@ int syscallHandler(int syscall_num, uint64_t arg1, uint64_t arg2, uint64_t arg3,
             return 1;
         case SYSCALL_STOP_SOUND:
             sys_stopSound();
+            return 1;
+        case SYSCALL_MALLOC:
+            return (uint64_t)sys_malloc((uint64_t)arg1);
+        case SYSCALL_CALLOC:
+            return (uint64_t)sys_calloc((uint64_t)arg1, (uint64_t)arg2);
+        case SYSCALL_REALLOC:
+            return (uint64_t)sys_realloc((void *)arg1, (uint64_t)arg2);
+        case SYSCALL_FREE:
+            sys_free((void *)arg1);
             return 1;
         default:
             return -1;
@@ -150,4 +160,20 @@ void sys_set_framebuffer(uint8_t * fb){
 */
 void sys_set_framebuffer_region(uint32_t topLeftX, uint32_t topLeftY, uint32_t width, uint32_t height, uint8_t* bmp, uint32_t maskColor){
    setFrameBufferRegion(topLeftX, topLeftY, width, height, bmp, maskColor);
+}
+
+void *sys_malloc(uint64_t size) {
+    return mm_malloc((size_t)size);
+}
+
+void *sys_calloc(uint64_t count, uint64_t size) {
+    return mm_calloc((size_t)count, (size_t)size);
+}
+
+void *sys_realloc(void *ptr, uint64_t size) {
+    return mm_realloc(ptr, (size_t)size);
+}
+
+void sys_free(void *ptr) {
+    mm_free(ptr);
 }

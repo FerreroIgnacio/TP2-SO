@@ -2,6 +2,7 @@
 #define STANDARD_H
 
 #include <stdint.h>
+#include <stddef.h>
 #include <stdarg.h>
 #include "fontManager.h"
 
@@ -159,5 +160,10 @@ void startSound(uint16_t freq);
 void stopSound();
 
 uint32_t rand();
+
+void *malloc(size_t size);
+void *calloc(size_t count, size_t size);
+void *realloc(void *ptr, size_t size);
+void free(void *ptr);
 
 #endif
