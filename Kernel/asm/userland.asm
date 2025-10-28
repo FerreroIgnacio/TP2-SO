@@ -10,7 +10,7 @@ _jumpToUserland:
     mov fs, ax
     mov gs, ax
 
-    ; rdi = entry, rsi = stack
+    ; rdi = entryPoint, rsi = stack
     mov rax, rsi
     push 0x23           ; SS
     push rax            ; RSP

@@ -15,26 +15,26 @@ init_isa:
 ; Get the BIOS E820 Memory Map
 ; use the INT 0x15, eax= 0xE820 BIOS function to get a memory map
 ; inputs: es:di -> destination buffer for 24 byte entries
-; outputs: bp = entry count, trashes all registers except esi
+; outputs: bp = entryPoint count, trashes all registers except esi
 do_e820:
 	mov edi, 0x00004000		; location that memory map will be stored to
 	xor ebx, ebx			; ebx must be 0 to start
-	xor bp, bp			; keep an entry count in bp
+	xor bp, bp			; keep an entryPoint count in bp
 	mov edx, 0x0534D4150		; Place "SMAP" into edx
 	mov eax, 0xe820
-	mov [es:di + 20], dword 1	; force a valid ACPI 3.X entry
+	mov [es:di + 20], dword 1	; force a valid ACPI 3.X entryPoint
 	mov ecx, 24			; ask for 24 bytes
 	int 0x15
 	jc nomemmap			; carry set on first call means "unsupported function"
 	mov edx, 0x0534D4150		; Some BIOSes apparently trash this register?
 	cmp eax, edx			; on success, eax must have been reset to "SMAP"
 	jne nomemmap
-	test ebx, ebx			; ebx = 0 implies list is only 1 entry long (worthless)
+	test ebx, ebx			; ebx = 0 implies list is only 1 entryPoint long (worthless)
 	je nomemmap
 	jmp jmpin
 e820lp:
 	mov eax, 0xe820			; eax, ecx get trashed on every int 0x15 call
-	mov [es:di + 20], dword 1	; force a valid ACPI 3.X entry
+	mov [es:di + 20], dword 1	; force a valid ACPI 3.X entryPoint
 	mov ecx, 24			; ask for 24 bytes again
 	int 0x15
 	jc memmapend			; carry set means "end of list already reached"
@@ -50,9 +50,9 @@ notext:
 	test ecx, ecx			; is the qword == 0?
 	jne goodent
 	mov ecx, [es:di + 12]		; get upper dword of memory region length
-	jecxz skipent			; if length qword is 0, skip entry
+	jecxz skipent			; if length qword is 0, skip entryPoint
 goodent:
-	inc bp				; got a good entry: ++count, move to next storage spot
+	inc bp				; got a good entryPoint: ++count, move to next storage spot
 	add di, 32
 skipent:
 	test ebx, ebx			; if ebx resets to 0, list is complete

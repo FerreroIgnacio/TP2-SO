@@ -1,4 +1,3 @@
-
 GLOBAL ex00Handler
 GLOBAL ex06Handler
 GLOBAL irq01Handler
@@ -119,13 +118,14 @@ enableTimerIRQ:
     ret
 
 irq00Handler:
+    ; Solo tick del sistema y EOI
     push rax
-    
-    call timerTickHandler   
-    
+
+    call timerTickHandler
+
     mov al, 0x20
     out 0x20, al
-    
+
     pop rax
     iretq
 
@@ -185,3 +185,5 @@ SECTION .rodata
 section .bss
     exRegsBackup resq 18
     irq01RegsBackup resq 18
+
+

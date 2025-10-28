@@ -743,3 +743,10 @@ void playFreq(uint16_t freq, uint64_t ms){
 void setFrameMasked(frame_t * fr, uint64_t maskColor) {
     fbSetRegion(0,0, fr->width, fr->height, fr->frameBuffer, maskColor);
 }
+
+/* CAPTURA DE REGISTROS */
+void readregister(registers_t* regs){
+    if (regs == 0) return;
+    getRegisters(regs);
+}
+

@@ -66,7 +66,7 @@ sys_getDate:
 
 
 ; copia a saved_registers los 18 valores pasados por rdi
-saveRegisters:       
+saveRegisters:
     push rsi
     push rax
     push rbx
@@ -141,4 +141,3 @@ sys_stopSound:
 
 section .bss
 saved_registers: resq 18
-

@@ -2,7 +2,7 @@ include Makefile.inc
 
 SAMPLE_DATA=0001-Shell.bin
 
-all: Shell PongisGolf shell
+all: Shell PongisGolf TestModule
 
 Shell:
 	cd Shell; make
@@ -10,6 +10,8 @@ Shell:
 PongisGolf:
 	cd PongisGolf; make
 
+TestModule:
+	cd TestModule; make all
 shell:
 	printf "This is sample data." >> $(SAMPLE_DATA) && dd if=/dev/zero bs=1 count=1 >> $(SAMPLE_DATA)
 

@@ -58,7 +58,7 @@ foundACPIv1:
 	add rsi, 28			; Skip to the Entry offset
 	sub eax, 36			; EAX holds the table size. Subtract the preamble
 	shr eax, 2			; Divide by 4
-	mov rdx, rax			; RDX is the entry count
+	mov rdx, rax			; RDX is the entryPoint count
 	xor ecx, ecx
 foundACPIv1_nextentry:
 	lodsd
@@ -84,7 +84,7 @@ foundACPIv2:
 	add rsi, 28			; Skip to the start of the Entries (offset 36)
 	sub eax, 36			; EAX holds the table size. Subtract the preamble
 	shr eax, 3			; Divide by 8
-	mov rdx, rax			; RDX is the entry count
+	mov rdx, rax			; RDX is the entryPoint count
 	xor ecx, ecx
 foundACPIv2_nextentry:
 	lodsq

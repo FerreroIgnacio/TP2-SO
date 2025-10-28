@@ -177,17 +177,17 @@ start32:
 	rep movsb			; Move it to final pos.
 
 ; Create the Level 4 Page Map. (Maps 4GBs of 2MB pages)
-; First create a PML4 entry.
-; PML4 is stored at 0x0000000000002000, create the first entry there
-; A single PML4 entry can map 512GB with 2MB pages.
+; First create a PML4 entryPoint.
+; PML4 is stored at 0x0000000000002000, create the first entryPoint there
+; A single PML4 entryPoint can map 512GB with 2MB pages.
 	cld
-	mov edi, 0x00002000		; Create a PML4 entry for the first 4GB of RAM
+	mov edi, 0x00002000		; Create a PML4 entryPoint for the first 4GB of RAM
 	mov eax, 0x00003007
 	stosd
 	xor eax, eax
 	stosd
 
-	mov edi, 0x00002800		; Create a PML4 entry for higher half (starting at 0xFFFF800000000000)
+	mov edi, 0x00002800		; Create a PML4 entryPoint for higher half (starting at 0xFFFF800000000000)
 	mov eax, 0x00003007		; The higher half is identity mapped to the lower half
 	stosd
 	xor eax, eax
@@ -195,7 +195,7 @@ start32:
 
 ; Create the PDP entries.
 ; The first PDP is stored at 0x0000000000003000, create the first entries there
-; A single PDP entry can map 1GB with 2MB pages
+; A single PDP entryPoint can map 1GB with 2MB pages
 	mov ecx, 64			; number of PDPE's to make.. each PDPE maps 1GB of physical memory
 	mov edi, 0x00003000
 	mov eax, 0x00010007		; location of first PD

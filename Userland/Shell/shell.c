@@ -1,6 +1,6 @@
 #include "../standard.h"
 #include "../fontManager.h"
-#include "../PongisGolf/pongisgolf.h"
+//#include "../PongisGolf/pongisgolf.h"
 
 #define FONT_BMP_SIZE 8 
 #define FONT_SIZE 1
@@ -8,7 +8,7 @@
 #define LINE_Y_PADDING 4
 #define LINES_PER_SCREEN height / ((FONT_SIZE * FONT_BMP_SIZE) + LINE_Y_PADDING)
 #define STDOUT_BUFFER_SIZE 4096
-#define FRAMEBUFFER_SIZE 100000000
+    #define SHELL_FRAMEBUFFER_SIZE 100000000
 
 #define SHELL_COLOR 0x00000A
 #define FONT_COLOR 0xAAAAAA
@@ -63,8 +63,8 @@ char* find_args(char* cmd);
 
 
 //programas
-//static void * const pongisgolfModuleAddress = (void*)0x600000;
-//typedef int (*EntryPoint)();
+static void * const pongisgolfModuleAddress = (void*)0x600000;
+typedef int (*EntryPoint)();
 
 char* find_args(char* cmd) {
     while (*cmd && *cmd != ' ') cmd++;
@@ -307,10 +307,15 @@ void execute_command() {
             shell_print_colored("Uso: setfont <indice>\n", ERROR_COLOR);
         }
     } else if (!strcmp(cmd_copy, "pongisgolf")) {
-        //Guardo la fuente actual pues pongis usa una fuente mas grande para que los caracteres sean facilmente visibles
         int current_font = fontmanager_get_current_font_index();
-	    runPongisGolf();
+        EntryPoint run = (EntryPoint)pongisgolfModuleAddress;
+        // Ejecuta módulo independiente (retorna al salir del juego)
+        if (run) {
+            run();
+        }
         fontmanager_set_font(current_font);
+        cmd_clear();
+        shell_print_prompt();
     } else if (cmd_copy[0] != '\0') {
         shell_print_colored("Error: ", ERROR_COLOR);
         printf("Comando desconocido '%s'\n",cmd_copy);
@@ -397,7 +402,7 @@ void handle_keyboard_input() {
         }
     }
 }
-
+//shell at 0x400000
 void shell_welcome(){
     shell_print_colored("=================================================\n", PROMPT_COLOR);
     shell_print_colored("             SHELL v16.1\n", PROMPT_COLOR);
@@ -406,7 +411,7 @@ void shell_welcome(){
 }
 
 // Punto de entrada principal
-uint8_t newFb [FRAMEBUFFER_SIZE]; // CAMBIAR POR MALLOC
+uint8_t newFb [SHELL_FRAMEBUFFER_SIZE]; // CAMBIAR POR MALLOC
 frame_t newFrame;
 
 int main() {
@@ -441,3 +446,5 @@ int main() {
     shell_main();
     return 0;
 }
+
+

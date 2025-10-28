@@ -13,7 +13,7 @@
 USE16
 org 0x7C00
 
-entry:
+entryPoint:
 	cli				; Disable interrupts
 ;	xchg bx, bx			; Bochs magic debug
 	xor ax, ax
@@ -170,7 +170,7 @@ DriveNumber db 0x00
 
 times 446-$+$$ db 0
 
-; False partition table entry required by some BIOS vendors.
+; False partition table entryPoint required by some BIOS vendors.
 db 0x80, 0x00, 0x01, 0x00, 0xEB, 0xFF, 0xFF, 0xFF, 0x00, 0x00, 0x00, 0x00, 0xFF, 0xFF, 0xFF, 0xFF
 
 times 510-$+$$ db 0

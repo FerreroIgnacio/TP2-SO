@@ -75,7 +75,7 @@ smp_send_SIPI:
 	cmp al, dl			; Is it the BSP?
 	je smp_send_SIPI_skipcore
 
-	; Broadcast 'Startup' IPI to destination using vector 0x08 to specify entry-point is at the memory-address 0x00008000
+	; Broadcast 'Startup' IPI to destination using vector 0x08 to specify entryPoint-point is at the memory-address 0x00008000
 	mov rdi, [os_LocalAPICAddress]
 	shl eax, 24
 	mov dword [rdi+0x310], eax	; Interrupt Command Register (ICR); bits 63-32

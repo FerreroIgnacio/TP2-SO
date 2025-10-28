@@ -12,7 +12,7 @@ El repositorio deberá poseer un README en formato markdown y desarrollar de for
 ---
 x64BareBones is a basic setup to develop operating systems for the Intel 64 bits architecture.
 
-The final goal of the project is to provide an entry point for a kernel and the possibility to load extra binary modules separated from the main kernel.
+The final goal of the project is to provide an entryPoint point for a kernel and the possibility to load extra binary modules separated from the main kernel.
 
 Environment setup:
 1- Install the following packages before building the Toolchain and Kernel:

@@ -13,6 +13,7 @@
 #define STDOUT 1
 #define STDERR 2
 #define STD_BUFF_SIZE 4096
+// Reduce from 100MB to 16MB to fit typical LFB sizes without exhausting memory
 #define FRAMEBUFFER_SIZE 100000000
 
 /* MANEJO DE STRINGS */
@@ -82,6 +83,8 @@ typedef struct registers{
 } registers_t;
 // Guarda en regs la captura de los registros realizada con F1
 void getRegisters(registers_t* regs);
+// Alias solicitado: readregister() lee la captura de registros en el mismo formato
+void readregister(registers_t* regs);
 
 // borra todo el file descriptor
 void flush(int fd);

@@ -15,6 +15,9 @@ GLOBAL malloc
 GLOBAL calloc
 GLOBAL realloc
 GLOBAL free
+GLOBAL proc_spawn
+GLOBAL proc_kill
+GLOBAL proc_list
 EXTERN incFramesCount
 
 SECTION .text
@@ -105,3 +108,20 @@ fbSetRegion:
    mov      rax, 0xC        ; syscall ID para set framebuffer region             
    int      0x80            ; rdi=topLeftX, rsi=topLeftY, rdx=width, rcx=height, r8=bmp, r9=maskColor
    ret	
+
+; proc management: IDs 40,41,42
+; int proc_spawn(task_fn_t entry)
+proc_spawn:
+    mov     rax, 0x28
+    int     0x80
+    ret
+; int proc_kill(int pid)
+proc_kill:
+    mov     rax, 0x29
+    int     0x80
+    ret
+; int proc_list(proc_info_t* out, int max)
+proc_list:
+    mov     rax, 0x2A
+    int     0x80
+    ret

@@ -3,6 +3,13 @@
 #include "../standard.h"
 // Variables globales
 
+int runPongisGolf();
+
+int main() {
+    runPongisGolf();
+    return 0;
+}
+
 static uint8_t newFb [FRAMEBUFFER_SIZE];
 static frame_t newFrame;
 
@@ -625,6 +632,8 @@ static uint64_t lastTick = 0;
 int player1Score = 0;
 int player2Score = 0;
 int ballControl = 0; // 0 = player1, 1 = player2, quien controla la pelota para saber de quien es el punto, -1 ambos ganan los dos
+
+
 
 int runPongisGolf() {
     frameInit(&newFrame, newFb);

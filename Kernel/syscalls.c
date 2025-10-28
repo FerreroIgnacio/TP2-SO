@@ -5,6 +5,7 @@
 #include <keyboardDriver.h>
 #include <isrHandlers.h>
 #include <mm.h>
+#include <scheduler.h> // Scheduler para spawn/kill de tareas y listar
 
 uint64_t syscallHandler(int syscall_num, uint64_t arg1, uint64_t arg2, uint64_t arg3, uint64_t arg4, uint64_t arg5, uint64_t arg6) {
     switch(syscall_num) {
@@ -52,6 +53,13 @@ uint64_t syscallHandler(int syscall_num, uint64_t arg1, uint64_t arg2, uint64_t 
         case SYSCALL_FREE:
             sys_free((void *)arg1);
             return 1;
+        // --- Nuevas syscalls de procesos/tareas ---
+        case SYSCALL_PROC_SPAWN: // Iniciar una nueva tarea
+            return sys_proc_spawn((task_fn_t) arg1);
+        case SYSCALL_PROC_KILL: // Matar una tarea por pid
+            return sys_proc_kill((int) arg1);
+        case SYSCALL_PROC_LIST: // Listar tareas
+            return sys_proc_list((proc_info_t*) arg1, (int) arg2);
         default:
             return -1;
     }
@@ -176,4 +184,26 @@ void *sys_realloc(void *ptr, uint64_t size) {
 
 void sys_free(void *ptr) {
     mm_free(ptr);
+}
+
+/*
+ * ID 40
+ */
+// Inicia (spawnea) una tarea; devuelve el pid asignado o -1 si falla.
+int sys_proc_spawn(task_fn_t entry) {
+    if (entry == 0) return -1;
+    return scheduler_add(entry);
+}
+
+/*
+ * ID 41
+ */
+// Mata una tarea por pid; devuelve 0 si tuvo éxito, -1 si error.
+int sys_proc_kill(int pid) {
+    return scheduler_kill(pid);
+}
+
+// Lista tareas actualmente en cola; devuelve la cantidad copiada en 'out'.
+int sys_proc_list(proc_info_t* out, int max) {
+    return scheduler_list(out, max);
 }
