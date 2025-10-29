@@ -3,11 +3,19 @@
 
 #include <stdint.h>
 
+typedef struct frameBuffer *frameBuffer_adt;
+
+frameBuffer_adt getFB();
+
+void setFB(uint8_t index);
+
+void freeFB(uint8_t index);
+
 // Cambia el color del pixel (x,y) a hexColor
 void putPixel(uint32_t hexColor, uint64_t x, uint64_t y);
 
 // Escribe el string str en la posición (x,y)
-void putText(char* str, uint32_t hexColor, uint32_t backColor, uint64_t x, uint64_t y, uint64_t size);
+void putText(char *str, uint32_t hexColor, uint32_t backColor, uint64_t x, uint64_t y, uint64_t size);
 
 // Dibuja un rectángulo de w pixeles por h pixeles en la posición (x,y)
 // Siendo x,y la esquina inferior del rectángulo
@@ -26,8 +34,8 @@ uint16_t getHeight();
 uint16_t getBpp();
 uint16_t getPitch();
 
-void setFramebuffer(uint8_t * fb);
-void setFrameBufferRegion(uint32_t topLeftX, uint32_t topLeftY, uint32_t width, uint32_t height, uint8_t* bmp, uint32_t maskColor);
+void setFramebuffer(uint8_t *fb);
+void setFrameBufferRegion(uint32_t topLeftX, uint32_t topLeftY, uint32_t width, uint32_t height, uint8_t *bmp, uint32_t maskColor);
 
- void putChar(char ascii, uint32_t hexColor, uint32_t backColor, uint64_t x, uint64_t y, uint64_t size);
+void putChar(char ascii, uint32_t hexColor, uint32_t backColor, uint64_t x, uint64_t y, uint64_t size);
 #endif
