@@ -1,12 +1,12 @@
-#include "../standard.h"
+#include "../../libs/standard/standard.h"
 
-uint8_t newFb [600 * 800 * 4 * 2]; // CAMBIAR POR MALLOC
+uint8_t newFb[600 * 800 * 4 * 2]; // CAMBIAR POR MALLOC
 frame_t newFrame;
 
-
-static frame_t * frame;
+static frame_t *frame;
 #define SHELL_COLOR 0x00000A
-int main() {
+int main()
+{
   /*  write(STDOUT, "asdf\n", 5);
     int16_t width, height;
     getVideoData( &width,&height, NULL, NULL);
@@ -17,5 +17,5 @@ int main() {
       //      while(1){
 
        //     }*/
-    return 0;
+  return 0;
 }

@@ -56,11 +56,6 @@ getRegisters:
     int     0x80
     ret
 
-getVideoData:
-    mov     rax, 0x9
-    int     0x80
-    ret
-
 putPixel:
     mov     rax, 0xA      ; syscall número 10
     int     0x80          ; llamar a syscall
@@ -71,6 +66,12 @@ fbSet:
     int     0x80
     call    incFramesCount
     ret
+
+getVideoData:
+    mov     rax, 0xD
+    int     0x80
+    ret
+
 
 startSound:
     mov     rax, 0x14     ; syscall número 20
