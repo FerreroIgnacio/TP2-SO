@@ -1,9 +1,8 @@
 #include "../../libs/standard/standard.h"
+#include "../../libs/video/video.h"
 
-uint8_t newFb[600 * 800 * 4 * 2]; // CAMBIAR POR MALLOC
-frame_t newFrame;
-
-static frame_t *frame;
+// frameBuffer newFrame;
+// static frameBuffer frame;
 #define SHELL_COLOR 0x00000A
 int main()
 {

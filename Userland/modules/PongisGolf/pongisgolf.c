@@ -9,14 +9,10 @@ int runPongisGolf();
 
 int main()
 {
-    runPongisGolf();
-    return 0;
+    return runPongisGolf();
 }
 
-// static uint8_t newFb[FRAMEBUFFER_SIZE];
 static frameBuffer newFrame;
-
-// static uint8_t newBackFb[FRAMEBUFFER_SIZE];
 static frameBuffer newBackFrame;
 
 static uint16_t width = 0, height = 0;
@@ -310,11 +306,11 @@ static void getPlayerPupilPos(player_t p, point_t *Lpupil, point_t *Rpupil)
 
 static void clearPlayer(frameBuffer frame, player_t p)
 {
-    frameCopyCircle(p.x, p.y, PLAYER_RADIUS + CIRCLE_REDRAW_MARGIN, frame, &newBackFrame);
+    frameCopyCircle(p.x, p.y, PLAYER_RADIUS + CIRCLE_REDRAW_MARGIN, frame, newBackFrame);
     point_t Leye, Reye;
     getPlayerEyePos(p, &Leye, &Reye);
-    frameCopyCircle(Leye.x, Leye.y, PLAYER_EYES_RADIUS + CIRCLE_REDRAW_MARGIN, frame, &newBackFrame);
-    frameCopyCircle(Reye.x, Reye.y, PLAYER_EYES_RADIUS + CIRCLE_REDRAW_MARGIN, frame, &newBackFrame);
+    frameCopyCircle(Leye.x, Leye.y, PLAYER_EYES_RADIUS + CIRCLE_REDRAW_MARGIN, frame, newBackFrame);
+    frameCopyCircle(Reye.x, Reye.y, PLAYER_EYES_RADIUS + CIRCLE_REDRAW_MARGIN, frame, newBackFrame);
 }
 
 // Dibuja el jugador en el frame especificado
@@ -684,7 +680,7 @@ level_t generateLevel()
     return level;
 }
 
-frameBuffer *drawLevelBackgroundToFrame(frameBuffer *frame, level_t level, uint64_t backgroundColor)
+frameBuffer drawLevelBackgroundToFrame(frameBuffer frame, level_t level, uint64_t backgroundColor)
 {
     frameFill(frame, backgroundColor);
     for (int i = 0; i < level.objectsCount; i++)
@@ -697,7 +693,7 @@ frameBuffer *drawLevelBackgroundToFrame(frameBuffer *frame, level_t level, uint6
     }
     return frame;
 }
-void drawLevelToFrame(frameBuffer *frame, level_t level, uint64_t backgroundColor)
+void drawLevelToFrame(frameBuffer frame, level_t level, uint64_t backgroundColor)
 {
     drawLevelBackgroundToFrame(frame, level, backgroundColor);
     player_t players[2] = {player1, player2};
@@ -732,8 +728,8 @@ int runPongisGolf()
     player2.x = startLevel.spawnPosition[1].x;
     player2.y = startLevel.spawnPosition[1].y;
 
-    drawLevelBackgroundToFrame(&newBackFrame, startLevel, BG_COLOR);
-    drawLevelToFrame(&newFrame, startLevel, BG_COLOR);
+    drawLevelBackgroundToFrame(newBackFrame, startLevel, BG_COLOR);
+    drawLevelToFrame(newFrame, startLevel, BG_COLOR);
 
     for (int i = 0; i < MAXBALLS; i++)
     {
@@ -751,8 +747,8 @@ int runPongisGolf()
         uint64_t deltaTime = currentTime - lastTick;
         lastTick = currentTime;
 
-        clearPlayer(&newFrame, player1);
-        clearPlayer(&newFrame, player2);
+        clearPlayer(newFrame, player1);
+        clearPlayer(newFrame, player2);
 
         handleMovements(deltaTime, &player1, startLevel, KEY_W, KEY_S, KEY_A, KEY_D);
         handleMovements(deltaTime, &player2, startLevel, KEY_UP, KEY_DOWN, KEY_LEFT, KEY_RIGHT);
@@ -762,7 +758,7 @@ int runPongisGolf()
         for (int i = 0; i < startLevel.ballsCount; i++)
         {
             hole_t ball = startLevel.balls[i];
-            frameCopyCircle(ball.x, ball.y, ball.radius + CIRCLE_REDRAW_MARGIN, &newFrame, &newBackFrame);
+            frameCopyCircle(ball.x, ball.y, ball.radius + CIRCLE_REDRAW_MARGIN, newFrame, newBackFrame);
         }
 
         checkBallCollisions(player1, startLevel.balls, startLevel.ballsCount);
@@ -815,21 +811,21 @@ int runPongisGolf()
         }
 
         int textLen = 15;
-        drawPlayer(&newFrame, player1);
-        drawPlayer(&newFrame, player2);
+        drawPlayer(newFrame, player1);
+        drawPlayer(newFrame, player2);
 
         for (int i = 0; i < startLevel.ballsCount; i++)
         {
             hole_t ball = startLevel.balls[i];
-            drawHole(&newFrame, ball);
+            drawHole(newFrame, ball);
         }
 
-        frameDrawText(&newFrame, "Player 1 score:", PLAYER1_COLOR, 0x000000, 10, 10);
-        frameDrawInt(&newFrame, player1Score, PLAYER1_COLOR, 0x000000, 10 + textLen * fontmanager_get_current_font().width, 10);
-        frameDrawText(&newFrame, "Player 2 score:", PLAYER2_COLOR, 0x000000, width - (textLen + 5) * fontmanager_get_current_font().width, 10);
-        frameDrawInt(&newFrame, player2Score, PLAYER2_COLOR, 0x000000, width - 5 * fontmanager_get_current_font().width, 10);
+        frameDrawText(newFrame, "Player 1 score:", PLAYER1_COLOR, 0x000000, 10, 10);
+        frameDrawInt(newFrame, player1Score, PLAYER1_COLOR, 0x000000, 10 + textLen * fontmanager_get_current_font().width, 10);
+        frameDrawText(newFrame, "Player 2 score:", PLAYER2_COLOR, 0x000000, width - (textLen + 5) * fontmanager_get_current_font().width, 10);
+        frameDrawInt(newFrame, player2Score, PLAYER2_COLOR, 0x000000, width - 5 * fontmanager_get_current_font().width, 10);
 
-        setFrame(&newFrame);
+        setFB(newFrame);
         if (soundEndTime != 0 && soundEndTime < getBootTime())
         {
             stopSound();

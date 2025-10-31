@@ -29,7 +29,7 @@ uint64_t syscallHandler(int syscall_num, uint64_t arg1, uint64_t arg2, uint64_t 
         sys_getRegisters((uint64_t *)arg1);
         return 1;
     case SYSCALL_GET_FB:
-        return sys_get_fb();
+        return (uint64_t)sys_get_fb();
     case SYSCALL_SET_FB:
         sys_set_fb((uint8_t)arg1);
         return 1;

@@ -1,4 +1,6 @@
 #include "./video.h"
+extern void sys_setFB(uint8_t index);
+extern void sys_freeFB(uint8_t index);
 
 typedef struct frameBuffer_struct
 {

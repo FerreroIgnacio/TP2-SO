@@ -2,6 +2,7 @@
 #define SYSCALLS_H
 #include <stdint.h>
 #include <scheduler.h>
+#include <videoDriver.h>
 
 #define STDIN 0
 #define STDOUT 1
@@ -54,6 +55,12 @@ void sys_getDate(uint8_t *year, uint8_t *month, uint8_t *day);
 void saveRegisters(uint64_t *regs);
 
 void sys_getRegisters(uint64_t *regs);
+
+frameBuffer_adt sys_get_fb();
+
+void sys_set_fb(uint8_t index);
+
+void sys_free_fb(uint8_t index);
 
 void sys_get_video_data(uint16_t *width, uint16_t *height, uint16_t *bpp, uint16_t *pitch);
 

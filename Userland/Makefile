@@ -2,22 +2,25 @@ include Makefile.inc
 
 SAMPLE_DATA=0001-Shell.bin
 
-all: Shell PongisGolf TestModule
+all: Libs Shell PongisGolf TestModule
 
 Shell:
-	cd Shell; make
+	cd modules/Shell; make
 
 PongisGolf:
-	cd PongisGolf; make
+	cd modules/PongisGolf; make
 
 TestModule:
-	cd TestModule; make all
+	cd modules/TestModule; make all
+Libs:
+	cd libs; make
 shell:
 	printf "This is sample data." >> $(SAMPLE_DATA) && dd if=/dev/zero bs=1 count=1 >> $(SAMPLE_DATA)
 
 clean:
-	cd Shell; make clean
-	cd PongisGolf; make clean
+	cd modules/Shell; make clean
+	cd modules/PongisGolf; make clean
+	cd modules/TestModule; make clean
 	rm -rf *.bin
 
 .PHONY: Shell PongisGolf all clean
