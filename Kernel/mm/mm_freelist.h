@@ -1,5 +1,5 @@
-#ifndef MM_INTERNAL_H
-#define MM_INTERNAL_H
+#ifndef MM_FREELIST_H
+#define MM_FREELIST_H
 
 #include <stddef.h>
 #include <stdint.h>

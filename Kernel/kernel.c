@@ -87,7 +87,7 @@ int main()
     //  scheduler_add((task_fn_t)sampleCodeModuleAddress);
     //  scheduler_add((task_fn_t)pongisgolfModuleAddress);
     // scheduler_start();
-    ((void (*)(void))0x600000)();
+    ((void (*)(void))pongisgolfModuleAddress)();
     // ((void (*)(void))sampleCodeModuleAddress)();
     // Inalcanzable
     // while(1);
