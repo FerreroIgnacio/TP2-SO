@@ -19,10 +19,8 @@ typedef struct block
 void *heapStart = NULL;
 size_t maxBlockSize = 0;
 block_t *freeLists[MAX_ORDER + 1] = {NULL};
-char memory[MAX_BLOCK_SIZE]
 
-    static size_t
-    calculateOrder(size_t size)
+static size_t calculateOrder(size_t size)
 {
     size += sizeof(block_t);
 
@@ -47,20 +45,41 @@ void buddy_init(void *heap_start, size_t heap_size)
     }
     maxBlockSize >>= 1;
     freeLists[order] = (block_t *)heapStart;
+    freeLists[order]->next = NULL;
+    freeLists[order]->prev = NULL;
+    freeLists[order]->order = order;
+    freeLists[order]->is_free = 1;
 }
 
 void *buddy_malloc(size_t size)
 {
-    return NULL;
-}
-void *buddy_calloc(size_t count, size_t size)
-{
-    return NULL;
-}
-void *buddy_realloc(void *ptr, size_t size)
-{
-    return NULL;
-}
-void buddy_free(void *ptr)
-{
-}
+    size_t order = calculateOrder(size);
+    for (int currentOrder = order; currentOrder <= MAX_ORDER; currentOrder++)
+    {
+        if (freeLists[currentOrder] != NULL)
+        {
+            block_t *block = freeLists[currentOrder];
+            // Remover el bloque de la lista libre
+            if (block->next)
+            {
+                block->next->prev = NULL;
+            }
+            freeLists[currentOrder] = block->next;
+            // Dividir el bloque hasta alcanzar el orden deseado
+            while (currentOrder > order)
+            {
+                currentOrder--;
+            }
+            return NULL;
+        }
+        void *buddy_calloc(size_t count, size_t size)
+        {
+            return NULL;
+        }
+        void *buddy_realloc(void *ptr, size_t size)
+        {
+            return NULL;
+        }
+        void buddy_free(void *ptr)
+        {
+        }

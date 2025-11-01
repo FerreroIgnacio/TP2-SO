@@ -1,44 +1,68 @@
 #include "../include/mm.h"
-#include "mm_internal.h"
+#include "mm_freelist.h"
+#include "mm_buddy.h"
 
-#ifdef MM_BUDDY
-#error "Buddy allocator is not implemented. Compile without MM_BUDDY."
+void mm_init(void *heap_start, size_t heap_size)
+{
+#ifdef USE_BUDDY
+    buddy_init(heap_start, heap_size);
 #else
-
-void mm_init(void *heap_start, size_t heap_size) {
     freelist_init(heap_start, heap_size);
+#endif
 }
 
-void *mm_malloc(size_t size) {
+void *mm_malloc(size_t size)
+{
+#ifdef USE_BUDDY
+    return buddy_malloc(size);
+#else
     return freelist_malloc(size);
+#endif
 }
 
-void *mm_calloc(size_t count, size_t size) {
+void *mm_calloc(size_t count, size_t size)
+{
+#ifdef USE_BUDDY
+    return buddy_calloc(count, size);
+#else
     return freelist_calloc(count, size);
+#endif
 }
 
-void *mm_realloc(void *ptr, size_t size) {
+void *mm_realloc(void *ptr, size_t size)
+{
+#ifdef USE_BUDDY
+    return buddy_realloc(ptr, size);
+#else
     return freelist_realloc(ptr, size);
+#endif
 }
 
-void mm_free(void *ptr) {
+void mm_free(void *ptr)
+{
+#ifdef USE_BUDDY
+    buddy_free(ptr);
+#else
     freelist_free(ptr);
+#endif
 }
 
-void *malloc(size_t size) {
+void *malloc(size_t size)
+{
     return mm_malloc(size);
 }
 
-void *calloc(size_t count, size_t size) {
+void *calloc(size_t count, size_t size)
+{
     return mm_calloc(count, size);
 }
 
-void *realloc(void *ptr, size_t size) {
+void *realloc(void *ptr, size_t size)
+{
     return mm_realloc(ptr, size);
 }
 
-void free(void *ptr) {
+void free(void *ptr)
+{
     mm_free(ptr);
 }
-
-#endif
