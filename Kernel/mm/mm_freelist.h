@@ -13,4 +13,4 @@ void freelist_free(void *ptr);
 size_t freelist_largest_free_block(void);
 size_t freelist_total_free(void);
 
-#endif /* MM_INTERNAL_H */
+#endif
