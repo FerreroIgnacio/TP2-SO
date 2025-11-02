@@ -1,6 +1,6 @@
 #include "mm_buddy.h"
+#include <string.h>
 #define MAX_ORDER 29 // (512 MB) = 2^29 bytes
-#define MAX_BLOCK_SIZE (1UL << MAX_ORDER)
 
 /* Buddy Memory Allocator Implementation
  * block_t funciona como metadata para cada bloque de memoria
@@ -16,11 +16,10 @@ typedef struct block
     int is_free;
 } block_t;
 
-void *heapStart = NULL;
-size_t maxBlockSize = 0;
 block_t *freeLists[MAX_ORDER + 1] = {NULL};
+size_t heap_order = 0;
 
-static size_t calculateOrder(size_t size)
+static size_t calculate_order(size_t size)
 {
     size += sizeof(block_t);
 
@@ -34,52 +33,161 @@ static size_t calculateOrder(size_t size)
     return order;
 }
 
+static block_t *find_buddy(block_t *block)
+{
+    // buddy difiere en un bit, se calcula su dirección con XOR en ese bit.
+    size_t buddy_address = (size_t)block ^ (1UL << block->order);
+    return (block_t *)buddy_address;
+}
+
+static void insert_into_freelist(block_t *block)
+{
+    block->is_free = 1;
+    block->next = freeLists[block->order];
+    block->prev = NULL;
+    if (freeLists[block->order])
+    {
+        freeLists[block->order]->prev = block;
+    }
+    freeLists[block->order] = block;
+}
+
+static void delete_from_freelist(block_t *block)
+{
+    if (block->prev)
+    {
+        block->prev->next = block->next;
+    }
+    else if (freeLists[block->order] == block)
+    {
+        freeLists[block->order] = block->next;
+    }
+    if (block->next)
+    {
+        block->next->prev = block->prev;
+    }
+}
+
 void buddy_init(void *heap_start, size_t heap_size)
 {
-    size_t order = -1;
-    heapStart = heap_start;
-    while (maxBlockSize < heap_size)
+    size_t order = calculate_order(heap_size);
+    if (order > MAX_ORDER)
     {
-        maxBlockSize <<= 1;
-        order++;
+        order = MAX_ORDER;
     }
-    maxBlockSize >>= 1;
-    freeLists[order] = (block_t *)heapStart;
-    freeLists[order]->next = NULL;
-    freeLists[order]->prev = NULL;
-    freeLists[order]->order = order;
-    freeLists[order]->is_free = 1;
+    heap_order = order;
+    ((block_t *)heap_start)->order = order;
+    insert_into_freelist((block_t *)heap_start);
 }
 
 void *buddy_malloc(size_t size)
 {
-    size_t order = calculateOrder(size);
+    size_t order = calculate_order(size);
     for (int currentOrder = order; currentOrder <= MAX_ORDER; currentOrder++)
     {
         if (freeLists[currentOrder] != NULL)
         {
             block_t *block = freeLists[currentOrder];
-            // Remover el bloque de la lista libre
-            if (block->next)
-            {
-                block->next->prev = NULL;
-            }
             freeLists[currentOrder] = block->next;
-            // Dividir el bloque hasta alcanzar el orden deseado
-            while (currentOrder > order)
+            block->is_free = 0;
+            block->next = NULL;
+            while (block->order > order)
             {
-                currentOrder--;
+                block_t *buddy = (block_t *)((size_t)block + (1UL << (block->order - 1)));
+                buddy->order = block->order - 1;
+                insert_into_freelist(buddy);
+                block->order--;
             }
-            return NULL;
+            return block + sizeof(block_t);
         }
-        void *buddy_calloc(size_t count, size_t size)
+    }
+    return NULL;
+}
+
+void *buddy_calloc(size_t size)
+{
+    void *ptr = buddy_malloc(size);
+    if (ptr)
+    {
+        size_t total_size = (1UL << calculate_order(size)) - sizeof(block_t);
+        memset(ptr, 0, total_size);
+        return ptr;
+    }
+    return NULL;
+}
+
+void *buddy_realloc(void *ptr, size_t size)
+{
+    if (!ptr)
+    {
+        return buddy_malloc(size);
+    }
+
+    size_t order = calculate_order(size);
+    block_t *block = (block_t *)((uint8_t *)ptr - sizeof(block_t));
+    if (block->order >= order)
+    {
+        return ptr;
+    }
+    for (int currentOrder = block->order; currentOrder <= order; currentOrder++)
+    {
+        block_t *buddy = find_buddy(block);
+        if (buddy->is_free == 1)
         {
-            return NULL;
+            delete_from_freelist(buddy);
+            if (block < buddy)
+            {
+                block->order++;
+            }
+            else
+            {
+                buddy->order++;
+                buddy->is_free = 0;
+                block = buddy;
+            }
         }
-        void *buddy_realloc(void *ptr, size_t size)
+        else
         {
-            return NULL;
+            break;
         }
-        void buddy_free(void *ptr)
+    }
+    if (block->order >= order)
+    {
+        return ptr;
+    }
+    void *new_ptr = buddy_malloc(size);
+    if (new_ptr)
+    {
+        memcpy(new_ptr, ptr, (1UL << order) - sizeof(block_t));
+        buddy_free(ptr);
+        return new_ptr;
+    }
+    return NULL;
+}
+
+void buddy_free(void *ptr)
+{
+    if (!ptr)
+    {
+        return;
+    }
+    block_t *block = (block_t *)((uint8_t *)ptr - sizeof(block_t));
+
+    while (find_buddy(block)->is_free == 1 && find_buddy(block)->order <= heap_order - 1)
+    {
+        block_t *buddy = find_buddy(block);
+
+        delete_from_freelist(buddy);
+        if (block < buddy)
         {
+            block->order++;
         }
+        else
+        {
+            buddy->order++;
+            buddy->is_free = 0;
+            block = buddy;
+        }
+    }
+    insert_into_freelist(block);
+}
