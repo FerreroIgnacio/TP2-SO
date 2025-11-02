@@ -23,7 +23,7 @@ void *mm_malloc(size_t size)
 void *mm_calloc(size_t count, size_t size)
 {
 #ifdef USE_BUDDY
-    return buddy_calloc(count, size);
+    return buddy_calloc(size);
 #else
     return freelist_calloc(count, size);
 #endif
