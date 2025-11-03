@@ -3,7 +3,7 @@ include ../../Makefile.inc
 MODULE = 0000-Shell.bin
 
 # Archivos fuente locales (ignora archivos que empiezan con "_")
-SOURCES := $(wildcard [^_]*.c)
+SOURCES := $(wildcard *.c)
 OBJS := $(SOURCES:.c=.o)
 
 # Carpeta de librerías externas

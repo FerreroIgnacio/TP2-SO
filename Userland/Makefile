@@ -1,6 +1,6 @@
 include Makefile.inc
 
-SAMPLE_DATA=0001-Shell.bin
+SAMPLE_DATA=0000-Shell.bin
 
 all: Libs Shell PongisGolf TestModule
 

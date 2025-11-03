@@ -5,13 +5,6 @@
 
 // Variables globales
 
-int runPongisGolf();
-
-int main()
-{
-    return runPongisGolf();
-}
-
 static frameBuffer newFrame;
 static frameBuffer newBackFrame;
 
@@ -714,6 +707,7 @@ int ballControl = 0; // 0 = player1, 1 = player2, quien controla la pelota para 
 
 int runPongisGolf()
 {
+    return 0;
     newFrame = getFB();
     newBackFrame = getFB();
     width = frameGetWidth(newFrame);

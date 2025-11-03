@@ -26,13 +26,14 @@ extern void putPixel(uint32_t hexColor, uint64_t x, uint64_t y);
 
 extern char font8x8_basic[128][8];
 
-static void *const sampleCodeModuleAddress = (void *)0x6000000; //Shell
-static void *const sampleDataModuleAddress = (void *)0x7000000; //Data
-static void *const pongisgolfModuleAddress = (void *)0x8000000; //PongisGolf
+static void *const sampleCodeModuleAddress = (void *)0x6000000; // Shell
+static void *const sampleDataModuleAddress = (void *)0x7000000; // Data
+static void *const pongisgolfModuleAddress = (void *)0x8000000; // PongisGolf
 
 typedef int (*EntryPoint)();
 
-static void initialize_memory_manager(void) {
+static void initialize_memory_manager(void)
+{
     // Arranco el heap justo después del kernel y su stack
     uint8_t *heap_start = (uint8_t *)&endOfKernel + (PageSize * StackPages);
     // Alineo el inicio del heap
@@ -40,7 +41,8 @@ static void initialize_memory_manager(void) {
     // Termino el heap al inicio del siguiente módulo cargado (Shell)
     uint8_t *heap_end = (uint8_t *)sampleCodeModuleAddress;
 
-    if (heap_end > (uint8_t *)aligned_start) {
+    if (heap_end > (uint8_t *)aligned_start)
+    {
         mm_init((void *)aligned_start, (size_t)(heap_end - (uint8_t *)aligned_start));
     }
 }
@@ -87,11 +89,15 @@ int main()
     //  scheduler_add((task_fn_t)sampleCodeModuleAddress);
     //  scheduler_add((task_fn_t)pongisgolfModuleAddress);
     // scheduler_start();
-    ((void (*)(void))pongisgolfModuleAddress)();
+
     // ((void (*)(void))sampleCodeModuleAddress)();
     // Inalcanzable
     // while(1);
     // return 0;
+
+    drawCircle(0x00FFFF, 100, 200, 50);
+    ((EntryPoint)pongisgolfModuleAddress)();
+    drawCircle(0x00FF00, 100, 100, 50);
     while (1)
         ;
 }

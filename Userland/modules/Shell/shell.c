@@ -62,7 +62,7 @@ void cmd_testInvalidCode();
 char *find_args(char *cmd);
 
 // programas
-static void *const pongisgolfModuleAddress = (void *)0x600000;
+static void *const pongisgolfModuleAddress = (void *)0x8000000;
 typedef int (*EntryPoint)();
 
 char *find_args(char *cmd)
