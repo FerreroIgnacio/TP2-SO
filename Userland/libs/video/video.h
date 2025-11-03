@@ -16,9 +16,9 @@ void setFB(frameBuffer fb);
 // libera el frameBuffer
 void freeFB(frameBuffer fb);
 
-uint8_t frameGetWidth(frameBuffer fb);
+uint16_t frameGetWidth(frameBuffer fb);
 
-uint8_t frameGetHeight(frameBuffer fb);
+uint16_t frameGetHeight(frameBuffer fb);
 
 uint8_t frameGetBpp(frameBuffer fb);
 

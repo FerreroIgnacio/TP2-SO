@@ -22,12 +22,12 @@ void freeFB(frameBuffer fb)
     sys_freeFB(fb->fbId);
 }
 
-uint8_t frameGetWidth(frameBuffer fb)
+uint16_t frameGetWidth(frameBuffer fb)
 {
     return fb->width;
 }
 
-uint8_t frameGetHeight(frameBuffer fb)
+uint16_t frameGetHeight(frameBuffer fb)
 {
     return fb->height;
 }
