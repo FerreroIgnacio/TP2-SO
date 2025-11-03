@@ -45,6 +45,8 @@ struct vbe_mode_info_structure
 typedef struct vbe_mode_info_structure *VBEInfoPtr;
 VBEInfoPtr VBE_mode_info = (VBEInfoPtr)0x0000000000005C00;
 
+// MODO VIDEO PARA USERLAND
+
 typedef struct frameBuffer
 {
     uint8_t fbId;
@@ -69,7 +71,6 @@ void setFB(uint8_t index)
     }
 }
 
-// MODO VIDEO PARA USERLAND
 frameBuffer_t *getFB()
 {
     frameBuffer_t *toReturn = malloc(sizeof(frameBuffer_t));
@@ -106,68 +107,7 @@ void freeFB(uint8_t index)
     fbArray[index] = 0;
 }
 
-// Copia el framebuffer pasado por parámetro al hardware
-void setFramebuffer(uint8_t *fb)
-{
-    if (!fb)
-    {
-        return;
-    }
-    uint64_t size = VBE_mode_info->pitch * VBE_mode_info->height;
-    uint8_t *dest = (uint8_t *)VBE_mode_info->framebuffer;
-    for (uint64_t i = 0; i < size; i++)
-    {
-        dest[i] = fb[i];
-    }
-}
-
-// Copia una region de bitmap al framebuffer con mascara de color sobre los px a ignorar
-void setFrameBufferRegion(uint32_t topLeftX, uint32_t topLeftY, uint32_t width, uint32_t height, uint8_t *bmp, uint32_t maskColor)
-{
-    if (!bmp || !VBE_mode_info)
-    {
-        return;
-    }
-
-    uint8_t *dest = (uint8_t *)VBE_mode_info->framebuffer;
-    uint32_t pitch = VBE_mode_info->pitch;
-
-    for (uint32_t y = 0; y < height; y++)
-    {
-        for (uint32_t x = 0; x < width; x++)
-        {
-            uint64_t bmpOffset = (y * width + x) * 3;
-            // Construir color RGB para comparar con máscara
-            //  R, G, B
-            uint32_t pixelColor = bmp[bmpOffset] | (bmp[bmpOffset + 1] << 8) | (bmp[bmpOffset + 2] << 16);
-
-            if (pixelColor != maskColor)
-            {
-                uint64_t fbOffset = (topLeftY + y) * pitch + (topLeftX + x) * 3;
-                dest[fbOffset] = bmp[bmpOffset];
-                dest[fbOffset + 1] = bmp[bmpOffset + 1];
-                dest[fbOffset + 2] = bmp[bmpOffset + 2];
-            }
-        }
-    }
-}
-
-uint16_t getWidth()
-{
-    return VBE_mode_info->width;
-}
-uint16_t getHeight()
-{
-    return VBE_mode_info->height;
-}
-uint16_t getBpp()
-{
-    return (uint16_t)VBE_mode_info->bpp;
-}
-uint16_t getPitch()
-{
-    return VBE_mode_info->pitch;
-}
+// MODO VIDEO DESDE KERNEL
 
 // Cambia el color del pixel (x,y) a hexColor</b></font>
 void putPixel(uint32_t hexColor, uint64_t x, uint64_t y)
@@ -178,8 +118,6 @@ void putPixel(uint32_t hexColor, uint64_t x, uint64_t y)
     framebuffer[offset + 1] = (hexColor >> 8) & 0xFF;
     framebuffer[offset + 2] = (hexColor >> 16) & 0xFF;
 }
-
-// MODO VIDEO DESDE KERNEL
 
 // Escribe el string str en la posición (x,y)
 void putText(char *str, uint32_t hexColor, uint32_t backColor, uint64_t x, uint64_t y, uint64_t size)

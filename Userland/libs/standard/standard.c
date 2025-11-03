@@ -553,29 +553,6 @@ uint32_t rand()
     return (uint32_t)(rand_seed >> 32);
 }
 
-/* CÁLCULO DE FPS */
-uint64_t framesCount, timerCount;
-void fpsInit()
-{
-    timerCount = getBootTime();
-    framesCount = 0;
-}
-
-void incFramesCount()
-{
-    framesCount++;
-}
-// Promedio de Frames Por Segundo desde la úĺtima llamada
-uint64_t getFps()
-{
-    uint64_t time = getBootTime() - timerCount;
-    if (time < 100)
-        return 0;
-    uint64_t fps = (1000 * framesCount) / time;
-    fpsInit();
-    return fps;
-};
-
 /* SONIDO */
 void playFreq(uint16_t freq, uint64_t ms)
 {

@@ -5,10 +5,8 @@ GLOBAL getBootTime
 GLOBAL getLocalTime 
 GLOBAL getLocalDate
 GLOBAL getRegisters
-GLOBAL getVideoData
 GLOBAL putPixel
 GLOBAL fbSet
-GLOBAL fbSetRegion
 GLOBAL startSound
 GLOBAL stopSound
 GLOBAL malloc
@@ -18,8 +16,6 @@ GLOBAL free
 GLOBAL proc_spawn
 GLOBAL proc_kill
 GLOBAL proc_list
-EXTERN incFramesCount
-
 SECTION .text
 
 
@@ -64,14 +60,7 @@ putPixel:
 fbSet:
     mov     rax, 0xB
     int     0x80
-    call    incFramesCount
     ret
-
-getVideoData:
-    mov     rax, 0xD
-    int     0x80
-    ret
-
 
 startSound:
     mov     rax, 0x14     ; syscall número 20
@@ -102,13 +91,6 @@ free:
     mov     rax, 0x21     ; syscall número 33
     int     0x80
     ret
-
-
-;fbSetRegion(uint32_t topLeftX, uint32_t topLeftY, uint32_t width, uint32_t height, uint8_t* bmp, uint32_t maskColor)
-fbSetRegion:
-   mov      rax, 0xC        ; syscall ID para set framebuffer region             
-   int      0x80            ; rdi=topLeftX, rsi=topLeftY, rdx=width, rcx=height, r8=bmp, r9=maskColor
-   ret	
 
 ; proc management: IDs 40,41,42
 ; int proc_spawn(task_fn_t entry)

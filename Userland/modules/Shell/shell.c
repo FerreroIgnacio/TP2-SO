@@ -52,7 +52,6 @@ void cmd_echo(char *args);
 void cmd_test();
 void cmd_info();
 void cmd_dateTime();
-void cmd_fps();
 void cmd_registers();
 void cmd_test0Div();
 void cmd_testInvalidCode();
@@ -209,11 +208,6 @@ void cmd_dateTime()
     printf("Fecha y hora en UTC-0: %d/%d/20%d %d:%d:%d\n", day, month, year, hours, minutes, seconds);
 }
 
-void cmd_fps()
-{
-    printf("FPS: %d", getFps());
-}
-
 void cmd_registers()
 {
     registers_t regs;
@@ -329,10 +323,6 @@ void execute_command()
     else if (!strcmp(cmd_copy, "datetime"))
     {
         cmd_dateTime();
-    }
-    else if (!strcmp(cmd_copy, "fps"))
-    {
-        cmd_fps();
     }
     else if (!strcmp(cmd_copy, "registers"))
     {

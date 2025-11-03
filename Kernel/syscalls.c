@@ -36,18 +36,6 @@ uint64_t syscallHandler(int syscall_num, uint64_t arg1, uint64_t arg2, uint64_t 
     case SYSCALL_FREE_FB:
         sys_free_fb((uint8_t)arg1);
         return 1;
-    case SYSCALL_GET_VIDEO_DATA:
-        sys_get_video_data((uint16_t *)arg1, (uint16_t *)arg2, (uint16_t *)arg3, (uint16_t *)arg4);
-        return 1;
-    case SYSCALL_PUT_PIXEL:
-        sys_put_pixel((uint32_t)arg1, (uint64_t)arg2, (uint64_t)arg3);
-        return 1;
-    case SYSCALL_SET_FRAMEBUFFER:
-        sys_set_framebuffer((uint8_t *)arg1);
-        return 1;
-    case SYSCALL_SET_FRAMEBUFFER_REGION:
-        sys_set_framebuffer_region((uint32_t)arg1, (uint32_t)arg2, (uint32_t)arg3, (uint32_t)arg4, (uint8_t *)arg5, (uint32_t)arg6);
-        return 1;
     case SYSCALL_PLAY_SOUND:
         sys_playSound((uint16_t)arg1);
         return 1;
@@ -179,44 +167,6 @@ void sys_set_fb(uint8_t index)
 void sys_free_fb(uint8_t index)
 {
     freeFB(index);
-}
-
-/*
- * ID 10
- */
-void sys_put_pixel(uint32_t hexColor, uint64_t x, uint64_t y)
-{
-    putPixel(hexColor, x, y);
-}
-
-/*
- * ID 11
- */
-void sys_set_framebuffer(uint8_t *fb)
-{
-    setFramebuffer(fb);
-}
-/*
- * ID 12
- */
-void sys_set_framebuffer_region(uint32_t topLeftX, uint32_t topLeftY, uint32_t width, uint32_t height, uint8_t *bmp, uint32_t maskColor)
-{
-    setFrameBufferRegion(topLeftX, topLeftY, width, height, bmp, maskColor);
-}
-
-/*
- * ID 13
- */
-void sys_get_video_data(uint16_t *width, uint16_t *height, uint16_t *bpp, uint16_t *pitch)
-{
-    if (width)
-        *width = getWidth();
-    if (height)
-        *height = getHeight();
-    if (bpp)
-        *bpp = getBpp();
-    if (pitch)
-        *pitch = getPitch();
 }
 
 void *sys_malloc(uint64_t size)

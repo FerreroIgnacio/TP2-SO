@@ -100,58 +100,6 @@ void puthexupper(uint64_t value); // %X %P
 // void putdouble(double value, int precision); //%f
 uint64_t printf(const char *format, ...);
 
-/* MANEJO DEL MODO VIDEO */
-/*
-typedef struct frame
-{
-    uint8_t *frameBuffer;
-    uint16_t width;
-    uint16_t height;
-    uint16_t bpp;
-    uint16_t pitch;
-} frame_t;
-
-// Cambia el color del pixel (x,y) a hexColor
-extern void putPixel(uint32_t hexColor, uint64_t x, uint64_t y);
-// Guarda en los punteros los datos de la pantalla.
-// Si no se quiere guardar un dato, colocar NULL como argumento;
-extern void getVideoData(uint16_t *width, uint16_t *height, uint16_t *bpp, uint16_t *pitch);
-// retorna el tamaño del Framebuffer en hardware
-uint64_t fbGetSize();
-// Inicializa el frame
-// Devuelve el mismo puntero al frame que le pasamos como argumento
-frame_t *frameInit(frame_t *fr, uint8_t *fb);
-// Cambia el pixel (x,y) del frame por hexColor
-void framePutPixel(frame_t *fr, uint32_t hexColor, uint64_t x, uint64_t y);
-// Dibujar caracter en la posición (y,x) del frame
-void frameDrawChar(frame_t *fr, unsigned char ascii, uint32_t hexColor, uint32_t backColor, uint64_t x, uint64_t y);
-// Dibujar string en la posición (y,x) del frame
-void frameDrawText(frame_t *fr, char *str, uint32_t hexColor, uint32_t backColor, uint64_t x, uint64_t y);
-// Dibujar número en la posición (y,x) del frame
-void frameDrawInt(frame_t *fr, int num, uint32_t hexColor, uint32_t backColor, uint64_t x, uint64_t y);
-// Dibuja un rectángulo de w pixeles por h pixeles en la posición (x,y) del frame
-void frameDrawRectangle(frame_t *fr, uint32_t hexColor, uint64_t x, uint64_t y, uint64_t w, uint64_t h);
-// Dibuja un círculo de r píxeles de radio en la posición (x,y) del frame
-void frameDrawCircle(frame_t *fr, uint32_t hexColor, uint64_t x, uint64_t y, int64_t r);
-// Llenar el frame con hexColor
-void frameFill(frame_t *fr, uint32_t hexColor);
-// Carga el frame en hardware
-void setFrame(frame_t *fr);
-void frameCopyRegion(uint64_t startX, uint64_t startY, uint64_t width, uint64_t height, frame_t *targetFrame, frame_t *sourceFrame);
-void frameCopyCircle(uint64_t centerX, uint64_t centerY, uint64_t radius, frame_t *targetFrame, frame_t *sourceFrame);
-
-
-*/
-
-/* CÁLCULO DE FPS */
-// Inicia el contador de frames
-void fpsInit();
-// Promedio de Frames Por Segundo desde la úĺtima llamada a getFps()
-uint64_t getFps();
-
-// Carga un bitmap directamente al hardware, para modificaciones selectivas sin tener que copiar un frame entero, utiliza una mascara
-void fbSetRegion(uint32_t topLeftX, uint32_t topLeftY, uint32_t width, uint32_t height, uint8_t *bmp, uint32_t maskColor);
-
 /* SONIDO */
 void playFreq(uint16_t freq, uint64_t ms);
 void startSound(uint16_t freq);

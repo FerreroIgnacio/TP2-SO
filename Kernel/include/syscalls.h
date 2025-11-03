@@ -20,11 +20,6 @@
 #define SYSCALL_SET_FB 8
 #define SYSCALL_FREE_FB 9
 
-#define SYSCALL_PUT_PIXEL 10
-#define SYSCALL_SET_FRAMEBUFFER 11
-#define SYSCALL_SET_FRAMEBUFFER_REGION 12
-#define SYSCALL_GET_VIDEO_DATA 13
-
 #define SYSCALL_PLAY_SOUND 20
 #define SYSCALL_STOP_SOUND 21
 
@@ -61,14 +56,6 @@ frameBuffer_adt sys_get_fb();
 void sys_set_fb(uint8_t index);
 
 void sys_free_fb(uint8_t index);
-
-void sys_get_video_data(uint16_t *width, uint16_t *height, uint16_t *bpp, uint16_t *pitch);
-
-void sys_put_pixel(uint32_t hexColor, uint64_t x, uint64_t y);
-
-void sys_set_framebuffer(uint8_t *fb);
-
-void sys_set_framebuffer_region(uint32_t topLeftX, uint32_t topLeftY, uint32_t width, uint32_t height, uint8_t *bmp, uint32_t maskColor);
 
 void sys_playSound(uint16_t freq);
 void sys_stopSound();
