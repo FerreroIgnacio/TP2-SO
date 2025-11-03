@@ -97,7 +97,7 @@ int main()
     // if (((EntryPoint)shellModuleAddress)() == 1){
     //     drawCircle(0x00FF00, 100, 100, 50);
     // }
-    if (((EntryPoint)shellModuleAddress)() == 25)
+    if (((EntryPoint)pongisgolfModuleAddress)() == 25)
         drawCircle(0x00FF00, 100, 100, 50);
 
     while (1)
