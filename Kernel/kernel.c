@@ -26,7 +26,7 @@ extern void putPixel(uint32_t hexColor, uint64_t x, uint64_t y);
 
 extern char font8x8_basic[128][8];
 
-static void *const shellModuleAddress = (void *)0x6000000;      // Shell
+static void *const shellModuleAddress = (void *)0x7000000;      // Shell
 static void *const pongisgolfModuleAddress = (void *)0x8000000; // PongisGolf
 
 typedef int (*EntryPoint)();
@@ -61,7 +61,7 @@ void *getStackBase()
 void *initializeKernelBinary()
 {
     void *moduleAddresses[] = {
-        shellModuleAddress,     // [0] -> Shell va a 0x6000000
+        shellModuleAddress,     // [0] -> Shell va a 0x7000000
         pongisgolfModuleAddress // [2] -> PongisGolf va a 0x8000000
     };
 
@@ -97,7 +97,7 @@ int main()
     // if (((EntryPoint)shellModuleAddress)() == 1){
     //     drawCircle(0x00FF00, 100, 100, 50);
     // }
-    if (((EntryPoint)pongisgolfModuleAddress)() == 25)
+    if (((EntryPoint)shellModuleAddress)() == 25)
         drawCircle(0x00FF00, 100, 100, 50);
 
     while (1)

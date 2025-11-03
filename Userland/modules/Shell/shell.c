@@ -9,7 +9,6 @@
 #define LINE_Y_PADDING 4
 #define LINES_PER_SCREEN height / ((FONT_SIZE * FONT_BMP_SIZE) + LINE_Y_PADDING)
 #define STDOUT_BUFFER_SIZE 4096
-#define SHELL_FRAMEBUFFER_SIZE 100000000
 
 #define SHELL_COLOR 0x00000A
 #define FONT_COLOR 0xAAAAAA
@@ -490,9 +489,11 @@ int main()
 
     if (firstEntry)
     {
-
-        // fpsInit();
         frame = getFB();
+        if (!frame)
+        {
+            return -1;
+        }
         clear_screen();
         clear_buffer();
         fontmanager_set_font(1);
@@ -518,6 +519,5 @@ int main()
         setFB(frame);
     }
 
-    shell_main();
     return 0;
 }
