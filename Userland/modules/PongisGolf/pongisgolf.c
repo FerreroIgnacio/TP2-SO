@@ -732,7 +732,7 @@ int runPongisGolf()
 
     while (1)
     {
-        if (isKeyPressed(0x3C))
+        if (isKeyPressed(0x3C)) // Tecla F2
         { // volver a shell
             flush(STDIN);
             return 1;
