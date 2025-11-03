@@ -490,8 +490,9 @@ int main()
 
     if (firstEntry)
     {
-        frame = getFB();
+
         // fpsInit();
+        frame = getFB();
         clear_screen();
         clear_buffer();
         fontmanager_set_font(1);

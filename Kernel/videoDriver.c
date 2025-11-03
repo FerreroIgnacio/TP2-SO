@@ -2,6 +2,7 @@
 #include <string.h>
 #include "../include/mm.h"
 #include "../include/font8x8/font8x8.h"
+#define MAX_FB_INDEX 255
 
 struct vbe_mode_info_structure
 {
@@ -54,7 +55,19 @@ typedef struct frameBuffer
     uint8_t *framebuffer;
 } frameBuffer_t;
 
-frameBuffer_t *fbArray[1024] = {0};
+frameBuffer_t *fbArray[MAX_FB_INDEX] = {NULL};
+
+void setFB(uint8_t index)
+{
+    if (fbArray[index] == NULL)
+        return;
+    uint64_t size = VBE_mode_info->pitch * VBE_mode_info->height;
+    uint8_t *dest = (uint8_t *)VBE_mode_info->framebuffer;
+    for (uint64_t i = 0; i < size; i++)
+    {
+        dest[i] = fbArray[index]->framebuffer[i];
+    }
+}
 
 // MODO VIDEO PARA USERLAND
 frameBuffer_t *getFB()
@@ -65,7 +78,7 @@ frameBuffer_t *getFB()
         return NULL;
     }
     uint8_t index = 0;
-    while (fbArray[index] != 0 && index < 1024)
+    while (fbArray[index] != NULL && index < 1024)
     {
         index++;
     }
@@ -74,7 +87,7 @@ frameBuffer_t *getFB()
     toReturn->height = VBE_mode_info->height;
     toReturn->bpp = VBE_mode_info->bpp;
     toReturn->pitch = VBE_mode_info->pitch;
-    toReturn->framebuffer = malloc(VBE_mode_info->pitch * VBE_mode_info->height);
+    toReturn->framebuffer = calloc(1, VBE_mode_info->pitch * VBE_mode_info->height);
     if (!toReturn->framebuffer)
     {
         free(toReturn);
@@ -82,13 +95,6 @@ frameBuffer_t *getFB()
     }
     fbArray[index] = toReturn;
     return toReturn;
-}
-
-void setFB(uint8_t index)
-{
-    if (index >= 1024 || fbArray[index] == 0)
-        return;
-    VBE_mode_info->framebuffer = fbArray[index]->framebuffer;
 }
 
 void freeFB(uint8_t index)
@@ -150,7 +156,6 @@ uint16_t getWidth()
 {
     return VBE_mode_info->width;
 }
-
 uint16_t getHeight()
 {
     return VBE_mode_info->height;
@@ -159,7 +164,6 @@ uint16_t getBpp()
 {
     return (uint16_t)VBE_mode_info->bpp;
 }
-
 uint16_t getPitch()
 {
     return VBE_mode_info->pitch;

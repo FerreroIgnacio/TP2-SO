@@ -11,6 +11,8 @@ void setFB(uint8_t index);
 
 void freeFB(uint8_t index);
 
+uint16_t getId();
+
 // Cambia el color del pixel (x,y) a hexColor
 void putPixel(uint32_t hexColor, uint64_t x, uint64_t y);
 

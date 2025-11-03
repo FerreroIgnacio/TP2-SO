@@ -26,8 +26,7 @@ extern void putPixel(uint32_t hexColor, uint64_t x, uint64_t y);
 
 extern char font8x8_basic[128][8];
 
-static void *const sampleCodeModuleAddress = (void *)0x6000000; // Shell
-static void *const sampleDataModuleAddress = (void *)0x7000000; // Data
+static void *const shellModuleAddress = (void *)0x6000000;      // Shell
 static void *const pongisgolfModuleAddress = (void *)0x8000000; // PongisGolf
 
 typedef int (*EntryPoint)();
@@ -39,7 +38,7 @@ static void initialize_memory_manager(void)
     // Alineo el inicio del heap
     uintptr_t aligned_start = ((uintptr_t)heap_start + (HeapAlignment - 1)) & ~(HeapAlignment - 1);
     // Termino el heap al inicio del siguiente módulo cargado (Shell)
-    uint8_t *heap_end = (uint8_t *)sampleCodeModuleAddress;
+    uint8_t *heap_end = (uint8_t *)shellModuleAddress;
 
     if (heap_end > (uint8_t *)aligned_start)
     {
@@ -62,9 +61,8 @@ void *getStackBase()
 void *initializeKernelBinary()
 {
     void *moduleAddresses[] = {
-        sampleCodeModuleAddress, // [0] -> Shell va a 0x6000000
-        sampleDataModuleAddress, // [1] -> Data va a 0x7000000
-        pongisgolfModuleAddress  // [2] -> PongisGolf va a 0x8000000
+        shellModuleAddress,     // [0] -> Shell va a 0x6000000
+        pongisgolfModuleAddress // [2] -> PongisGolf va a 0x8000000
     };
 
     loadModules(&endOfKernelBinary, moduleAddresses);
@@ -84,20 +82,24 @@ int main()
     //    scheduler_init();
     //  scheduler_set_idle(init_idle_task);
     // Ejemplo: ejecutar el shell una vez
-    // scheduler_add((task_fn_t)sampleCodeModuleAddress);
-    // scheduler_set_idle((task_fn_t)sampleCodeModuleAddress);
-    //  scheduler_add((task_fn_t)sampleCodeModuleAddress);
+    // scheduler_add((task_fn_t)shellampleCodeModuleAddress);
+    // scheduler_set_idle((task_fn_t)shellampleCodeModuleAddress);
+    //  scheduler_add((task_fn_t)shellampleCodeModuleAddress);
     //  scheduler_add((task_fn_t)pongisgolfModuleAddress);
     // scheduler_start();
 
-    // ((void (*)(void))sampleCodeModuleAddress)();
+    // ((void (*)(void))shellampleCodeModuleAddress)();
     // Inalcanzable
     // while(1);
     // return 0;
 
-    drawCircle(0x00FFFF, 100, 200, 50);
-    ((EntryPoint)pongisgolfModuleAddress)();
-    drawCircle(0x00FF00, 100, 100, 50);
+    // drawCircle(0x00FFFF, 100, 200, 50);
+    // if (((EntryPoint)shellModuleAddress)() == 1){
+    //     drawCircle(0x00FF00, 100, 100, 50);
+    // }
+    if (((EntryPoint)shellModuleAddress)() == 25)
+        drawCircle(0x00FF00, 100, 100, 50);
+
     while (1)
         ;
 }
