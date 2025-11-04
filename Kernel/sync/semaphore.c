@@ -1,11 +1,11 @@
 #include <stddef.h>
 #include <stdbool.h>
 
-#include "../include/lib.h"
-#include "../include/sem.h"
+#include <lib.h>
+#include <sem.h>
 #include "sem_internal.h"
-#include "../include/scheduler.h"
-#include "../include/mm.h"
+#include <scheduler.h>
+#include <mm.h>
 
 static semaphore_t semaphores[MAX_SEMAPHORES];
 static spinlock_t allocator_lock = {0};

@@ -1,7 +1,3 @@
-/**
- * Kernel semaphore API.
- * Provides named counting semaphores with FIFO wait queues.
- */
 #ifndef KERNEL_INCLUDE_SEM_H
 #define KERNEL_INCLUDE_SEM_H
 
