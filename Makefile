@@ -1,22 +1,29 @@
 
+ifdef USE_BUDDY
+KERNEL_MAKEFLAGS:=USE_BUDDY=$(USE_BUDDY)
+endif
+
 all:  bootloader kernel userland image
 
 bootloader:
-	cd Bootloader; make all
+	cd Bootloader; $(MAKE) all
 
 kernel:
-	cd Kernel; make all
+	cd Kernel; $(MAKE) $(KERNEL_MAKEFLAGS) all
 
 userland:
-	cd Userland; make all
+	cd Userland; $(MAKE) all
 
 image: kernel bootloader userland
-	cd Image; make all
+	cd Image; $(MAKE) all
+
+buddy:
+	$(MAKE) USE_BUDDY=1 all
 
 clean:
-	cd Bootloader; make clean
-	cd Image; make clean
-	cd Kernel; make clean
-	cd Userland; make clean
+	cd Bootloader; $(MAKE) clean
+	cd Image; $(MAKE) clean
+	cd Kernel; $(MAKE) clean
+	cd Userland; $(MAKE) clean
 
-.PHONY: bootloader image collections kernel userland all clean
+.PHONY: bootloader image collections kernel userland all clean buddy
