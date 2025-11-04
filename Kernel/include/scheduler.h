@@ -4,6 +4,8 @@
 #include <stdint.h>
 #include <registerManagement.h>
 
+struct wait_node;
+
 // Firma básica de una tarea: no recibe argumentos y devuelve un int.
 // El valor de retorno actualmente es ignorado por el scheduler.
 typedef int (*task_fn_t)(void);
@@ -16,6 +18,9 @@ typedef struct {
     uint64_t startTime_ticks;  // Tiempo transcurrido en ms desde que se encoló (aprox.)
     reg_screenshot_t ctx;  // Puntero (opcional) al último contexto de registros guardado para este pid (18 qwords)
     int ready;
+    int waiting;
+    struct wait_node *waiting_node;
+    int wait_status;
 } proc_info_t;
 
 
@@ -57,5 +62,16 @@ int scheduler_list(proc_info_t* out, int max);
 
 // Avanza el puntero del scheduler al próximo proceso listo (round-robin simple).
 void scheduler_switch();
+
+// Identificador del proceso actualmente en ejecución o -1 si idle.
+int scheduler_current_pid(void);
+
+// Bloquea el proceso en ejecución y entrega control al scheduler. Retorna el
+// estado con el que fue desbloqueado (0 éxito, negativo error).
+int scheduler_block_current(struct wait_node *wait_token);
+
+// Marca un proceso bloqueado como listo nuevamente, definiendo el estado con el
+// que despertará.
+void scheduler_unblock(int pid, struct wait_node *wait_token, int status);
 
 #endif // SCHEDULER_H

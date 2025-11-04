@@ -35,6 +35,12 @@
 // Listar tareas: arg1=proc_info_t* out, arg2=int max; retorna cantidad
 #define SYSCALL_PROC_LIST 42
 
+// Semáforos
+#define SYSCALL_SEM_OPEN 50
+#define SYSCALL_SEM_WAIT 51
+#define SYSCALL_SEM_POST 52
+#define SYSCALL_SEM_CLOSE 53
+
 int sys_read(int fd, char *buffer, uint64_t count);
 
 int sys_write(int fd, const char *buffer, uint64_t count);
@@ -71,5 +77,10 @@ int sys_proc_spawn(task_fn_t entry);
 int sys_proc_kill(int pid);
 // Lista tareas activas en la cola, devuelve cantidad copiada.
 int sys_proc_list(proc_info_t *out, int max);
+
+int sys_sem_open(const char *name, int initial_value);
+int sys_sem_wait(int sem_id);
+int sys_sem_post(int sem_id);
+int sys_sem_close(int sem_id);
 
 #endif

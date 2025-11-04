@@ -5,6 +5,7 @@
 #include <isrHandlers.h> // Para medir tiempo por ticks
 #include <stdint.h>
 #include <syscalls.h>    // saveRegisters / sys_getRegisters
+#include <sem.h>
 
 #ifndef MAX_TASKS
 #define MAX_TASKS 16
@@ -57,6 +58,9 @@ int scheduler_add(task_fn_t task) {
                 .currentPoint = task,
                 .startTime_ticks = getSysTicks(),
                 .ready = 1,
+                .waiting = 0,
+                .waiting_node = NULL,
+                .wait_status = 0,
             };
             return i;
         }
@@ -76,6 +80,7 @@ int scheduler_kill(int pid) {
 
     if (pid < 0 || pid >= MAX_TASKS) return -1;
     if (procQueue[pid].entryPoint == NULL) return -1;
+    sem_cleanup_dead_process(pid);
     procQueue[pid] = (proc_info_t){0};
     // Si matamos el que estaba "seleccionado", adelantar el puntero
     if (current_pid == pid) {
@@ -116,7 +121,44 @@ static int find_next_ready_from(int start_exclusive) {
 }
 
 void scheduler_switch(void) {
-    // Context switching cooperativo no implementado aún.
+    // TODO: Implement cooperative context switch so blocked tasks yield CPU.
+}
+
+int scheduler_current_pid(void) {
+    return current_pid;
+}
+
+int scheduler_block_current(struct wait_node *wait_token) {
+    if (current_pid < 0 || wait_token == NULL) {
+        return -1;
+    }
+    proc_info_t *proc = &procQueue[current_pid];
+    proc->ready = 0;
+    proc->waiting = 1;
+    proc->waiting_node = wait_token;
+    proc->wait_status = -1;
+    // TODO: After saving current context, transfer control to next ready task here.
+    scheduler_switch();
+    int status = proc->wait_status;
+    proc->waiting = 0;
+    proc->waiting_node = NULL;
+    proc->wait_status = 0;
+    return status;
+}
+
+void scheduler_unblock(int pid, struct wait_node *wait_token, int status) {
+    if (pid < 0 || pid >= MAX_TASKS) {
+        return;
+    }
+    proc_info_t *proc = &procQueue[pid];
+    if (proc->entryPoint == NULL) {
+        return;
+    }
+    proc->wait_status = status;
+    proc->ready = 1;
+    proc->waiting = 0;
+    proc->waiting_node = wait_token;
+    // TODO: Ensure unblocked task gets scheduled soon (e.g., enqueue in ready list).
 }
 
 void scheduler_start(void) {
@@ -129,6 +171,7 @@ void scheduler_start(void) {
             task_fn_t t = procQueue[idx].entryPoint;
             // Ejecutar tarea en modo cooperativo: si retorna, se remueve de la cola
             (void)t();
+            sem_cleanup_dead_process(idx);
             procQueue[idx] = (proc_info_t){0};
             current_pid = -1;
             // Avanzar el puntero para continuar el round-robin

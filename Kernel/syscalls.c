@@ -6,6 +6,7 @@
 #include <isrHandlers.h>
 #include <mm.h>
 #include <scheduler.h> // Scheduler para spawn/kill de tareas y listar
+#include <sem.h>
 
 uint64_t syscallHandler(int syscall_num, uint64_t arg1, uint64_t arg2, uint64_t arg3, uint64_t arg4, uint64_t arg5, uint64_t arg6)
 {
@@ -58,6 +59,14 @@ uint64_t syscallHandler(int syscall_num, uint64_t arg1, uint64_t arg2, uint64_t 
         return sys_proc_kill((int)arg1);
     case SYSCALL_PROC_LIST: // Listar tareas
         return sys_proc_list((proc_info_t *)arg1, (int)arg2);
+    case SYSCALL_SEM_OPEN:
+        return sys_sem_open((const char *)arg1, (int)arg2);
+    case SYSCALL_SEM_WAIT:
+        return sys_sem_wait((int)arg1);
+    case SYSCALL_SEM_POST:
+        return sys_sem_post((int)arg1);
+    case SYSCALL_SEM_CLOSE:
+        return sys_sem_close((int)arg1);
     default:
         return -1;
     }
@@ -213,4 +222,24 @@ int sys_proc_kill(int pid)
 int sys_proc_list(proc_info_t *out, int max)
 {
     return scheduler_list(out, max);
+}
+
+int sys_sem_open(const char *name, int initial_value)
+{
+    return sem_open(name, initial_value);
+}
+
+int sys_sem_wait(int sem_id)
+{
+    return sem_wait(sem_id);
+}
+
+int sys_sem_post(int sem_id)
+{
+    return sem_post(sem_id);
+}
+
+int sys_sem_close(int sem_id)
+{
+    return sem_close(sem_id);
 }
