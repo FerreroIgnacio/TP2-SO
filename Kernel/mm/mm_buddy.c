@@ -19,6 +19,9 @@ typedef struct block
 block_t *freeLists[MAX_ORDER + 1] = {NULL};
 size_t heap_order = 0;
 
+size_t total_memory = 0;
+size_t used_memory = 0;
+
 static size_t calculate_order(size_t size)
 {
     size += sizeof(block_t);
@@ -68,6 +71,18 @@ static void delete_from_freelist(block_t *block)
     }
 }
 
+void buddy_get_memory_info(size_t *total, size_t *used)
+{
+    if (total)
+    {
+        *total = total_memory;
+    }
+    if (used)
+    {
+        *used = used_memory;
+    }
+}
+
 void buddy_init(void *heap_start, size_t heap_size)
 {
     size_t order = calculate_order(heap_size);
@@ -98,6 +113,7 @@ void *buddy_malloc(size_t size)
                 insert_into_freelist(buddy);
                 block->order--;
             }
+            total_memory += (1UL << order);
             return block + sizeof(block_t);
         }
     }
@@ -160,6 +176,7 @@ void *buddy_realloc(void *ptr, size_t size)
     {
         memcpy(new_ptr, ptr, (1UL << order) - sizeof(block_t));
         buddy_free(ptr);
+        used_memory += (1UL << order);
         return new_ptr;
     }
     return NULL;
@@ -172,6 +189,8 @@ void buddy_free(void *ptr)
         return;
     }
     block_t *block = (block_t *)((uint8_t *)ptr - sizeof(block_t));
+    block->is_free = 1;
+    used_memory -= (1UL << block->order);
 
     while (find_buddy(block)->is_free == 1 && find_buddy(block)->order <= heap_order - 1)
     {
@@ -185,7 +204,7 @@ void buddy_free(void *ptr)
         else
         {
             buddy->order++;
-            buddy->is_free = 0;
+            buddy->is_free = 1;
             block = buddy;
         }
     }

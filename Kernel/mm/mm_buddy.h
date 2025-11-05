@@ -1,11 +1,10 @@
 #ifndef MM_BUDDY_H
 #define MM_BUDDY_H
 
-
 #include <stddef.h>
 #include <stdint.h>
 
-
+void buddy_get_memory_info(size_t *total, size_t *used);
 void buddy_init(void *heap_start, size_t heap_size);
 void *buddy_malloc(size_t size);
 void *buddy_calloc(size_t size);

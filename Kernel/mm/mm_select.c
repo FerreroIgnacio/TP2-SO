@@ -66,3 +66,12 @@ void free(void *ptr)
 {
     mm_free(ptr);
 }
+
+void get_memory_info(size_t *total, size_t *used)
+{
+#ifdef USE_BUDDY
+    buddy_get_memory_info(total, used);
+#else
+    freelist_get_memory_info(total, used);
+#endif
+}

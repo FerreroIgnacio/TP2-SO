@@ -19,6 +19,9 @@ static block_header_t *free_list_head = NULL;
 static uint8_t *heap_begin = NULL;
 static uint8_t *heap_end = NULL;
 
+size_t total_memory = 0;
+size_t used_memory = 0;
+
 static size_t align_up(size_t size)
 {
     if (size == 0)
@@ -204,6 +207,18 @@ static block_header_t *find_first_fit(size_t aligned_size)
     return NULL;
 }
 
+void freelist_get_memory_info(size_t *total, size_t *used)
+{
+    if (total)
+    {
+        *total = total_memory;
+    }
+    if (used)
+    {
+        *used = used_memory;
+    }
+}
+
 void *freelist_malloc(size_t size)
 {
     if (size == 0 || !free_list_head)
@@ -251,11 +266,13 @@ void *freelist_malloc(size_t size)
         block->prev = NULL;
         block->next = NULL;
         block->free = false;
+        used_memory += aligned_size + sizeof(block_header_t);
         return payload;
     }
 
     detach_block(block);
     block->free = false;
+    used_memory += block->size + sizeof(block_header_t);
     return (uint8_t *)block + sizeof(block_header_t);
 }
 
@@ -316,6 +333,7 @@ void *freelist_realloc(void *ptr, size_t size)
             new_block->prev = NULL;
             new_block->next = NULL;
             new_block->free = true;
+            used_memory -= new_block->size + sizeof(block_header_t);
             insert_block(new_block);
         }
         return ptr;
@@ -344,7 +362,7 @@ void freelist_free(void *ptr)
     {
         return;
     }
-
+    used_memory -= block->size + sizeof(block_header_t);
     insert_block(block);
 }
 
