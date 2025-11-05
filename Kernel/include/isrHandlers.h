@@ -9,6 +9,7 @@ void zeroDivDispatcher();
 void ex06Handler();
 void invalidInstrucionDispatcher();
 void irq00Handler();
+void endIrq00();
 void irq01Handler();
 void syscallInterruptHandler();
 void enableTimerIRQ();

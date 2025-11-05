@@ -4,6 +4,7 @@ GLOBAL irq01Handler
 GLOBAL irq00Handler
 GLOBAL syscallInterruptHandler
 GLOBAL enableTimerIRQ
+GLOBAL endIrq00
 
 
 EXTERN keyPressedAction
@@ -127,6 +128,7 @@ irq00Handler:               ; Solo tick del sistema y EOI
 
     call timerTickHandler
 
+endIrq00:
     mov al, 0x20
     out 0x20, al
 

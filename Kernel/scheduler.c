@@ -35,6 +35,21 @@ static int default_idle(void)
     return 0;
 }
 
+static void start_task(int idx)
+{
+    if (idx < 0 || idx >= MAX_TASKS)
+        return;
+    current_pid = idx;
+    task_fn_t t = procQueue[idx].entryPoint;
+    (void)t();
+
+    // si retorna, la tarea terminó: limpiarla de la cola
+    sem_cleanup_dead_process(idx);
+    procQueue[idx] = (proc_info_t){0};
+    current_pid = -1;
+    next_index = (idx + 1) % MAX_TASKS;
+}
+
 /*
  * scheduler_set_idle
  * Configura la tarea init/idle usada cuando no hay tareas listas.
@@ -68,7 +83,7 @@ int scheduler_add(task_fn_t task)
                 .waiting = 0,
                 .waiting_node = NULL,
                 .wait_status = 0,
-            };
+                .ctx = {0}};
             return i;
         }
     }
@@ -150,7 +165,14 @@ void scheduler_switch(reg_screenshot_t *regs)
     memcpy(&procQueue[current_pid].ctx, regs, sizeof(reg_screenshot_t));
     current_pid = idx;
     next_index = (idx + 1) % MAX_TASKS;
-    kernel_setRegisters(&procQueue[current_pid].ctx);
+    if (procQueue[current_pid].ctx.rip != NULL)
+    {
+        kernel_setRegisters(&procQueue[current_pid].ctx);
+    }
+    else
+    {
+        start_task(current_pid);
+    }
 }
 
 int scheduler_current_pid(void)
@@ -209,15 +231,7 @@ void scheduler_start(void)
 
         if (idx >= 0)
         {
-            current_pid = idx;
-            task_fn_t t = procQueue[idx].entryPoint;
-            // Ejecutar tarea en modo cooperativo: si retorna, se remueve de la cola
-            (void)t();
-            sem_cleanup_dead_process(idx);
-            procQueue[idx] = (proc_info_t){0};
-            current_pid = -1;
-            // Avanzar el puntero para continuar el round-robin
-            next_index = (idx + 1) % MAX_TASKS;
+            start_task(idx);
         }
         else
         {
