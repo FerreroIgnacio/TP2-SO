@@ -13,6 +13,7 @@ GLOBAL malloc
 GLOBAL calloc
 GLOBAL realloc
 GLOBAL free
+GLOBAL getMemInfo
 GLOBAL proc_spawn
 GLOBAL proc_kill
 GLOBAL proc_list
@@ -89,6 +90,11 @@ realloc:
 
 free:
     mov     rax, 0x21     ; syscall número 33
+    int     0x80
+    ret
+
+getMemInfo:
+    mov     rax, 0x22     ; syscall número 34
     int     0x80
     ret
 

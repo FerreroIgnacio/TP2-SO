@@ -52,7 +52,9 @@ uint64_t syscallHandler(int syscall_num, uint64_t arg1, uint64_t arg2, uint64_t 
     case SYSCALL_FREE:
         sys_free((void *)arg1);
         return 1;
-    // --- Nuevas syscalls de procesos/tareas ---
+    case SYSCALL_GET_MEMORY_INFO:
+        sys_get_memory_info((size_t *)arg1, (size_t *)arg2, (size_t *)arg3);
+        return 1;
     case SYSCALL_PROC_SPAWN: // Iniciar una nueva tarea
         return sys_proc_spawn((task_fn_t)arg1);
     case SYSCALL_PROC_KILL: // Matar una tarea por pid
@@ -196,6 +198,15 @@ void *sys_realloc(void *ptr, uint64_t size)
 void sys_free(void *ptr)
 {
     mm_free(ptr);
+}
+
+void sys_get_memory_info(size_t *total, size_t *used, size_t *free)
+{
+    size_t total_memory, used_memory, free_memory;
+    mm_get_memory_info(&total_memory, &used_memory);
+    *total = total_memory;
+    *used = used_memory;
+    *free = total_memory - used_memory;
 }
 
 /*

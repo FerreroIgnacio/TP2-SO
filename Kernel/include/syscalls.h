@@ -27,6 +27,7 @@
 #define SYSCALL_CALLOC 31
 #define SYSCALL_REALLOC 32
 #define SYSCALL_FREE 33
+#define SYSCALL_GET_MEMORY_INFO 34
 
 // Spawnear/Iniciar una nueva tarea (process init)
 #define SYSCALL_PROC_SPAWN 40
@@ -70,6 +71,7 @@ void *sys_malloc(uint64_t size);
 void *sys_calloc(uint64_t count, uint64_t size);
 void *sys_realloc(void *ptr, uint64_t size);
 void sys_free(void *ptr);
+void sys_get_memory_info(uint64_t *total, uint64_t *used, uint64_t *free);
 
 // Inicia (spawnea) una tarea a partir de una función de entrada. Devuelve pid o -1.
 int sys_proc_spawn(task_fn_t entry);
