@@ -127,8 +127,7 @@ irq00Handler:               ; Solo tick del sistema y EOI
     mov rdi, irq00RegsBackup
 
     call timerTickHandler
-
-endIrq00:
+    
     mov al, 0x20
     out 0x20, al
 
