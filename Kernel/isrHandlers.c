@@ -14,24 +14,24 @@
 #define PROMPT_COLOR 0x44AAA4
 #define FONT_SIZE 2
 
-
-void exceptionDispatcher(int exception, reg_screenshot_t * regs);
-static void buildRegString(char*buff,char*reg,uint64_t value);
-static void printRegisters(reg_screenshot_t * reg);
-void timerTickHandler() ;
+void exceptionDispatcher(int exception, reg_screenshot_t *regs);
+static void buildRegString(char *buff, char *reg, uint64_t value);
+static void printRegisters(reg_screenshot_t *reg);
+void timerTickHandler();
 uint64_t getSysTicks();
 static void wait(uint64_t ms);
 
-
-void exceptionDispatcher(int exception, reg_screenshot_t * regs) {
+void exceptionDispatcher(int exception, reg_screenshot_t *regs)
+{
     fillScreen(SHELL_COLOR);
-    putText("Restart in 5 seconds", ERROR_COLOR, SHELL_COLOR, 20, 20*(18+2), 2); 
-    switch (exception){
+    putText("Restart in 5 seconds", ERROR_COLOR, SHELL_COLOR, 20, 20 * (18 + 2), 2);
+    switch (exception)
+    {
     case ZERO_EXCEPTION_ID:
-        putText("Exception 0: Divide by zero", ERROR_COLOR, SHELL_COLOR, 20, 20*1, 2);
+        putText("Exception 0: Divide by zero", ERROR_COLOR, SHELL_COLOR, 20, 20 * 1, 2);
         break;
     case INVALID_OP_EXCEPTION_ID:
-        putText("Exception 6: Invalid Instruction", ERROR_COLOR, SHELL_COLOR, 20, 20*1, 2);
+        putText("Exception 6: Invalid Instruction", ERROR_COLOR, SHELL_COLOR, 20, 20 * 1, 2);
         break;
     default:
         break;
@@ -41,46 +41,53 @@ void exceptionDispatcher(int exception, reg_screenshot_t * regs) {
     wait(5000);
 }
 
-static void buildRegString(char*buff,char*reg,uint64_t value){
-    for (int i = 0 ; i < 8 ; i++){
-        buff[i]=reg[i];
+static void buildRegString(char *buff, char *reg, uint64_t value)
+{
+    for (int i = 0; i < 8; i++)
+    {
+        buff[i] = reg[i];
     }
-    uint64ToHex(value, buff+8);
-
+    uint64ToHex(value, buff + 8);
 }
 
-static void printRegisters(reg_screenshot_t * reg){
+static void printRegisters(reg_screenshot_t *reg)
+{
     char buffer[28];
-    uint64_t regValues[] = { reg->rip, reg->rsp, reg->rbp, reg->rflags, reg->rax, reg->rbx, reg->rcx, reg->rdx,
-                             reg->rsi, reg->rdi, reg->r8, reg->r9, reg->r10, reg->r11, reg->r12, reg->r13,
-                             reg->r14, reg->r15 };
+    uint64_t regValues[] = {reg->rip, reg->rsp, reg->rbp, reg->rflags, reg->rax, reg->rbx, reg->rcx, reg->rdx,
+                            reg->rsi, reg->rdi, reg->r8, reg->r9, reg->r10, reg->r11, reg->r12, reg->r13,
+                            reg->r14, reg->r15};
 
-    char *regNames[] = { "RIP:    ", "RSP:    ", "RBP:    ", "RFLAGS: ", "RAX:    ", "RBX:    ", "RCX:    ", "RDX:    ",
-                         "RSI:    ", "RDI:    ", "R8:     ", "R9:     ", "R10:    ", "R11:    ", "R12:    ", "R13:    ",
-                         "R14:    ", "R15:    " };
+    char *regNames[] = {"RIP:    ", "RSP:    ", "RBP:    ", "RFLAGS: ", "RAX:    ", "RBX:    ", "RCX:    ", "RDX:    ",
+                        "RSI:    ", "RDI:    ", "R8:     ", "R9:     ", "R10:    ", "R11:    ", "R12:    ", "R13:    ",
+                        "R14:    ", "R15:    "};
 
-    for (int i = 0; i < 18 ; i++){
-        buildRegString(buffer, regNames[i],regValues[i]);
-        putText(buffer, FONT_COLOR, SHELL_COLOR, 20, 20*(i+2), 2);
+    for (int i = 0; i < 18; i++)
+    {
+        buildRegString(buffer, regNames[i], regValues[i]);
+        putText(buffer, FONT_COLOR, SHELL_COLOR, 20, 20 * (i + 2), 2);
     }
 }
 
-static void wait(uint64_t ms){
+static void wait(uint64_t ms)
+{
     uint64_t start = getSysTicks() * 55;
-    while (((getSysTicks()*55) - start) < 5000);
+    while (((getSysTicks() * 55) - start) < 5000)
+        ;
 }
 
-static uint64_t system_ticks = 0;  // Contador de ticks global
+static uint64_t system_ticks = 0; // Contador de ticks global
 // Handler del timer (IRQ0)
-void timerTickHandler() {
-    system_ticks++;  // Incrementa el contador en cada tick
+void timerTickHandler(reg_screenshot_t *regs)
+{
+    system_ticks++; // Incrementa el contador en cada tick
     // Cada X ticks, pedir al scheduler que realice un switch (hook cooperativo)
-    const uint64_t SCHED_QUANTUM_TICKS = 10; // Ajustable
-    if ((system_ticks % SCHED_QUANTUM_TICKS) == 0) {
-        scheduler_switch();
+    if ((system_ticks % SCHED_QUANTUM_TICKS) == 0)
+    {
+        scheduler_switch(regs);
     }
 }
 
-uint64_t getSysTicks(){
+uint64_t getSysTicks()
+{
     return system_ticks;
 }

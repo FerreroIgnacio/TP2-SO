@@ -19,8 +19,8 @@ static block_header_t *free_list_head = NULL;
 static uint8_t *heap_begin = NULL;
 static uint8_t *heap_end = NULL;
 
-size_t total_memory = 0;
-size_t used_memory = 0;
+static size_t total_memory = 0;
+static size_t used_memory = 0;
 
 static size_t align_up(size_t size)
 {

@@ -180,26 +180,41 @@ void sys_free_fb(uint8_t index)
     freeFB(index);
 }
 
+/*
+ * ID 30
+ */
 void *sys_malloc(uint64_t size)
 {
     return mm_malloc((size_t)size);
 }
 
+/*
+ * ID 31
+ */
 void *sys_calloc(uint64_t count, uint64_t size)
 {
     return mm_calloc((size_t)count, (size_t)size);
 }
 
+/*
+ * ID 32
+ */
 void *sys_realloc(void *ptr, uint64_t size)
 {
     return mm_realloc(ptr, (size_t)size);
 }
 
+/*
+ * ID 33
+ */
 void sys_free(void *ptr)
 {
     mm_free(ptr);
 }
 
+/*
+ * ID 34
+ */
 void sys_get_memory_info(size_t *total, size_t *used, size_t *free)
 {
     size_t total_memory, used_memory;

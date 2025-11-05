@@ -19,8 +19,8 @@ typedef struct block
 block_t *freeLists[MAX_ORDER + 1] = {NULL};
 size_t heap_order = 0;
 
-size_t total_memory = 0;
-size_t used_memory = 0;
+static size_t total_memory = 0;
+static size_t used_memory = 0;
 
 static size_t calculate_order(size_t size)
 {

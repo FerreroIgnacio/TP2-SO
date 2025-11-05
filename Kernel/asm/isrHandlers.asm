@@ -117,15 +117,20 @@ enableTimerIRQ:
     out 0x21, al       ; Write back the mask
     ret
 
-irq00Handler:
-    ; Solo tick del sistema y EOI
+irq00Handler:               ; Solo tick del sistema y EOI
+    backupRegisters irq00RegsBackup
+    
     push rax
+    push rdi
+    
+    mov rdi, irq00RegsBackup
 
     call timerTickHandler
 
     mov al, 0x20
     out 0x20, al
 
+    pop rdi
     pop rax
     iretq
 
@@ -184,6 +189,7 @@ SECTION .rodata
 
 section .bss
     exRegsBackup resq 18
+    irq00RegsBackup resq 18
     irq01RegsBackup resq 18
 
 

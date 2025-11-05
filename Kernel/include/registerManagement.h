@@ -7,7 +7,8 @@
 
 #include <stdint.h>
 
-typedef struct reg_screenshot{
+typedef struct reg_screenshot
+{
     uint64_t rax;
     uint64_t rbx;
     uint64_t rcx;
@@ -28,8 +29,8 @@ typedef struct reg_screenshot{
     uint64_t rip;
 } reg_screenshot_t;
 
-void kernel_setRegisters(reg_screenshot_t* regs);
+void kernel_setRegisters(reg_screenshot_t *regs);
 
-void kernel_getRegisters(reg_screenshot_t* regs);
+reg_screenshot_t *kernel_getRegisters(void);
 
-#endif //TP2_SO_SYS_SETREGISTERS_H
+#endif // TP2_SO_SYS_SETREGISTERS_H

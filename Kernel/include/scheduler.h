@@ -11,18 +11,18 @@ struct wait_node;
 typedef int (*task_fn_t)(void);
 
 // Información mínima de un proceso/tarea expuesta para listados.
-typedef struct {
+typedef struct
+{
     int pid;              // Identificador de tarea
-    task_fn_t entryPoint;      // Puntero a la función asociada a la tarea
+    task_fn_t entryPoint; // Puntero a la función asociada a la tarea
     task_fn_t currentPoint;
-    uint64_t startTime_ticks;  // Tiempo transcurrido en ms desde que se encoló (aprox.)
-    reg_screenshot_t ctx;  // Puntero (opcional) al último contexto de registros guardado para este pid (18 qwords)
+    uint64_t startTime_ticks; // Tiempo transcurrido en ms desde que se encoló (aprox.)
+    reg_screenshot_t ctx;     // último contexto de registros guardado para este pid (18 qwords)
     int ready;
     int waiting;
     struct wait_node *waiting_node;
     int wait_status;
 } proc_info_t;
-
 
 /*
  * Configura la tarea init/idle que se ejecuta cuando no hay tareas listas.
@@ -58,10 +58,10 @@ void scheduler_start(void);
  * Retorna la cantidad de entradas copiadas (<= max).
  * Nota: Tiempo aproximado desde que se encoló la tarea (no CPU time real en este scheduler cooperativo).
  */
-int scheduler_list(proc_info_t* out, int max);
+int scheduler_list(proc_info_t *out, int max);
 
 // Avanza el puntero del scheduler al próximo proceso listo (round-robin simple).
-void scheduler_switch();
+void scheduler_switch(reg_screenshot_t *regs);
 
 // Identificador del proceso actualmente en ejecución o -1 si idle.
 int scheduler_current_pid(void);
