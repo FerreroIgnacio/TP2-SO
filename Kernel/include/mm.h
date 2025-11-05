@@ -16,6 +16,7 @@ void *mm_malloc(size_t size);
 void *mm_calloc(size_t count, size_t size);
 void *mm_realloc(void *ptr, size_t size);
 void mm_free(void *ptr);
+void mm_get_memory_info(size_t *total, size_t *used);
 
 /* Convenience aliases that mirror the standard C API. */
 void *malloc(size_t size);

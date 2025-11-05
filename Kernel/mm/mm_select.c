@@ -47,6 +47,15 @@ void mm_free(void *ptr)
 #endif
 }
 
+void mm_get_memory_info(size_t *total, size_t *used)
+{
+#ifdef USE_BUDDY
+    buddy_get_memory_info(total, used);
+#else
+    freelist_get_memory_info(total, used);
+#endif
+}
+
 void *malloc(size_t size)
 {
     return mm_malloc(size);
@@ -69,9 +78,5 @@ void free(void *ptr)
 
 void get_memory_info(size_t *total, size_t *used)
 {
-#ifdef USE_BUDDY
-    buddy_get_memory_info(total, used);
-#else
-    freelist_get_memory_info(total, used);
-#endif
+    mm_get_memory_info(total, used);
 }

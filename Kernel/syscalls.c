@@ -202,7 +202,7 @@ void sys_free(void *ptr)
 
 void sys_get_memory_info(size_t *total, size_t *used, size_t *free)
 {
-    size_t total_memory, used_memory, free_memory;
+    size_t total_memory, used_memory;
     mm_get_memory_info(&total_memory, &used_memory);
     *total = total_memory;
     *used = used_memory;
