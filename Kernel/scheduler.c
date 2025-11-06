@@ -16,8 +16,9 @@
 static proc_info_t procQueue[MAX_TASKS] = {0};
 
 // Tarea init/idle que se ejecuta cuando no hay tareas listas.
-static int default_idle(void);
+static int default_idle(void *argv);
 static task_fn_t init_task_fn = default_idle;
+static void *init_task_argv = NULL;
 // Pid actualmente en ejecución (o -1 si idle/ninguna) mientras se ejecuta una tarea en t().
 static int current_pid = -1;
 // Índice base para round-robin (siguiente candidato a ejecutar)
@@ -29,7 +30,7 @@ static int next_index = 0;
  * Detiene la CPU una vez (hasta la próxima interrupción) y retorna.
  * No se llama directamente: se establece con scheduler_set_idle o se usa por defecto.
  */
-static int default_idle(void)
+static int default_idle(void *argv)
 {
     cpu_halt();
     return 0;
@@ -45,7 +46,7 @@ static void start_task(int idx)
         return;
     current_pid = idx;
     task_fn_t t = procQueue[idx].entryPoint;
-    (void)t();
+    (void)t(procQueue[idx].argv);
 
     // si retorna, la tarea terminó: limpiarla de la cola
     sem_cleanup_dead_process(idx);
@@ -59,9 +60,10 @@ static void start_task(int idx)
  * Configura la tarea init/idle usada cuando no hay tareas listas.
  * Uso: Personalización opcional después de scheduler_init; pasar NULL restaura el idle por defecto.
  */
-void scheduler_set_idle(task_fn_t idle_task)
+void scheduler_set_idle(task_fn_t idle_task, void *argv)
 {
     init_task_fn = (idle_task != NULL) ? idle_task : default_idle;
+    init_task_argv = argv;
 }
 
 /*
@@ -70,7 +72,7 @@ void scheduler_set_idle(task_fn_t idle_task)
  * Retorna: PID (índice del arreglo) si tiene éxito, -1 si la cola está llena o la tarea es NULL.
  * Uso: int pid = scheduler_add(mi_tarea);
  */
-int scheduler_add(task_fn_t task)
+int scheduler_add(task_fn_t task, void *argv)
 {
     if (task == NULL)
         return -1;
@@ -81,6 +83,7 @@ int scheduler_add(task_fn_t task)
             procQueue[i] = (proc_info_t){
                 .pid = i,
                 .entryPoint = task,
+                .argv = argv,
                 .startTime_ticks = getSysTicks(),
                 .ready = 1,
                 .waiting = 0,
@@ -237,11 +240,11 @@ void scheduler_start(void)
             // No hay tareas para correr: ejecutar init/idle
             if (init_task_fn)
             {
-                (void)init_task_fn();
+                (void)init_task_fn(init_task_argv);
             }
             else
             {
-                (void)default_idle();
+                (void)default_idle(NULL);
             }
         }
     }

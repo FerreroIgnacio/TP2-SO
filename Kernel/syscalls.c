@@ -55,8 +55,8 @@ uint64_t syscallHandler(int syscall_num, uint64_t arg1, uint64_t arg2, uint64_t 
     case SYSCALL_GET_MEMORY_INFO:
         sys_get_memory_info((size_t *)arg1, (size_t *)arg2, (size_t *)arg3);
         return 1;
-    case SYSCALL_PROC_SPAWN: // Iniciar una nueva tarea
-        return sys_proc_spawn((task_fn_t)arg1);
+    case SYSCALL_PROC_CREATE: // Iniciar una nueva tarea
+        return sys_proc_create((task_fn_t)arg1, (void *)arg2);
     case SYSCALL_PROC_KILL: // Matar una tarea por pid
         return sys_proc_kill((int)arg1);
     case SYSCALL_PROC_LIST: // Listar tareas
@@ -227,12 +227,12 @@ void sys_get_memory_info(size_t *total, size_t *used, size_t *free)
 /*
  * ID 40
  */
-// Inicia (spawnea) una tarea; devuelve el pid asignado o -1 si falla.
-int sys_proc_spawn(task_fn_t entry)
+// Inicia  una tarea; devuelve el pid asignado o -1 si falla.
+int sys_proc_create(task_fn_t entry, void *argv)
 {
     if (entry == 0)
         return -1;
-    return scheduler_add(entry);
+    return scheduler_add(entry, argv);
 }
 
 /*

@@ -8,13 +8,14 @@ struct wait_node;
 
 // Firma básica de una tarea: no recibe argumentos y devuelve un int.
 // El valor de retorno actualmente es ignorado por el scheduler.
-typedef int (*task_fn_t)(void);
+typedef int (*task_fn_t)(void *);
 
 // Información mínima de un proceso/tarea expuesta para listados.
 typedef struct
 {
-    int pid;                  // Identificador de tarea
-    task_fn_t entryPoint;     // Puntero a la función asociada a la tarea
+    int pid;              // Identificador de tarea
+    task_fn_t entryPoint; // Puntero a la función asociada a la tarea
+    void *argv;
     uint64_t startTime_ticks; // Tiempo transcurrido en ms desde que se encoló (aprox.)
     reg_screenshot_t ctx;     // último contexto de registros guardado para este pid (18 qwords)
     int ready;
@@ -28,14 +29,14 @@ typedef struct
  * Si se pasa NULL, se usa una tarea idle por defecto que detiene la CPU una vez.
  * Uso: Opcional. Llamar después de scheduler_init para personalizar el idle.
  */
-void scheduler_set_idle(task_fn_t idle_task);
+void scheduler_set_idle(task_fn_t idle_task, void *argv);
 
 /*
  * Agrega una tarea a la cola de ejecución.
  * Devuelve un id de tarea (pid) en [0..N) si tiene éxito, o -1 si la cola está llena/inválida.
  * Uso: scheduler_add(mi_tarea);
  */
-int scheduler_add(task_fn_t task);
+int scheduler_add(task_fn_t task, void *argv);
 
 /*
  * Elimina una tarea de la cola a partir de su pid (id de tarea).
@@ -68,6 +69,7 @@ void scheduler_switch(reg_screenshot_t *regs);
 /*
  * Guarda el contexto actual dentro de la función
  * Luego, realiza un scheduler_switch.
+ * se puede utilizar para renunciar al cpu
  */
 void scheduler_save_and_switch();
 

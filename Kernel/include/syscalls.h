@@ -30,17 +30,33 @@
 #define SYSCALL_GET_MEMORY_INFO 34
 
 // Spawnear/Iniciar una nueva tarea (process init)
-#define SYSCALL_PROC_SPAWN 40
-// Matar/Killear una tarea por pid
-#define SYSCALL_PROC_KILL 41
+#define SYSCALL_PROC_CREATE 40
+// Terminar proceso
+#define SYSCALL_PROC_EXIT 41
+// Obtener process ID
+#define SYSCALL_GET_PID 42
 // Listar tareas: arg1=proc_info_t* out, arg2=int max; retorna cantidad
-#define SYSCALL_PROC_LIST 42
+#define SYSCALL_PROC_LIST 43
+// Matar/Killear una tarea por pid
+#define SYSCALL_PROC_KILL 44
+// Modificar prioridad de un proceso
+#define SYSCALL_SET_PRIORITY 45
+// Obtener la prioridad de un proceso
+#define SYSCALL_GET_PRIORITY 46
+// Bloquear proceso
+#define SYSCALL_BLOCK_PROCESS 47
+// Desbloquear un proceso
+#define SYSCALL_UNBLOCK_PROCESS 48
+// Renunciar al cpu
+#define SYSCALL_YIELD 49
+// Esperar a que los hijos terminen
+#define SYSCALL_WAIT_PID 50
 
 // Semáforos
-#define SYSCALL_SEM_OPEN 50
-#define SYSCALL_SEM_WAIT 51
-#define SYSCALL_SEM_POST 52
-#define SYSCALL_SEM_CLOSE 53
+#define SYSCALL_SEM_OPEN 60
+#define SYSCALL_SEM_WAIT 61
+#define SYSCALL_SEM_POST 62
+#define SYSCALL_SEM_CLOSE 63
 
 int sys_read(int fd, char *buffer, uint64_t count);
 
@@ -73,12 +89,18 @@ void *sys_realloc(void *ptr, uint64_t size);
 void sys_free(void *ptr);
 void sys_get_memory_info(uint64_t *total, uint64_t *used, uint64_t *free);
 
-// Inicia (spawnea) una tarea a partir de una función de entrada. Devuelve pid o -1.
-int sys_proc_spawn(task_fn_t entry);
-// Mata una tarea por pid. Devuelve 0 si ok, -1 si error.
-int sys_proc_kill(int pid);
-// Lista tareas activas en la cola, devuelve cantidad copiada.
+// TODO: Syscalls comentadas
+int sys_proc_create(task_fn_t entry, void *argv);
+// void sys_proc_exit(int exit_code);
+// int sys_get_pid(void);
 int sys_proc_list(proc_info_t *out, int max);
+int sys_proc_kill(int pid);
+// int sys_set_priority(int pid, int new_priority);
+// int sys_get_priority(int pid);
+// int sys_block_proc(int pid);
+// int sys_unblock_proc(int pid);
+// int sys_yield(void);
+// int sys_waitpid(int pid, int *status, int options);
 
 int sys_sem_open(const char *name, int initial_value);
 int sys_sem_wait(int sem_id);

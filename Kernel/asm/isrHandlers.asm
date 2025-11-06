@@ -227,7 +227,7 @@ getInteruptRegsBackup:
 SECTION .rodata
     userland equ 0x400000
 
-section .bss
+SECTION .bss
     exRegsBackup resq 18
     irq01RegsBackup resq 18
     interruptRegsBackup resq 20
