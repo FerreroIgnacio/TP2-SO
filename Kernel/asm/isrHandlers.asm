@@ -16,12 +16,10 @@ EXTERN getStackBase
 EXTERN exceptionDispatcher
 EXTERN loader
 
-
 SECTION .text
 
 ; backupRegisters espera rip en [rsp]
 %macro backupRegisters 1
-
     push rax
 
 	mov rax, [rsp+8]      
@@ -39,6 +37,41 @@ SECTION .text
     mov [%1 + 5*8],  rdi
     mov [%1 + 6*8],  rbp
     mov [%1 + 7*8],  rsp
+    mov [%1 + 8*8],  r8
+    mov [%1 + 9*8],  r9
+    mov [%1 + 10*8], r10
+    mov [%1 + 11*8], r11
+    mov [%1 + 12*8], r12
+    mov [%1 + 13*8], r13
+    mov [%1 + 14*8], r14
+    mov [%1 + 15*8], r15
+%endmacro
+
+; registers + context backup
+%macro interruptBackupRegisters 1
+    push rax
+
+    ; Los valores de RIP, CS, RFLAGS, RSP y SS vienen del stack
+    mov rax, [rsp+8]      
+    mov [%1 + 17*8], rax    ; rip 
+    mov rax, [rsp+16]
+    mov [%1 + 18*8], rax    ; cs
+    mov rax, [rsp+24]
+    mov [%1 + 16*8], rax    ; rflags
+    mov rax, [rsp+32]
+    mov [%1 + 7*8], rax     ; rsp
+    mov rax, [rsp+40]
+    mov [%1 + 19*8], rax    ; ss
+
+    pop rax
+
+    mov [%1 + 0*8],  rax
+    mov [%1 + 1*8],  rbx
+    mov [%1 + 2*8],  rcx
+    mov [%1 + 3*8],  rdx
+    mov [%1 + 4*8],  rsi
+    mov [%1 + 5*8],  rdi
+    mov [%1 + 6*8],  rbp
     mov [%1 + 8*8],  r8
     mov [%1 + 9*8],  r9
     mov [%1 + 10*8], r10
@@ -119,7 +152,7 @@ enableTimerIRQ:
     ret
 
 irq00Handler:               ; Solo tick del sistema y EOI
-    backupRegisters irq00RegsBackup
+    interruptBackupRegisters irq00RegsBackup
     
     push rax
     push rdi
@@ -190,7 +223,7 @@ SECTION .rodata
 
 section .bss
     exRegsBackup resq 18
-    irq00RegsBackup resq 18
+    irq00RegsBackup resq 20
     irq01RegsBackup resq 18
 
 

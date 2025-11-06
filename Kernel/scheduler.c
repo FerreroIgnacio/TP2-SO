@@ -35,6 +35,10 @@ static int default_idle(void)
     return 0;
 }
 
+/*
+ * start_task
+ * Inicia la ejecución de la tarea en procQueue[idx] desde su entrypoint.
+ */
 static void start_task(int idx)
 {
     if (idx < 0 || idx >= MAX_TASKS)
@@ -77,7 +81,6 @@ int scheduler_add(task_fn_t task)
             procQueue[i] = (proc_info_t){
                 .pid = i,
                 .entryPoint = task,
-                .currentPoint = task,
                 .startTime_ticks = getSysTicks(),
                 .ready = 1,
                 .waiting = 0,
@@ -107,7 +110,6 @@ int scheduler_kill(int pid)
         return -1;
     sem_cleanup_dead_process(pid);
     procQueue[pid] = (proc_info_t){0};
-    // Si matamos el que estaba "seleccionado", adelantar el puntero
     if (current_pid == pid)
     {
         current_pid = -1;
@@ -165,9 +167,9 @@ void scheduler_switch(reg_screenshot_t *regs)
     memcpy(&procQueue[current_pid].ctx, regs, sizeof(reg_screenshot_t));
     current_pid = idx;
     next_index = (idx + 1) % MAX_TASKS;
-    if (procQueue[current_pid].ctx.rip != NULL)
+    if (procQueue[current_pid].ctx.rip != 0)
     {
-        kernel_setRegisters(&procQueue[current_pid].ctx);
+        interrupt_setRegisters(&procQueue[current_pid].ctx);
     }
     else
     {

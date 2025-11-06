@@ -27,10 +27,11 @@ typedef struct reg_screenshot
     uint64_t r15;
     uint64_t rflags;
     uint64_t rip;
+    uint64_t CS;
+    uint64_t SS;
 } reg_screenshot_t;
 
-void kernel_setRegisters(reg_screenshot_t *regs);
-
-reg_screenshot_t *kernel_getRegisters(void);
+// return from interrupt with given registers
+void interrupt_setRegisters(reg_screenshot_t *regs);
 
 #endif // TP2_SO_SYS_SETREGISTERS_H
