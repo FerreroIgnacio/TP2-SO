@@ -1,10 +1,10 @@
-#include <isrHandlers.h>
-#include <stdout.h>
+#include "isrHandlers.h"
 #include <stdint.h>
-#include <lib.h>
-#include <videoDriver.h>
-#include <scheduler.h> // Llamar a switchCurrent cada X ticks
-#include <registerManagement.h>
+#include "../filesDescriptors/stdout.h"
+#include "../utils/lib.h"
+#include "../videoDriver/videoDriver.h"
+#include "../scheduler/scheduler.h" // Llamar a switchCurrent cada X ticks
+#include "../scheduler/registerManagement.h"
 #define ZERO_EXCEPTION_ID 0
 #define INVALID_OP_EXCEPTION_ID 6
 

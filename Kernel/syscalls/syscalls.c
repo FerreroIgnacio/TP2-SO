@@ -1,12 +1,12 @@
-#include <videoDriver.h>
-#include <syscalls.h>
-#include <stdin.h>
-#include <stdout.h>
-#include <keyboardDriver.h>
-#include <isrHandlers.h>
-#include <mm.h>
-#include <scheduler.h> // Scheduler para spawn/kill de tareas y listar
-#include <sem.h>
+#include "../videoDriver/videoDriver.h"
+#include "../syscalls/syscalls.h"
+#include "../filesDescriptors/stdin.h"
+#include "../filesDescriptors/stdout.h"
+#include "../keyboardDriver/keyboardDriver.h"
+#include "../IDT/isrHandlers.h"
+#include "../memoryManagement/mm.h"
+#include "../scheduler/scheduler.h"
+#include "../semaphores/sem.h"
 
 uint64_t syscallHandler(int syscall_num, uint64_t arg1, uint64_t arg2, uint64_t arg3, uint64_t arg4, uint64_t arg5, uint64_t arg6)
 {

@@ -1,7 +1,7 @@
-#include <videoDriver.h>
+#include "videoDriver.h"
 #include <string.h>
-#include "../include/mm.h"
-#include "../include/font8x8/font8x8.h"
+#include "../memoryManagement/mm.h"
+#include "./font8x8/font8x8.h"
 #define MAX_FB_INDEX 255
 
 struct vbe_mode_info_structure

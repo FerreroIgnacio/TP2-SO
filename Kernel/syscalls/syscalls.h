@@ -1,8 +1,8 @@
 #ifndef SYSCALLS_H
 #define SYSCALLS_H
 #include <stdint.h>
-#include <scheduler.h>
-#include <videoDriver.h>
+#include "../scheduler/scheduler.h"
+#include "../videoDriver/videoDriver.h"
 
 #define STDIN 0
 #define STDOUT 1

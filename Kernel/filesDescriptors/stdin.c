@@ -1,12 +1,14 @@
-#include <stdin.h>
+#include "./stdin.h"
 
 static char STDIN[STDINLEN];
 
 int startIndexIn = 0;
 int endIndexIn = 0;
 
-char consumeKeyStdin() {
-    while (startIndexIn == endIndexIn) {
+char consumeKeyStdin()
+{
+    while (startIndexIn == endIndexIn)
+    {
         // Esperar (polling o halt_cpu si querés usar interrupciones)
     }
 
@@ -15,9 +17,11 @@ char consumeKeyStdin() {
     return c;
 }
 
-void queueKeyStdin(char c) {
+void queueKeyStdin(char c)
+{
     int nextEnd = (endIndexIn + 1) % STDINLEN;
-    if (nextEnd == startIndexIn) {
+    if (nextEnd == startIndexIn)
+    {
         // Buffer lleno, descartamos o sobreescribimos (acá descartamos)
         return;
     }
@@ -25,10 +29,7 @@ void queueKeyStdin(char c) {
     endIndexIn = nextEnd;
 }
 
-int stdin_has_data() {
+int stdin_has_data()
+{
     return startIndexIn != endIndexIn;
 }
-
-
-
-

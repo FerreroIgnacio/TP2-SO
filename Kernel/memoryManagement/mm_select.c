@@ -1,4 +1,4 @@
-#include "../include/mm.h"
+#include "mm.h"
 #include "mm_freelist.h"
 #include "mm_buddy.h"
 

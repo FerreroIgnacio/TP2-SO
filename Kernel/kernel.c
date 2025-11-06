@@ -1,15 +1,15 @@
 #include <stdint.h>
 #include <string.h>
-#include <lib.h>
-#include <moduleLoader.h>
-#include <naiveConsole.h>
-#include <videoDriver.h>
-#include <keyboardDriver.h>
-#include <idtInit.h>
-#include <stdout.h>
-#include <mm.h>
-#include <scheduler.h>
-#include <cpu.h>
+#include "utils/lib.h"
+#include "kernelStart/moduleLoader.h"
+#include "kernelStart/naiveConsole.h"
+#include "videoDriver/videoDriver.h"
+#include "keyboardDriver/keyboardDriver.h"
+#include "IDT/idtInit.h"
+#include "filesDescriptors/stdout.h"
+#include "memoryManagement/mm.h"
+#include "scheduler/scheduler.h"
+#include "scheduler/cpu.h"
 
 extern uint8_t text;
 extern uint8_t rodata;

@@ -1,12 +1,12 @@
-#include <scheduler.h>
+#include "scheduler.h"
 #include <stddef.h>
 #include <stdbool.h>
-#include <cpu.h>
-#include <isrHandlers.h> // Para medir tiempo por ticks
 #include <stdint.h>
-#include <syscalls.h> // saveRegisters / sys_getRegisters
 #include <string.h>
-#include <sem.h>
+#include "cpu.h"
+#include "../IDT/isrHandlers.h"   // Para medir tiempo por ticks
+#include "../syscalls/syscalls.h" // saveRegisters / sys_getRegisters
+#include "../semaphores/sem.h"
 
 #ifndef MAX_TASKS
 #define MAX_TASKS 16

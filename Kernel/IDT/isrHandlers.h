@@ -1,7 +1,7 @@
 #ifndef ISR_HANDLERS_H
 #define ISR_HANDLERS_H
 #include <stdint.h>
-#include <registerManagement.h>
+#include "../scheduler/registerManagement.h"
 #define SCHED_QUANTUM_TICKS 10
 
 void ex00Handler();
