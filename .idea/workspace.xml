@@ -41,7 +41,7 @@
   <component name="ChangeListManager">
     <list default="true" id="49f24e11-7105-4887-bea4-14154294196a" name="Changes" comment="">
       <change afterPath="$PROJECT_DIR$/Kernel/asm/idtInit.asm" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/Kernel/include/font8x8" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/Kernel/videoDriver/font8x8" afterDir="false" />
       <change afterPath="$PROJECT_DIR$/Kernel/include/keyboardDriver.h" afterDir="false" />
       <change afterPath="$PROJECT_DIR$/Kernel/include/videoDriver.h" afterDir="false" />
       <change afterPath="$PROJECT_DIR$/Kernel/keyboardDriver.c" afterDir="false" />

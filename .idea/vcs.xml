@@ -3,6 +3,6 @@
   <component name="VcsDirectoryMappings">
     <mapping directory="" vcs="Git" />
     <mapping directory="$PROJECT_DIR$/Kernel" vcs="Git" />
-    <mapping directory="$PROJECT_DIR$/Kernel/include/font8x8" vcs="Git" />
+    <mapping directory="$PROJECT_DIR$/Kernel/videoDriver/font8x8" vcs="Git" />
   </component>
 </project>
