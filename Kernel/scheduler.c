@@ -194,10 +194,7 @@ int scheduler_block_current(struct wait_node *wait_token)
     proc->waiting_node = wait_token;
     proc->wait_status = -1;
 
-    // TODO: esto hay que hacerlo de otra manera, no usar scheduler_switch
-    // reg_screenshot_t *regs = kernel_getRegisters();
-    // regs->rip += 5; // TODO: CHEQUEAR ESTO (saltar scheduler_switch)
-    // scheduler_switch(regs);
+    scheduler_save_and_switch();
 
     int status = proc->wait_status;
     proc->waiting = 0;

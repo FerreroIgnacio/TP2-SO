@@ -52,6 +52,3 @@ interrupt_setRegisters:
     
     iretq   
 
-
-section .bss
-    regs_backup resq 20

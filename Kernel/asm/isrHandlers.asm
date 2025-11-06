@@ -5,6 +5,7 @@ GLOBAL irq00Handler
 GLOBAL syscallInterruptHandler
 GLOBAL enableTimerIRQ
 GLOBAL endIrq00
+GLOBAL getInteruptRegsBackup
 
 
 EXTERN keyPressedAction
@@ -152,12 +153,12 @@ enableTimerIRQ:
     ret
 
 irq00Handler:               ; Solo tick del sistema y EOI
-    interruptBackupRegisters irq00RegsBackup
+    interruptBackupRegisters interruptRegsBackup
     
     push rax
     push rdi
     
-    mov rdi, irq00RegsBackup
+    mov rdi, interruptRegsBackup
 
     call timerTickHandler
     
@@ -192,6 +193,7 @@ irq01Handler:			; Keyboard irq
     iretq
 
 syscallInterruptHandler:
+    interruptBackupRegisters interruptRegsBackup
 
     push r8
     push r9
@@ -218,12 +220,17 @@ syscallInterruptHandler:
 
     iretq 
 
+getInteruptRegsBackup:
+    mov rdi, interruptRegsBackup
+    ret
+
 SECTION .rodata
     userland equ 0x400000
 
 section .bss
     exRegsBackup resq 18
-    irq00RegsBackup resq 20
     irq01RegsBackup resq 18
+    interruptRegsBackup resq 20
+    
 
 

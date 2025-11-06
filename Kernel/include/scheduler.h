@@ -59,8 +59,17 @@ void scheduler_start(void);
  */
 int scheduler_list(proc_info_t *out, int max);
 
-// Avanza el puntero del scheduler al próximo proceso listo (round-robin simple).
+/*
+ * Recibe el contexto al cual se quiere volver en la próxima ejecución del proceso actual
+ * Cambia al contexto del próximo proceso ready (round-robin simple)
+ */
 void scheduler_switch(reg_screenshot_t *regs);
+
+/*
+ * Guarda el contexto actual dentro de la función
+ * Luego, realiza un scheduler_switch.
+ */
+void scheduler_save_and_switch();
 
 // Identificador del proceso actualmente en ejecución o -1 si idle.
 int scheduler_current_pid(void);
