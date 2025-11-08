@@ -19,7 +19,7 @@ static proc_info_t procQueue[MAX_TASKS] = {0};
 static int default_idle(void *argv);
 static task_fn_t init_task_fn = default_idle;
 static void *init_task_argv = NULL;
-static int current_pid = 0;
+static int current_pid = -1;
 
 static bool is_valid_pid(int pid)
 {
