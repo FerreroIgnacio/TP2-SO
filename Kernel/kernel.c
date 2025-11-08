@@ -71,38 +71,27 @@ void *initializeKernelBinary()
 }
 extern void pic_init();
 
+static void test(void);
+
 int main()
 {
     initialize_memory_manager();
     idtInit();
-
-    // Inicializa y arranca un scheduler básico en lugar de saltar al entrypoint.
-    // Ejecuta tareas encoladas de forma cooperativa; cuando está idle, corre init_idle_task que detiene la CPU.
-    // Uso: Opcionalmente encolar tareas iniciales con scheduler_add.
-    //    scheduler_init();
-    //  scheduler_set_idle(init_idle_task);
-    // Ejemplo: ejecutar el shell una vez
-    // scheduler_add((task_fn_t)shellampleCodeModuleAddress);
-    // scheduler_set_idle((task_fn_t)shellampleCodeModuleAddress);
-    //  scheduler_add((task_fn_t)shellampleCodeModuleAddress);
-    //  scheduler_add((task_fn_t)pongisgolfModuleAddress);
-    // scheduler_start();
-
-    // ((void (*)(void))shellampleCodeModuleAddress)();
-    // Inalcanzable
-    // while(1);
-    // return 0;
-
-    // drawCircle(0x00FFFF, 100, 200, 50);
-    // if (((EntryPoint)shellModuleAddress)() == 1){
-    //     drawCircle(0x00FF00, 100, 100, 50);
-    // }
-    if (((EntryPoint)pongisgolfModuleAddress)() == 25)
-        drawCircle(0x00FF00, 100, 100, 50);
-
+    scheduler_add((task_fn_t)pongisgolfModuleAddress, NULL);
+    scheduler_add((task_fn_t)test, NULL);
+    scheduler_start();
     while (1)
         ;
 }
+
+static void test()
+{
+    while (1)
+    {
+        drawCircle(0xFFFFFF, 100, 100, 100);
+    }
+}
+
 int __stack_chk_fail(void)
 {
     // Retorna -13333 cuando se detecta un error de stack

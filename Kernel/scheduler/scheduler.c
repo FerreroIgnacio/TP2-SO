@@ -19,10 +19,7 @@ static proc_info_t procQueue[MAX_TASKS] = {0};
 static int default_idle(void *argv);
 static task_fn_t init_task_fn = default_idle;
 static void *init_task_argv = NULL;
-// Pid actualmente en ejecución (o -1 si idle/ninguna) mientras se ejecuta una tarea en t().
-static int current_pid = -1;
-// Índice base para round-robin (siguiente candidato a ejecutar)
-static int next_index = 0;
+static int current_pid = 0;
 
 /*
  * default_idle
@@ -49,8 +46,7 @@ static void start_task(int idx)
     // si retorna, terminó, se guarda el status.
     procQueue[idx].status = (int)t(procQueue[idx].argv);
     procQueue[idx].is_zombie = 1;
-    current_pid = -1;
-    next_index = (idx + 1) % MAX_TASKS;
+    scheduler_switch(NULL);
 }
 
 /*
@@ -111,9 +107,7 @@ int scheduler_add(task_fn_t task, void *argv)
 int scheduler_kill(int pid)
 {
 
-    if (pid < 0 || pid >= MAX_TASKS)
-        return -1;
-    if (procQueue[pid].entryPoint == NULL)
+    if (pid < 0 || pid >= MAX_TASKS || procQueue[pid].entryPoint == NULL)
         return -1;
     procQueue[pid].is_zombie = true;
     procQueue[pid].was_killed = true;
@@ -180,16 +174,17 @@ static int find_next_ready_from(int start_exclusive)
 
 void scheduler_switch(reg_screenshot_t *regs)
 {
-    if (--procQueue[current_pid].run_tokens > 0)
+    if (procQueue[current_pid].run_tokens > 0)
     {
+        procQueue[current_pid].run_tokens--;
         interrupt_setRegisters(regs);
     }
 
-    int idx = find_next_ready_from(next_index - 1);
+    int idx = find_next_ready_from(current_pid);
     if (idx < 0)
     {
-        // No hay procesos listos: permanecer en idle
-        current_pid = -1;
+        // no hay tareas en ready, correr idle
+        (void)init_task_fn(init_task_argv);
         return;
     }
     if (regs != NULL)
@@ -197,7 +192,6 @@ void scheduler_switch(reg_screenshot_t *regs)
         memcpy(&procQueue[current_pid].ctx, regs, sizeof(reg_screenshot_t));
     }
     current_pid = idx;
-    next_index = (idx + 1) % MAX_TASKS;
 
     if (procQueue[current_pid].ctx.rip != 0)
     {
@@ -278,8 +272,8 @@ void scheduler_start(void)
     // TODO: implementar proceso génesis
     while (1)
     {
-        // Buscar a partir de next_index (round-robin)
-        int idx = find_next_ready_from((next_index - 1) > 0 ? (next_index - 1) : 0);
+
+        int idx = find_next_ready_from(current_pid);
 
         if (idx >= 0)
         {
