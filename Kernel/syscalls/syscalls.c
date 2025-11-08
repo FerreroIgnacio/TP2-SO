@@ -304,20 +304,18 @@ int sys_get_priority(int pid)
 
 /*
  * ID 47
- * TODO
  */
 int sys_block_proc(int pid)
 {
-    return 1;
+    return scheduler_block_pid(pid);
 }
 
 /*
  * ID 48
- * TODO
  */
 int sys_unblock_proc(int pid)
 {
-    return 1;
+    return scheduler_unblock_pid(pid);
 }
 
 /*
@@ -330,9 +328,8 @@ void sys_yield(void)
 
 /*
  * ID 50
- * TODO
  */
-int sys_waitpid(int pid, int *status, int options)
+int sys_waitpid(int pid, int *status, int options) //TODO
 {
     return 1;
 }

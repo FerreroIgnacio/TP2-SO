@@ -21,6 +21,16 @@ static task_fn_t init_task_fn = default_idle;
 static void *init_task_argv = NULL;
 static int current_pid = 0;
 
+static bool is_valid_pid(int pid)
+{
+    if (pid < 0 || pid >= MAX_TASKS)
+    {
+        return false;
+    }
+    proc_info_t *proc = &procQueue[pid];
+    return proc->entryPoint != NULL && !proc->is_zombie;
+}
+
 /*
  * default_idle
  * Se invoca cuando no hay tareas listas para correr.
@@ -232,20 +242,70 @@ int scheduler_block_current(struct wait_node *wait_token)
 
 void scheduler_unblock(int pid, struct wait_node *wait_token, int status)
 {
-    if (pid < 0 || pid >= MAX_TASKS)
+    if (!is_valid_pid(pid) || wait_token == NULL)
     {
         return;
     }
     proc_info_t *proc = &procQueue[pid];
-    if (proc->entryPoint == NULL)
+    if (!proc->waiting || proc->waiting_node != wait_token)
     {
         return;
     }
     proc->wait_status = status;
     proc->ready = 1;
     proc->waiting = 0;
-    proc->waiting_node = wait_token;
-    // TODO: Ensure unblocked task gets scheduled soon (e.g., enqueue in ready list).
+    proc->waiting_node = NULL;
+    proc->run_tokens = proc->priority;
+}
+
+int scheduler_block_pid(int pid)
+{
+    if (!is_valid_pid(pid))
+    {
+        return -1;
+    }
+
+    proc_info_t *proc = &procQueue[pid];
+    if (!proc->ready)
+    {
+        return -1;
+    }
+
+    if (proc->waiting)
+    {
+        return -1;
+    }
+
+    proc->ready = 0;
+    proc->waiting = 0;
+    proc->waiting_node = NULL;
+    proc->wait_status = 0;
+    proc->run_tokens = 0;
+
+    if (pid == current_pid)
+    {
+        scheduler_save_and_switch();
+    }
+
+    return 0;
+}
+
+int scheduler_unblock_pid(int pid)
+{
+    if (!is_valid_pid(pid))
+    {
+        return -1;
+    }
+
+    proc_info_t *proc = &procQueue[pid];
+    if (proc->ready || proc->waiting)
+    {
+        return -1;
+    }
+
+    proc->ready = 1;
+    proc->run_tokens = proc->priority;
+    return 0;
 }
 
 int scheduler_set_priority(int pid, process_priority_t new_priority)

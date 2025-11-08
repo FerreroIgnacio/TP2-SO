@@ -123,4 +123,9 @@ int scheduler_block_current(struct wait_node *wait_token);
 // que despertará.
 void scheduler_unblock(int pid, struct wait_node *wait_token, int status);
 
+// Bloquea un proceso identificado por pid hasta que sea desbloqueado explícitamente.
+int scheduler_block_pid(int pid);
+
+// Marca un proceso bloqueado manualmente como listo otra vez.
+int scheduler_unblock_pid(int pid);
 #endif
