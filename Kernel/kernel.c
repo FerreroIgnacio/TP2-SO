@@ -86,9 +86,14 @@ int main()
 
 static void test()
 {
+    uint32_t color = 0x000000;
     while (1)
     {
-        drawCircle(0xFFFFFF, 100, 100, 100);
+        drawCircle(color, 400, 400, 100);
+        color += 0x010101;
+        if(color > 0xFFFFFF) {
+            color = 0x000000;
+        }
     }
 }
 
