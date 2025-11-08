@@ -20,8 +20,8 @@ typedef int (*task_fn_t)(void *);
 // Información mínima de un proceso/tarea expuesta para listados.
 typedef struct
 {
-
-    int pid;              // Identificador de tarea
+    int pid; // Identificador de tarea
+    int present;
     task_fn_t entryPoint; // Puntero a la función asociada a la tarea
     void *argv;
     int father_pid;

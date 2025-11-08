@@ -72,13 +72,17 @@ void *initializeKernelBinary()
 extern void pic_init();
 
 static void test(void);
+static void test2(void);
 
 int main()
 {
     initialize_memory_manager();
     idtInit();
-    scheduler_add((task_fn_t)pongisgolfModuleAddress, NULL);
+    // scheduler_add((task_fn_t)test, NULL);
+    // scheduler_add((task_fn_t)shellModuleAddress, NULL);
+    scheduler_add((task_fn_t)test2, NULL);
     scheduler_add((task_fn_t)test, NULL);
+
     scheduler_start();
     while (1)
         ;
@@ -89,10 +93,33 @@ static void test()
     uint32_t color = 0x000000;
     while (1)
     {
-        drawCircle(color, 400, 400, 100);
-        color += 0x010101;
-        if(color > 0xFFFFFF) {
-            color = 0x000000;
+        while (color < 0xFF0000)
+        {
+            drawCircle(color, 600, 400, 100);
+            color += 0x010000;
+        }
+        while (color > 0x000000)
+        {
+            drawCircle(color, 600, 400, 100);
+            color -= 0x010000;
+        }
+    }
+}
+
+static void test2()
+{
+    uint32_t color = 0x000000;
+    while (1)
+    {
+        while (color < 0x0000FF)
+        {
+            drawCircle(color, 200, 400, 100);
+            color += 0x000001;
+        }
+        while (color > 0x000000)
+        {
+            drawCircle(color, 200, 400, 100);
+            color -= 0x000001;
         }
     }
 }

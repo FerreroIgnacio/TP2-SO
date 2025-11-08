@@ -28,7 +28,7 @@ static bool is_valid_pid(int pid)
         return false;
     }
     proc_info_t *proc = &procQueue[pid];
-    return proc->entryPoint != NULL && !proc->is_zombie;
+    return proc->present;
 }
 
 /*
@@ -49,13 +49,13 @@ static int default_idle(void *argv)
  */
 static void start_task(int idx)
 {
-    if (idx < 0 || idx >= MAX_TASKS)
+    if (idx < 0 || idx >= MAX_TASKS || procQueue[idx].present == false)
         return;
     current_pid = idx;
     task_fn_t t = procQueue[idx].entryPoint;
     // si retorna, terminó, se guarda el status.
     procQueue[idx].status = (int)t(procQueue[idx].argv);
-    procQueue[idx].is_zombie = 1;
+    procQueue[idx].is_zombie = true;
     scheduler_switch(NULL);
 }
 
@@ -82,10 +82,11 @@ int scheduler_add(task_fn_t task, void *argv)
         return -1;
     for (int i = 0; i < MAX_TASKS; i++)
     {
-        if (procQueue[i].entryPoint == NULL)
+        if (procQueue[i].present == false)
         {
             procQueue[i] = (proc_info_t){
                 .pid = i,
+                .present = true,
                 .entryPoint = task,
                 .argv = argv,
                 .father_pid = current_pid,
@@ -116,8 +117,7 @@ int scheduler_add(task_fn_t task, void *argv)
 
 int scheduler_kill(int pid)
 {
-
-    if (pid < 0 || pid >= MAX_TASKS || procQueue[pid].entryPoint == NULL)
+    if (pid < 0 || pid >= MAX_TASKS || procQueue[pid].present == false)
         return -1;
     procQueue[pid].is_zombie = true;
     procQueue[pid].was_killed = true;
@@ -133,6 +133,8 @@ int scheduler_kill(int pid)
 void scheduler_exit(int status)
 {
     int pid = current_pid;
+    if (pid < 0 || pid >= MAX_TASKS || procQueue[pid].present == false)
+        return;
     procQueue[pid].is_zombie = true;
     procQueue[pid].status = status;
     procQueue[pid].run_tokens = 0;
@@ -156,7 +158,7 @@ int scheduler_list(proc_info_t *out, int max)
     int count = 0;
     for (int i = 0; i < MAX_TASKS && count < max; i++)
     {
-        if (procQueue[i].entryPoint != NULL)
+        if (procQueue[i].present == true)
         {
             out[count] = procQueue[i];
             count++;
@@ -173,7 +175,7 @@ static int find_next_ready_from(int start_exclusive)
     for (int step = 1; step <= MAX_TASKS; step++)
     {
         int idx = (start_exclusive + step) % MAX_TASKS;
-        if (procQueue[idx].entryPoint != NULL && procQueue[idx].ready && !procQueue[idx].is_zombie)
+        if (procQueue[idx].present == true && procQueue[idx].ready && !procQueue[idx].is_zombie)
         {
             return idx;
         }
@@ -184,14 +186,16 @@ static int find_next_ready_from(int start_exclusive)
 
 void scheduler_switch(reg_screenshot_t *regs)
 {
+    /*
+    //prioridades:
     if (procQueue[current_pid].run_tokens > 0)
     {
         procQueue[current_pid].run_tokens--;
         interrupt_setRegisters(regs);
     }
-
+    */
     int idx = find_next_ready_from(current_pid);
-    if (idx < 0)
+    if (idx < 0 || idx > MAX_TASKS)
     {
         // no hay tareas en ready, correr idle
         (void)init_task_fn(init_task_argv);
@@ -310,7 +314,7 @@ int scheduler_unblock_pid(int pid)
 
 int scheduler_set_priority(int pid, process_priority_t new_priority)
 {
-    if (new_priority < PRIORITY_LOW || new_priority > PRIORITY_HIGH || procQueue[pid].entryPoint == NULL)
+    if (new_priority < PRIORITY_LOW || new_priority > PRIORITY_HIGH || procQueue[pid].present == false)
     {
         return -1;
     }
@@ -320,11 +324,11 @@ int scheduler_set_priority(int pid, process_priority_t new_priority)
 
 process_priority_t scheduler_get_priority(int pid)
 {
-    if (procQueue[pid].entryPoint != NULL)
+    if (procQueue[pid].present == false)
     {
-        return procQueue[pid].priority;
+        return -1;
     }
-    return -1;
+    return procQueue[pid].priority;
 }
 
 void scheduler_start(void)
@@ -332,12 +336,18 @@ void scheduler_start(void)
     // TODO: implementar proceso génesis
     while (1)
     {
-
         int idx = find_next_ready_from(current_pid);
 
-        if (idx >= 0)
+        if (idx >= 0 && idx < MAX_TASKS)
         {
-            start_task(idx);
+            if (procQueue[idx].ctx.rip == 0)
+            {
+                start_task(idx);
+            }
+            else
+            {
+                interrupt_setRegisters(&procQueue[idx].ctx);
+            }
         }
         else
         {
