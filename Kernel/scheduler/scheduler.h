@@ -4,6 +4,14 @@
 #include <stdint.h>
 #include "registerManagement.h"
 
+typedef enum
+{
+    PRIORITY_LOW = 0,     // Procesos en background, tareas no urgentes
+    PRIORITY_NORMAL = 1,  // Prioridad por defecto
+    PRIORITY_HIGH = 2,    // Procesos interactivos o de usuario
+    PRIORITY_REALTIME = 3 // Máxima prioridad, para tareas críticas
+} process_priority_t;
+
 struct wait_node;
 
 // Firma básica de una tarea: no recibe argumentos y devuelve un int.
@@ -13,15 +21,26 @@ typedef int (*task_fn_t)(void *);
 // Información mínima de un proceso/tarea expuesta para listados.
 typedef struct
 {
+
     int pid;              // Identificador de tarea
     task_fn_t entryPoint; // Puntero a la función asociada a la tarea
     void *argv;
+    int father_pid;
+
     uint64_t startTime_ticks; // Tiempo transcurrido en ms desde que se encoló (aprox.)
-    reg_screenshot_t ctx;     // último contexto de registros guardado para este pid (18 qwords)
+
+    reg_screenshot_t ctx; // último contexto de registros guardado para este pid (20 qwords)
+
     int ready;
     int waiting;
     struct wait_node *waiting_node;
     int wait_status;
+
+    int priority;
+
+    int was_killed;
+    int is_zombie;
+    int status;
 } proc_info_t;
 
 /*
@@ -44,6 +63,26 @@ int scheduler_add(task_fn_t task, void *argv);
  * Uso: scheduler_kill(pid);
  */
 int scheduler_kill(int pid);
+
+/*
+ * Termina el proceso actual con estado status.
+ */
+void scheduler_exit(int status);
+
+/*
+ * Renuncia al cpu
+ */
+void scheduler_yield();
+
+/*
+ *  cambia la prioridad del proceso pid por new_priority
+ */
+int scheduler_set_priority(int pid, process_priority_t new_priority);
+
+/*
+ *  retorna la prioridad del proceso pid
+ */
+process_priority_t scheduler_get_priority(int pid);
 
 /*
  * Inicia el bucle de planificación cooperativa. No retorna en operación normal.
@@ -84,4 +123,4 @@ int scheduler_block_current(struct wait_node *wait_token);
 // que despertará.
 void scheduler_unblock(int pid, struct wait_node *wait_token, int status);
 
-#endif // SCHEDULER_H
+#endif

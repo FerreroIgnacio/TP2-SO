@@ -46,11 +46,9 @@ static void start_task(int idx)
         return;
     current_pid = idx;
     task_fn_t t = procQueue[idx].entryPoint;
-    (void)t(procQueue[idx].argv);
-
-    // si retorna, la tarea terminó: limpiarla de la cola
-    sem_cleanup_dead_process(idx);
-    procQueue[idx] = (proc_info_t){0};
+    // si retorna, terminó, se guarda el status.
+    procQueue[idx].status = (int)t(procQueue[idx].argv);
+    procQueue[idx].is_zombie = 1;
     current_pid = -1;
     next_index = (idx + 1) % MAX_TASKS;
 }
@@ -84,12 +82,17 @@ int scheduler_add(task_fn_t task, void *argv)
                 .pid = i,
                 .entryPoint = task,
                 .argv = argv,
+                .father_pid = current_pid,
                 .startTime_ticks = getSysTicks(),
-                .ready = 1,
-                .waiting = 0,
+                .ctx = {0},
+                .ready = true,
+                .waiting = false,
                 .waiting_node = NULL,
                 .wait_status = 0,
-                .ctx = {0}};
+                .priority = PRIORITY_NORMAL,
+                .was_killed = false,
+                .is_zombie = false,
+                .status = 0};
             return i;
         }
     }
@@ -111,13 +114,27 @@ int scheduler_kill(int pid)
         return -1;
     if (procQueue[pid].entryPoint == NULL)
         return -1;
-    sem_cleanup_dead_process(pid);
-    procQueue[pid] = (proc_info_t){0};
+    procQueue[pid].is_zombie = true;
+    procQueue[pid].was_killed = true;
+
     if (current_pid == pid)
     {
-        current_pid = -1;
+        scheduler_switch(NULL);
     }
     return 0;
+}
+
+void scheduler_exit(int status)
+{
+    int pid = current_pid;
+    procQueue[pid].is_zombie = true;
+    procQueue[pid].status = status;
+    scheduler_switch(NULL);
+}
+
+void scheduler_yield()
+{
+    scheduler_save_and_switch();
 }
 
 /*
@@ -149,7 +166,7 @@ static int find_next_ready_from(int start_exclusive)
     for (int step = 1; step <= MAX_TASKS; step++)
     {
         int idx = (start_exclusive + step) % MAX_TASKS;
-        if (procQueue[idx].entryPoint != NULL && procQueue[idx].ready)
+        if (procQueue[idx].entryPoint != NULL && procQueue[idx].ready && !procQueue[idx].is_zombie)
         {
             return idx;
         }
@@ -167,7 +184,10 @@ void scheduler_switch(reg_screenshot_t *regs)
         current_pid = -1;
         return;
     }
-    memcpy(&procQueue[current_pid].ctx, regs, sizeof(reg_screenshot_t));
+    if (regs != NULL)
+    {
+        memcpy(&procQueue[current_pid].ctx, regs, sizeof(reg_screenshot_t));
+    }
     current_pid = idx;
     next_index = (idx + 1) % MAX_TASKS;
     if (procQueue[current_pid].ctx.rip != 0)
@@ -224,8 +244,28 @@ void scheduler_unblock(int pid, struct wait_node *wait_token, int status)
     // TODO: Ensure unblocked task gets scheduled soon (e.g., enqueue in ready list).
 }
 
+int scheduler_set_priority(int pid, process_priority_t new_priority)
+{
+    if (new_priority < PRIORITY_LOW || new_priority > PRIORITY_HIGH || procQueue[pid].entryPoint == NULL)
+    {
+        return -1;
+    }
+    procQueue[pid].priority = new_priority;
+    return 0;
+}
+
+process_priority_t scheduler_get_priority(int pid)
+{
+    if (procQueue[pid].entryPoint != NULL)
+    {
+        return procQueue[pid].priority;
+    }
+    return -1;
+}
+
 void scheduler_start(void)
 {
+    // TODO: implementar proceso génesis
     while (1)
     {
         // Buscar a partir de next_index (round-robin)

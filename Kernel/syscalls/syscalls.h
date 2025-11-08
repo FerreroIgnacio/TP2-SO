@@ -89,18 +89,17 @@ void *sys_realloc(void *ptr, uint64_t size);
 void sys_free(void *ptr);
 void sys_get_memory_info(uint64_t *total, uint64_t *used, uint64_t *free);
 
-// TODO: Syscalls comentadas
 int sys_proc_create(task_fn_t entry, void *argv);
-// void sys_proc_exit(int exit_code);
-// int sys_get_pid(void);
+void sys_proc_exit(int exit_code);
+int sys_get_pid(void);
 int sys_proc_list(proc_info_t *out, int max);
 int sys_proc_kill(int pid);
-// int sys_set_priority(int pid, int new_priority);
-// int sys_get_priority(int pid);
-// int sys_block_proc(int pid);
-// int sys_unblock_proc(int pid);
-// int sys_yield(void);
-// int sys_waitpid(int pid, int *status, int options);
+int sys_set_priority(int pid, int new_priority);
+int sys_get_priority(int pid);
+int sys_block_proc(int pid);
+int sys_unblock_proc(int pid);
+int sys_yield(void);
+int sys_waitpid(int pid, int *status, int options);
 
 int sys_sem_open(const char *name, int initial_value);
 int sys_sem_wait(int sem_id);
