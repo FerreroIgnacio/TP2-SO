@@ -98,7 +98,7 @@ int sys_set_priority(int pid, int new_priority);
 int sys_get_priority(int pid);
 int sys_block_proc(int pid);
 int sys_unblock_proc(int pid);
-int sys_yield(void);
+void sys_yield(void);
 int sys_waitpid(int pid, int *status, int options);
 
 int sys_sem_open(const char *name, int initial_value);
