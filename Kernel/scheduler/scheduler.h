@@ -6,10 +6,9 @@
 
 typedef enum
 {
-    PRIORITY_LOW = 0,     // Procesos en background, tareas no urgentes
-    PRIORITY_NORMAL = 1,  // Prioridad por defecto
-    PRIORITY_HIGH = 2,    // Procesos interactivos o de usuario
-    PRIORITY_REALTIME = 3 // Máxima prioridad, para tareas críticas
+    PRIORITY_LOW = 1,    // Procesos en background, tareas no urgentes
+    PRIORITY_NORMAL = 2, // Prioridad por defecto
+    PRIORITY_HIGH = 3,   // Procesos interactivos o de usuario
 } process_priority_t;
 
 struct wait_node;
@@ -37,6 +36,7 @@ typedef struct
     int wait_status;
 
     int priority;
+    int run_tokens; // 1 token = 1 quantum de cpu, a mayor prioridad, mayor tiempo de cpu.
 
     int was_killed;
     int is_zombie;

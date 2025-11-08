@@ -90,6 +90,7 @@ int scheduler_add(task_fn_t task, void *argv)
                 .waiting_node = NULL,
                 .wait_status = 0,
                 .priority = PRIORITY_NORMAL,
+                .run_tokens = PRIORITY_NORMAL,
                 .was_killed = false,
                 .is_zombie = false,
                 .status = 0};
@@ -119,6 +120,7 @@ int scheduler_kill(int pid)
 
     if (current_pid == pid)
     {
+        procQueue[pid].run_tokens = 0;
         scheduler_switch(NULL);
     }
     return 0;
@@ -129,6 +131,7 @@ void scheduler_exit(int status)
     int pid = current_pid;
     procQueue[pid].is_zombie = true;
     procQueue[pid].status = status;
+    procQueue[pid].run_tokens = 0;
     scheduler_switch(NULL);
 }
 
@@ -177,6 +180,11 @@ static int find_next_ready_from(int start_exclusive)
 
 void scheduler_switch(reg_screenshot_t *regs)
 {
+    if (--procQueue[current_pid].run_tokens > 0)
+    {
+        interrupt_setRegisters(regs);
+    }
+
     int idx = find_next_ready_from(next_index - 1);
     if (idx < 0)
     {
@@ -190,8 +198,10 @@ void scheduler_switch(reg_screenshot_t *regs)
     }
     current_pid = idx;
     next_index = (idx + 1) % MAX_TASKS;
+
     if (procQueue[current_pid].ctx.rip != 0)
     {
+        procQueue[current_pid].run_tokens = procQueue[current_pid].priority;
         interrupt_setRegisters(&procQueue[current_pid].ctx);
     }
     else

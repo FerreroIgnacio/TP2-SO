@@ -83,7 +83,7 @@ void timerTickHandler(reg_screenshot_t *regs)
     // Cada X ticks, pedir al scheduler que realice un switch (hook cooperativo)
     if ((system_ticks % SCHED_QUANTUM_TICKS) == 0)
     {
-        scheduler_switch(regs); // TODO: scheduler_switch debe terminar la interrupción
+        scheduler_switch(regs);
     }
 }
 
