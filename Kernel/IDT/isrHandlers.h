@@ -16,5 +16,6 @@ void enableTimerIRQ();
 void timerTickHandler(reg_screenshot_t *regs);
 reg_screenshot_t *getInteruptRegsBackup(void);
 uint64_t getSysTicks();
+void timerTickBalanceStack();
 
 #endif

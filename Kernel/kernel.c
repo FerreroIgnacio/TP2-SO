@@ -78,7 +78,7 @@ int main()
 {
     initialize_memory_manager();
     idtInit();
-    // scheduler_add((task_fn_t)test, NULL);
+    // scheduler_add((task_fn_t)pongisgolfModuleAddress, NULL);
     // scheduler_add((task_fn_t)shellModuleAddress, NULL);
     scheduler_add((task_fn_t)test2, NULL);
     scheduler_add((task_fn_t)test, NULL);
