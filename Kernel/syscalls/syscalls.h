@@ -3,10 +3,11 @@
 #include <stdint.h>
 #include "../scheduler/scheduler.h"
 #include "../videoDriver/videoDriver.h"
+#include "../filesDescriptors/fd.h" // for fd_info_t
 
 #define STDIN 0
 #define STDOUT 1
-#define STDERR 2
+#define STDERR 2 // reserved; dynamic FDs start at 3
 
 #define SYSCALL_READ 0
 #define SYSCALL_WRITE 1
@@ -58,6 +59,10 @@
 #define SYSCALL_SEM_POST 62
 #define SYSCALL_SEM_CLOSE 63
 
+// File Descriptors dynamic
+#define SYSCALL_FD_OPEN 64
+#define SYSCALL_FD_LIST 65
+
 int sys_read(int fd, char *buffer, uint64_t count);
 
 int sys_write(int fd, const char *buffer, uint64_t count);
@@ -106,4 +111,8 @@ int sys_sem_wait(int sem_id);
 int sys_sem_post(int sem_id);
 int sys_sem_close(int sem_id);
 
+int sys_fd_open(const char *name);
+int sys_fd_list(fd_info_t *out, int max);
+
 #endif
+

@@ -12,6 +12,33 @@
 #define MAX_TASKS 16
 #endif
 
+#define TASK_STACK_SIZE (16 * 1024)
+static uint8_t task_stacks[MAX_TASKS][TASK_STACK_SIZE];
+static inline uint64_t top_of_stack(int pid)
+{
+    uint64_t top = (uint64_t)&task_stacks[pid][TASK_STACK_SIZE];
+    return top & ~((uint64_t)0xF);
+}
+
+static inline uint16_t read_cs(void)
+{
+    uint16_t v;
+    __asm__ volatile("mov %%cs, %0" : "=r"(v));
+    return v;
+}
+static inline uint16_t read_ss(void)
+{
+    uint16_t v;
+    __asm__ volatile("mov %%ss, %0" : "=r"(v));
+    return v;
+}
+static inline uint64_t read_rflags(void)
+{
+    uint64_t v;
+    __asm__ volatile("pushfq; pop %0" : "=r"(v));
+    return v;
+}
+
 // Cola de procesos y su info
 static proc_info_t procQueue[MAX_TASKS] = {0};
 
@@ -186,36 +213,61 @@ static int find_next_ready_from(int start_exclusive)
 
 void scheduler_switch(reg_screenshot_t *regs)
 {
-    /*
-    //prioridades:
-    if (procQueue[current_pid].run_tokens > 0)
-    {
-        procQueue[current_pid].run_tokens--;
-        interrupt_setRegisters(regs);
-    }
-    */
+    // Elegir próximo candidato en round-robin
     int idx = find_next_ready_from(current_pid);
-    if (idx < 0 || idx > MAX_TASKS)
+    if (idx < 0 || idx >= MAX_TASKS)
     {
-        // no hay tareas en ready, correr idle
         (void)init_task_fn(init_task_argv);
         return;
     }
+
     if (regs != NULL)
     {
-        memcpy(&procQueue[current_pid].ctx, regs, sizeof(reg_screenshot_t));
-    }
-    current_pid = idx;
+        if (current_pid >= 0 && current_pid < MAX_TASKS && procQueue[current_pid].present)
+        {
+            memcpy(&procQueue[current_pid].ctx, regs, sizeof(reg_screenshot_t));
+        }
 
-    if (procQueue[current_pid].ctx.rip != 0)
-    {
-        procQueue[current_pid].run_tokens = procQueue[current_pid].priority;
+        proc_info_t *next = &procQueue[idx];
+        current_pid = idx;
+        next->run_tokens = next->priority;
+
+        if (next->ctx.rip == 0)
+        {
+            reg_screenshot_t *ctx = &next->ctx;
+            *ctx = *regs; // base desde snapshot actual
+            ctx->rip = (uint64_t)next->entryPoint;
+            ctx->rdi = (uint64_t)next->argv;
+            ctx->rsp = top_of_stack(idx);
+            ctx->rbp = ctx->rsp;
+            ctx->rflags |= (1ULL << 9); // IF=1
+        }
+
         interrupt_setRegisters(&procQueue[current_pid].ctx);
+        return;
     }
-    else
+
+    // Camino cooperativo: bootstrap y saltar con iretq si es primera vez
+    proc_info_t *next = &procQueue[idx];
+    current_pid = idx;
+    next->run_tokens = next->priority;
+    if (next->ctx.rip == 0)
     {
-        start_task(current_pid);
+        reg_screenshot_t *ctx = &next->ctx;
+        memset(ctx, 0, sizeof(*ctx));
+        ctx->rip = (uint64_t)next->entryPoint;
+        ctx->rdi = (uint64_t)next->argv;
+        ctx->rsp = top_of_stack(idx);
+        ctx->rbp = ctx->rsp;
+        ctx->rflags = read_rflags() | (1ULL << 9); // IF=1
+        ctx->CS = read_cs();
+        ctx->SS = read_ss();
+        interrupt_setRegisters(ctx);
+        return;
     }
+
+    // Reanudar tarea ya iniciada
+    interrupt_setRegisters(&procQueue[current_pid].ctx);
 }
 
 int scheduler_current_pid(void)
@@ -314,7 +366,7 @@ int scheduler_unblock_pid(int pid)
 
 int scheduler_set_priority(int pid, process_priority_t new_priority)
 {
-    if (new_priority < PRIORITY_LOW || new_priority > PRIORITY_HIGH || procQueue[pid].present == false)
+    if (pid < 0 || pid >= MAX_TASKS || new_priority < PRIORITY_LOW || new_priority > PRIORITY_HIGH || procQueue[pid].present == false)
     {
         return -1;
     }
@@ -324,7 +376,7 @@ int scheduler_set_priority(int pid, process_priority_t new_priority)
 
 process_priority_t scheduler_get_priority(int pid)
 {
-    if (procQueue[pid].present == false)
+    if (pid < 0 || pid >= MAX_TASKS || procQueue[pid].present == false)
     {
         return -1;
     }
@@ -333,33 +385,35 @@ process_priority_t scheduler_get_priority(int pid)
 
 void scheduler_start(void)
 {
-    // TODO: implementar proceso génesis
     while (1)
     {
         int idx = find_next_ready_from(current_pid);
 
         if (idx >= 0 && idx < MAX_TASKS)
         {
-            if (procQueue[idx].ctx.rip == 0)
+            proc_info_t *next = &procQueue[idx];
+            current_pid = idx;
+            if (next->ctx.rip == 0)
             {
-                start_task(idx);
+                reg_screenshot_t *ctx = &next->ctx;
+                memset(ctx, 0, sizeof(*ctx));
+                ctx->rip = (uint64_t)next->entryPoint;
+                ctx->rdi = (uint64_t)next->argv;
+                ctx->rsp = top_of_stack(idx);
+                ctx->rbp = ctx->rsp;
+                ctx->rflags = read_rflags() | (1ULL << 9);
+                ctx->CS = read_cs();
+                ctx->SS = read_ss();
+                interrupt_setRegisters(ctx);
             }
             else
             {
-                interrupt_setRegisters(&procQueue[idx].ctx);
+                interrupt_setRegisters(&next->ctx);
             }
         }
         else
         {
-            // No hay tareas para correr: ejecutar init/idle
-            if (init_task_fn)
-            {
-                (void)init_task_fn(init_task_argv);
-            }
-            else
-            {
-                (void)default_idle(NULL);
-            }
+            (void)init_task_fn(init_task_argv);
         }
     }
 }

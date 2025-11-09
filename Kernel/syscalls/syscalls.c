@@ -2,11 +2,13 @@
 #include "../syscalls/syscalls.h"
 #include "../filesDescriptors/stdin.h"
 #include "../filesDescriptors/stdout.h"
+#include "../filesDescriptors/stderr.h" // added
 #include "../keyboardDriver/keyboardDriver.h"
 #include "../IDT/isrHandlers.h"
 #include "../memoryManagement/mm.h"
 #include "../scheduler/scheduler.h"
 #include "../semaphores/sem.h"
+#include "../filesDescriptors/fd.h" // added
 
 uint64_t syscallHandler(int syscall_num, uint64_t arg1, uint64_t arg2, uint64_t arg3, uint64_t arg4, uint64_t arg5, uint64_t arg6)
 {
@@ -87,6 +89,10 @@ uint64_t syscallHandler(int syscall_num, uint64_t arg1, uint64_t arg2, uint64_t 
         return sys_sem_post((int)arg1);
     case SYSCALL_SEM_CLOSE:
         return sys_sem_close((int)arg1);
+    case SYSCALL_FD_OPEN: // new fd open
+        return sys_fd_open((const char *)arg1);
+    case SYSCALL_FD_LIST: // list dynamic FDs
+        return sys_fd_list((fd_info_t *)arg1, (int)arg2);
     default:
         return -1;
     }
@@ -120,9 +126,20 @@ int sys_read(int fd, char *buffer, uint64_t count)
         buffer[i] = 0;
         return i; // Retorna cuántos caracteres se leyeron (puede ser 0)
     }
-
+    case STDERR:
+    {
+        uint64_t i = 0;
+        while (i < count && stderr_has_data())
+        {
+            buffer[i++] = consumeKeyStderr();
+        }
+        if (i < count)
+            buffer[i] = 0;
+        return i;
+    }
     default:
-        return -1;
+        // Dynamic FD
+        return fd_read(fd, buffer, count);
     }
 }
 
@@ -131,30 +148,25 @@ int sys_read(int fd, char *buffer, uint64_t count)
  */
 int sys_write(int fd, const char *buffer, uint64_t count)
 {
-    if (buffer == 0 || count == 0)
+    if (buffer == 0 || count == 0) {
         return 0;
+    }
     switch (fd)
     {
-    case STDOUT: // stdout
+    case STDOUT: // buffer everything (no filter)
         for (uint64_t i = 0; i < count; i++)
         {
-            char c = buffer[i];
-            if ((c >= 32 && c <= 126) || c == '\n' || c == '\r' || c == '\t' || c == '\b')
-            {
-                queueKeyStdout(c);
-            }
+            queueKeyStdout(buffer[i]);
         }
         return count;
-
-    case STDERR: // stderr
-        // TODO: ver donde mandamos esto
+    case STDERR: // buffer everything (no filter)
         for (uint64_t i = 0; i < count; i++)
         {
-            putChar(buffer[i], 0xFF0000, 0x00FF00, 0 + (i * 8 * 5), 0, 5);
+            queueKeyStderr(buffer[i]);
         }
         return count;
     default:
-        return -1; // Error: fd no válido
+        return fd_write(fd, buffer, count); // dynamic FD write
     }
 }
 
@@ -317,7 +329,6 @@ int sys_unblock_proc(int pid)
 {
     return scheduler_unblock_pid(pid);
 }
-
 /*
  * ID 49
  */
@@ -352,4 +363,14 @@ int sys_sem_post(int sem_id)
 int sys_sem_close(int sem_id)
 {
     return sem_close(sem_id);
+}
+
+int sys_fd_open(const char *name)
+{
+    return fd_create(name);
+}
+
+int sys_fd_list(fd_info_t *out, int max)
+{
+    return fd_list(out, max);
 }
