@@ -72,78 +72,16 @@ void *initializeKernelBinary()
 }
 extern void pic_init();
 
-static void test1(void);
-static void test2(void);
-static void test3(void);
 int main()
 {
     initialize_memory_manager();
     idtInit();
-    fd_init(); // initialize dynamic file descriptors
-    // scheduler_add((task_fn_t)test, NULL);
-    // scheduler_add((task_fn_t)shellModuleAddress, NULL);
+    fd_init();
+
     scheduler_add((task_fn_t)shellModuleAddress, NULL);
-    //  scheduler_add((task_fn_t) pongisgolfModuleAddress, NULL);
-    //  scheduler_add((task_fn_t) test3, NULL);
     scheduler_start();
     while (1)
         ;
-}
-
-static void test1()
-{
-
-    uint32_t color = 0xFF0000;
-    while (1)
-    {
-        while (color < 0xFF0000)
-        {
-            putChar('1', color, 0x000000, 10, 10, 3);
-            color += 0x010000;
-        }
-        while (color > 0x000000)
-        {
-            putChar('1', color, 0x000000, 10, 10, 3);
-            color -= 0x010000;
-        }
-    }
-}
-static void test3()
-{
-    // Copy format from test1: ramp up then down (blue channel)
-    uint32_t color = 0x0000FF; // start at max blue to go down first
-    while (1)
-    {
-        while (color < 0x0000FF)
-        {
-            putChar('3', color, 0x000000, 90, 10, 3);
-            color += 0x000001; // increment blue
-        }
-        while (color > 0x000000)
-        {
-            putChar('3', color, 0x000000, 90, 10, 3);
-            color -= 0x000001; // decrement blue
-        }
-    }
-}
-
-static void test2()
-{
-    // Copy format from test1: ramp up then down (green channel)
-    uint32_t color = 0x00FF00; // start at max green to go down first
-    while (1)
-    {
-        while (color < 0x00FF00)
-        {
-            putChar('2', color, 0x000000, 50, 10, 3);
-            color += 0x000100; // increment green
-        }
-        while (color > 0x000000)
-        {
-            putChar('2', color, 0x000000, 50, 10, 3);
-            color -= 0x000100; // decrement green
-        }
-    }
 }
 
 int __stack_chk_fail(void)

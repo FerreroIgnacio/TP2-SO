@@ -58,10 +58,11 @@
 #define SYSCALL_SEM_WAIT 61
 #define SYSCALL_SEM_POST 62
 #define SYSCALL_SEM_CLOSE 63
+#define SYSCALL_SEM_SET 64
 
 // File Descriptors dynamic
-#define SYSCALL_FD_OPEN 64
-#define SYSCALL_FD_LIST 65
+#define SYSCALL_FD_OPEN 70
+#define SYSCALL_FD_LIST 71
 
 int sys_read(int fd, char *buffer, uint64_t count);
 
@@ -115,4 +116,3 @@ int sys_fd_open(const char *name);
 int sys_fd_list(fd_info_t *out, int max);
 
 #endif
-

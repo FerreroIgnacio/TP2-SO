@@ -117,14 +117,21 @@ proc_list:
     int     0x80
     ret
 
+
+#define SYSCALL_SEM_OPEN 60
+#define SYSCALL_SEM_WAIT 61
+#define SYSCALL_SEM_POST 62
+#define SYSCALL_SEM_CLOSE 63
+#define SYSCALL_SEM_SET 64
+
 ; open dynamic FD by name: returns fd>=3 or -1
 fd_open:
-    mov     rax, 0x40     ; syscall número 64
+    mov     rax, 0x46     ; syscall número 70
     int     0x80
     ret
 
 ; list dynamic FDs: rdi=out, rsi=max; returns count
 fd_list:
-    mov     rax, 0x41     ; syscall número 65
+    mov     rax, 0x47     ; syscall número 71
     int     0x80
     ret
