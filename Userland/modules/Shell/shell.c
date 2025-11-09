@@ -55,6 +55,11 @@ void cmd_dateTime();
 void cmd_registers();
 void cmd_test0Div();
 void cmd_testInvalidCode();
+// New FD commands
+void cmd_createfd(char *args);
+void cmd_writefd(char *args);
+void cmd_readfd(char *args);
+void cmd_fdlist();
 
 // Utilidades de string
 char *find_args(char *cmd);
@@ -176,6 +181,10 @@ void cmd_help()
     printf("  setfont <id>     - Cambiar la fuente\n");
     printf("  testzerodiv      - Testea la excepcion 00 \n");
     printf("  testinvalidcode  - Testea la excepcion 06 \n");
+    printf("  createfd <name>  - Crea FD dinámico y devuelve su id\n");
+    printf("  writefd <fd> <text> - Escribe texto ASCII en el FD\n");
+    printf("  readfd <fd>      - Lee todos los bytes disponibles y los imprime\n");
+    printf("  fdlist           - Lista FDs dinámicos (id, nombre, bytes)\n");
     printf("\nProgramas disponibles:\n");
     printf("  pongisgolf\n");
     printf("\nControles:\n");
@@ -261,6 +270,97 @@ void cmd_test0Div()
 void cmd_testInvalidCode()
 {
     __asm__ __volatile__("ud2");
+}
+
+// New: createfd <name>
+void cmd_createfd(char *args)
+{
+    if (!args || *args == '\0')
+    {
+        printf("Uso: createfd <name>\n");
+        return;
+    }
+    int fd = fd_open(args);
+    if (fd < 0)
+    {
+        printf("Error: no se pudo crear FD '%s'\n", args);
+        return;
+    }
+    printf("FD creado: %d\n", fd);
+}
+
+// New: writefd <fd> <text>
+void cmd_writefd(char *args)
+{
+    if (!args || *args == '\0')
+    {
+        printf("Uso: writefd <fd> <texto>\n");
+        return;
+    }
+    // split fd and message
+    char *fd_str = args;
+    char *msg = find_args(args); // mutates: places \0 after fd
+    if (!msg || *msg == '\0')
+    {
+        printf("Uso: writefd <fd> <texto>\n");
+        return;
+    }
+    int fd = strtoint(fd_str);
+    int wrote = write(fd, msg, strlen(msg));
+    if (wrote < 0)
+    {
+        printf("Error: write a fd %d\n", fd);
+        return;
+    }
+    printf("Escritos %d bytes en fd %d\n", wrote, fd);
+}
+
+// New: readfd <fd>
+void cmd_readfd(char *args)
+{
+    if (!args || *args == '\0')
+    {
+        printf("Uso: readfd <fd>\n");
+        return;
+    }
+    int fd = strtoint(args);
+    unsigned char buf[256];
+    int total = 0;
+    while (1)
+    {
+        int n = read(fd, buf, sizeof(buf) - 1);
+        if (n <= 0)
+            break;
+        buf[n] = '\0';
+        // print raw without formatting issues
+        shell_print((char *)buf);
+        total += n;
+    }
+    if (total == 0)
+    {
+        printf("(sin datos)\n");
+    }
+    else
+    {
+        printf("\nLeidos %d bytes de fd %d\n", total, fd);
+    }
+}
+
+// New: list dynamic FDs
+void cmd_fdlist()
+{
+    fd_info_u_t infos[32];
+    int n = fd_list(infos, 32);
+    if (n <= 0)
+    {
+        printf("(sin FDs dina   micos)\n");
+        return;
+    }
+    printf("FDs dinámicos (%d):\n", n);
+    for (int i = 0; i < n; i++)
+    {
+        printf("  id=%d name=%s bytes=%u\n", infos[i].fd, infos[i].name, (unsigned)infos[i].size);
+    }
 }
 
 // Crea la funcion para cambiar de fuente
@@ -351,6 +451,22 @@ void execute_command()
         {
             shell_print_colored("Uso: setfont <indice>\n", ERROR_COLOR);
         }
+    }
+    else if (!strcmp(cmd_copy, "createfd"))
+    {
+        cmd_createfd(args);
+    }
+    else if (!strcmp(cmd_copy, "writefd"))
+    {
+        cmd_writefd(args);
+    }
+    else if (!strcmp(cmd_copy, "readfd"))
+    {
+        cmd_readfd(args);
+    }
+    else if (!strcmp(cmd_copy, "fdlist"))
+    {
+        cmd_fdlist();
     }
     else if (!strcmp(cmd_copy, "pongisgolf"))
     {

@@ -8,13 +8,13 @@ OBJS := $(SOURCES:.c=.o)
 
 # Carpeta de librerías externas
 LIBS_DIR = ../../libs
-# Todos los .o dentro de libs y sus subcarpetas
-LIB_OBJS := $(shell find $(LIBS_DIR) -name "*.o")
 
 all: $(MODULE)
 
-$(MODULE): $(OBJS) $(LIB_OBJS)
-	$(GCC) $(GCCFLAGS) -T shell.ld $(OBJS) $(LIB_OBJS) -o ../$(MODULE)
+# Build libs first, then link with fresh list of lib objects
+$(MODULE): $(OBJS)
+	$(MAKE) -C $(LIBS_DIR) all
+	$(GCC) $(GCCFLAGS) -T shell.ld $(OBJS) $(shell find $(LIBS_DIR) -name "*.o") -o ../$(MODULE)
 
 %.o: %.c
 	$(GCC) $(GCCFLAGS) -I../include -c $< -o $@

@@ -2,7 +2,7 @@ GLOBAL write
 GLOBAL read
 GLOBAL isKeyPressed
 GLOBAL getBootTime
-GLOBAL getLocalTime 
+GLOBAL getLocalTime
 GLOBAL getLocalDate
 GLOBAL getRegisters
 GLOBAL putPixel
@@ -17,6 +17,8 @@ GLOBAL getMemInfo
 GLOBAL proc_spawn
 GLOBAL proc_kill
 GLOBAL proc_list
+GLOBAL fd_open
+GLOBAL fd_list
 SECTION .text
 
 
@@ -29,9 +31,9 @@ read:
     int 0x80
     ret
 isKeyPressed:
-	mov rax, 2
-	int 0x80
-	ret
+    mov rax, 2
+    int 0x80
+    ret
 
 getBootTime:
     mov     rax, 0x3        ; ID de syscall para bootTime (3)
@@ -49,7 +51,7 @@ getLocalDate:
     ret
 
 getRegisters:
-    mov     rax, 0x6        ; ID de syscall para  getRegisters (7)
+    mov     rax, 0x6        ; ID de syscall para  getRegisters (6)
     int     0x80
     ret
 
@@ -112,5 +114,17 @@ proc_kill:
 ; int proc_list(proc_info_t* out, int max)
 proc_list:
     mov     rax, 0x2A
+    int     0x80
+    ret
+
+; open dynamic FD by name: returns fd>=3 or -1
+fd_open:
+    mov     rax, 0x40     ; syscall número 64
+    int     0x80
+    ret
+
+; list dynamic FDs: rdi=out, rsi=max; returns count
+fd_list:
+    mov     rax, 0x41     ; syscall número 65
     int     0x80
     ret

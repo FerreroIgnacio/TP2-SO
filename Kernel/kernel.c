@@ -10,6 +10,7 @@
 #include "memoryManagement/mm.h"
 #include "scheduler/scheduler.h"
 #include "scheduler/cpu.h"
+#include "filesDescriptors/fd.h" // added
 
 extern uint8_t text;
 extern uint8_t rodata;
@@ -78,11 +79,12 @@ int main()
 {
     initialize_memory_manager();
     idtInit();
+    fd_init(); // initialize dynamic file descriptors
     // scheduler_add((task_fn_t)test, NULL);
     // scheduler_add((task_fn_t)shellModuleAddress, NULL);
     scheduler_add((task_fn_t)shellModuleAddress, NULL);
-    scheduler_add((task_fn_t) pongisgolfModuleAddress, NULL);
-    scheduler_add((task_fn_t) test3, NULL);
+  //  scheduler_add((task_fn_t) pongisgolfModuleAddress, NULL);
+  //  scheduler_add((task_fn_t) test3, NULL);
     scheduler_start();
     while (1)
         ;

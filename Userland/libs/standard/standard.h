@@ -37,6 +37,15 @@ uint64_t strtoint_complete(const char *str);
 int write(int fd, const char *buff, unsigned long count);
 // Leer (count) caracteres del file descriptor (fd) y guardar en (buf).
 int read(int fd, unsigned char *buff, unsigned long count);
+// Abrir/crear un FD dinámico con nombre; retorna fd>=2 o -1
+int fd_open(const char *name);
+// Listar FDs dinámicos: llena hasta max y retorna cantidad.
+typedef struct fd_info_u {
+    int fd;             // número de fd absoluto
+    char name[32];      // nombre (máx 31 chars + '\0')
+    uint32_t size;      // bytes en buffer
+} fd_info_u_t;
+int fd_list(fd_info_u_t *out, int max);
 
 /* FUNCIONALIDADES DEL TECLADO */
 // 1 si la tecla (makecode) está presionada, 0 si no.
