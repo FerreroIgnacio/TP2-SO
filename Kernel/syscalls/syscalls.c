@@ -89,6 +89,9 @@ uint64_t syscallHandler(int syscall_num, uint64_t arg1, uint64_t arg2, uint64_t 
         return sys_sem_post((int)arg1);
     case SYSCALL_SEM_CLOSE:
         return sys_sem_close((int)arg1);
+    case SYSCALL_SEM_SET:
+        sys_sem_set((int)arg1, (int)arg2);
+        return 1;
     case SYSCALL_FD_OPEN: // new fd open
         return sys_fd_open((const char *)arg1);
     case SYSCALL_FD_LIST: // list dynamic FDs
@@ -148,7 +151,8 @@ int sys_read(int fd, char *buffer, uint64_t count)
  */
 int sys_write(int fd, const char *buffer, uint64_t count)
 {
-    if (buffer == 0 || count == 0) {
+    if (buffer == 0 || count == 0)
+    {
         return 0;
     }
     switch (fd)
@@ -340,7 +344,7 @@ void sys_yield(void)
 /*
  * ID 50
  */
-int sys_waitpid(int pid, int *status, int options) //TODO
+int sys_waitpid(int pid, int *status, int options) // TODO
 {
     return 1;
 }
@@ -363,6 +367,10 @@ int sys_sem_post(int sem_id)
 int sys_sem_close(int sem_id)
 {
     return sem_close(sem_id);
+}
+void sys_sem_set(int sem_id, int new_value)
+{
+    sem_set(sem_id, new_value);
 }
 
 int sys_fd_open(const char *name)

@@ -111,6 +111,7 @@ int sys_sem_open(const char *name, int initial_value);
 int sys_sem_wait(int sem_id);
 int sys_sem_post(int sem_id);
 int sys_sem_close(int sem_id);
+void sys_sem_set(int sem_id, int new_value);
 
 int sys_fd_open(const char *name);
 int sys_fd_list(fd_info_t *out, int max);

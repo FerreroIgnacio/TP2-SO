@@ -315,6 +315,11 @@ int sem_close(int sem_id)
     return 0;
 }
 
+void sem_set(int sem_id, int value)
+{
+    semaphores[sem_id].value = value;
+}
+
 void sem_cleanup_dead_process(int pid)
 {
     if (pid < 0)
