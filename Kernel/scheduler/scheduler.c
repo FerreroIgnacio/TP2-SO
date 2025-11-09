@@ -197,6 +197,13 @@ static int find_next_ready_from(int start_exclusive)
 
 void scheduler_switch(reg_screenshot_t *regs)
 {
+
+    if (procQueue[current_pid].run_tokens > 0)
+    {
+        --procQueue[current_pid].run_tokens;
+        interrupt_setRegisters(regs);
+    }
+
     // Elegir próximo candidato en round-robin
     int idx = find_next_ready_from(current_pid);
     if (idx < 0 || idx >= MAX_TASKS)
