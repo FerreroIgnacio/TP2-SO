@@ -353,10 +353,10 @@ void cmd_fdlist()
     int n = fd_list(infos, 32);
     if (n <= 0)
     {
-        printf("(sin FDs dina   micos)\n");
+        printf("(sin FDs dinamicos)\n");
         return;
     }
-    printf("FDs dinámicos (%d):\n", n);
+    printf("FDs dinamicos (%d):\n", n);
     for (int i = 0; i < n; i++)
     {
         printf("  id=%d name=%s bytes=%u\n", infos[i].fd, infos[i].name, (unsigned)infos[i].size);
