@@ -71,22 +71,6 @@ static int default_idle(void *argv)
 }
 
 /*
- * start_task
- * Inicia la ejecución de la tarea en procQueue[idx] desde su entrypoint.
- */
-static void start_task(int idx)
-{
-    if (idx < 0 || idx >= MAX_TASKS || procQueue[idx].present == false)
-        return;
-    current_pid = idx;
-    task_fn_t t = procQueue[idx].entryPoint;
-    // si retorna, terminó, se guarda el status.
-    procQueue[idx].status = (int)t(procQueue[idx].argv);
-    procQueue[idx].is_zombie = true;
-    scheduler_switch(NULL);
-}
-
-/*
  * scheduler_set_idle
  * Configura la tarea init/idle usada cuando no hay tareas listas.
  * Uso: Personalización opcional después de scheduler_init; pasar NULL restaura el idle por defecto.
