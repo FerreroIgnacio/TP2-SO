@@ -1,6 +1,7 @@
 #include "../../libs/standard/standard.h"
 #include "../../libs/video/video.h"
 #include "../../libs/fontManager/fontManager.h"
+#include "../../libs/invalidOpCode/invalidOpCode.h"
 // #include "../PongisGolf/pongisgolf.h"
 
 #define FONT_BMP_SIZE 8
@@ -54,7 +55,6 @@ void cmd_info();
 void cmd_dateTime();
 void cmd_registers();
 void cmd_test0Div();
-void cmd_testInvalidCode();
 // New FD commands
 void cmd_createfd(char *args);
 void cmd_writefd(char *args);
@@ -267,11 +267,6 @@ void cmd_test0Div()
     z++;
 }
 
-void cmd_testInvalidCode()
-{
-    __asm__ __volatile__("ud2");
-}
-
 // New: createfd <name>
 void cmd_createfd(char *args)
 {
@@ -434,7 +429,7 @@ void execute_command()
     }
     else if (!strcmp(cmd_copy, "testinvalidcode"))
     {
-        cmd_testInvalidCode();
+        testInvalidCode();
     }
     else if (!strcmp(cmd_copy, "listfonts"))
     {

@@ -1,7 +1,7 @@
 include ../Makefile.inc
 
 # Carpetas de librerías
-SUBDIRS := standard video fontManager
+SUBDIRS := standard video fontManager invalidOpCode
 
 # Archivos fuente
 CSOURCES := $(foreach dir,$(SUBDIRS),$(wildcard $(dir)/*.c))
@@ -23,6 +23,9 @@ video/%.o: video/%.c
 fontManager/%.o: fontManager/%.c
 	$(GCC) $(GCCFLAGS) -I../include -c $< -o $@
 
+invalidOpCode/%.o: invalidOpCode/%.c
+	$(GCC) $(GCCFLAGS) -I../include -c $< -o $@
+
 # Compilación de ASM con sufijo _asm
 standard/%_asm.o: standard/%.asm
 	$(ASM) $(ASMFLAGS) -o $@ $<
@@ -31,6 +34,9 @@ video/%_asm.o: video/%.asm
 	$(ASM) $(ASMFLAGS) -o $@ $<
 
 fontManager/%_asm.o: fontManager/%.asm
+	$(ASM) $(ASMFLAGS) -o $@ $<
+
+invalidOpCode/%_asm.o: invalidOpCode/%.asm
 	$(ASM) $(ASMFLAGS) -o $@ $<
 
 clean:
