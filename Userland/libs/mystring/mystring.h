@@ -20,4 +20,6 @@ uint64_t strtooct(const char *str);
 // genérico para uint en dec, hex y oct
 uint64_t strtoint_complete(const char *str);
 
+char *find_args(char *cmd);
+
 #endif

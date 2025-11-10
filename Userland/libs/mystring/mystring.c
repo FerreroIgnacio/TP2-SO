@@ -127,3 +127,16 @@ uint64_t strtoint_complete(const char *str)
     }
     return strtoint(str);
 }
+
+char *find_args(char *cmd)
+{
+    while (*cmd && *cmd != ' ')
+        cmd++;
+    if (*cmd == ' ')
+    {
+        *cmd++ = '\0';
+        while (*cmd == ' ')
+            cmd++;
+    }
+    return cmd;
+}
