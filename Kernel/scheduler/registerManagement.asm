@@ -1,4 +1,7 @@
 GLOBAL interrupt_setRegisters
+GLOBAL reg_read_cs
+GLOBAL reg_read_ss
+GLOBAL reg_read_rflags
 
 SECTION .text
 
@@ -52,3 +55,20 @@ interrupt_setRegisters:
     
     iretq   
 
+; Read current CS selector
+reg_read_cs:
+    xor eax, eax
+    mov ax, cs
+    ret
+
+; Read current SS selector
+reg_read_ss:
+    xor eax, eax
+    mov ax, ss
+    ret
+
+; Read current RFLAGS
+reg_read_rflags:
+    pushfq
+    pop rax
+    ret

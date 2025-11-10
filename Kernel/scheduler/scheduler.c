@@ -7,6 +7,7 @@
 #include "../IDT/isrHandlers.h"   // Para medir tiempo por ticks
 #include "../syscalls/syscalls.h" // saveRegisters / sys_getRegisters
 #include "../semaphores/sem.h"
+#include "registerManagement.h"
 
 #ifndef MAX_TASKS
 #define MAX_TASKS 16
@@ -18,25 +19,6 @@ static inline uint64_t top_of_stack(int pid)
 {
     uint64_t top = (uint64_t)&task_stacks[pid][TASK_STACK_SIZE];
     return top & ~((uint64_t)0xF);
-}
-
-static inline uint16_t read_cs(void)
-{
-    uint16_t v;
-    __asm__ volatile("mov %%cs, %0" : "=r"(v));
-    return v;
-}
-static inline uint16_t read_ss(void)
-{
-    uint16_t v;
-    __asm__ volatile("mov %%ss, %0" : "=r"(v));
-    return v;
-}
-static inline uint64_t read_rflags(void)
-{
-    uint64_t v;
-    __asm__ volatile("pushfq; pop %0" : "=r"(v));
-    return v;
 }
 
 // Cola de procesos y su info
@@ -250,9 +232,9 @@ void scheduler_switch(reg_screenshot_t *regs)
         ctx->rdi = (uint64_t)next->argv;
         ctx->rsp = top_of_stack(idx);
         ctx->rbp = ctx->rsp;
-        ctx->rflags = read_rflags() | (1ULL << 9); // IF=1
-        ctx->CS = read_cs();
-        ctx->SS = read_ss();
+        ctx->rflags = reg_read_rflags() | (1ULL << 9); // IF=1
+        ctx->CS = reg_read_cs();
+        ctx->SS = reg_read_ss();
         interrupt_setRegisters(ctx);
         return;
     }
@@ -392,9 +374,9 @@ void scheduler_start(void)
                 ctx->rdi = (uint64_t)next->argv;
                 ctx->rsp = top_of_stack(idx);
                 ctx->rbp = ctx->rsp;
-                ctx->rflags = read_rflags() | (1ULL << 9);
-                ctx->CS = read_cs();
-                ctx->SS = read_ss();
+                ctx->rflags = reg_read_rflags() | (1ULL << 9);
+                ctx->CS = reg_read_cs();
+                ctx->SS = reg_read_ss();
                 interrupt_setRegisters(ctx);
             }
             else
