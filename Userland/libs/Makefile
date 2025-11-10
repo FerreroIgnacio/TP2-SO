@@ -1,8 +1,7 @@
 include ../Makefile.inc
 
 # Carpetas de librerías
-SUBDIRS := standard video fontManager invalidOpCode test mystring audio fileDescriptorUtils memory keyboard time
-
+SUBDIRS := standard video fontManager invalidOpCode test mystring audio fileDescriptorUtils memory keyboard time process
 # Archivos fuente
 CSOURCES := $(foreach dir,$(SUBDIRS),$(wildcard $(dir)/*.c))
 ASMSOURCES := $(foreach dir,$(SUBDIRS),$(wildcard $(dir)/*.asm))
@@ -74,6 +73,12 @@ keyboard/%_asm.o: keyboard/%.asm
 	$(ASM) $(ASMFLAGS) -o $@ $<
 
 time/%_asm.o: time/%.asm
+	$(ASM) $(ASMFLAGS) -o $@ $<
+
+process/%_asm.o: process/%.asm
+	$(ASM) $(ASMFLAGS) -o $@ $<
+
+semaphores/%_asm.o: semaphores/%.asm
 	$(ASM) $(ASMFLAGS) -o $@ $<
 
 clean:

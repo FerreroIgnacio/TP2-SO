@@ -344,9 +344,9 @@ void sys_yield(void)
 /*
  * ID 50
  */
-int sys_waitpid(int pid, int *status, int options) // TODO
+int sys_waitpid(int pid, int *status, int options)
 {
-    return 1;
+    return scheduler_wait_pid(pid, status, options);
 }
 
 int sys_sem_open(const char *name, int initial_value)
