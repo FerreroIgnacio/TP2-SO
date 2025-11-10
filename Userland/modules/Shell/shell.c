@@ -2,6 +2,7 @@
 #include "../../libs/video/video.h"
 #include "../../libs/fontManager/fontManager.h"
 #include "../../libs/invalidOpCode/invalidOpCode.h"
+#include "../../libs/test/test.h"
 // #include "../PongisGolf/pongisgolf.h"
 
 #define FONT_BMP_SIZE 8
