@@ -14,7 +14,7 @@ all: $(MODULE)
 # Build libs first, then link with fresh list of lib objects
 $(MODULE): $(OBJS)
 	$(MAKE) -C $(LIBS_DIR) all
-	$(GCC) $(GCCFLAGS) -T shell.ld $(OBJS) $(shell find $(LIBS_DIR) -name "*.o") -o ../$(MODULE)
+	$(GCC) $(GCCFLAGS) -T shell.ld $(OBJS) `find $(LIBS_DIR) -name "*.o"` -o ../$(MODULE)
 
 %.o: %.c
 	$(GCC) $(GCCFLAGS) -I../include -c $< -o $@

@@ -1,8 +1,9 @@
 #include "syscall.h"
 #include "test_util.h"
-#include <stdio.h>
-#include <stdlib.h>
-#include <string.h>
+//#include <stdio.h>
+//#include <stdlib.h>
+//#include <string.h>
+#include "../standard/standard.h"
 
 #define MAX_BLOCKS 128
 
@@ -39,7 +40,7 @@ uint64_t test_mm(uint64_t argc, char *argv[]) {
       }
     }
 
-    // Set
+    // Set (No funca)
     uint32_t i;
     for (i = 0; i < rq; i++)
       if (mm_rqs[i].address)

@@ -56,6 +56,7 @@ void cmd_info();
 void cmd_dateTime();
 void cmd_registers();
 void cmd_test0Div();
+void cmd_testMM(char *args);
 // New FD commands
 void cmd_createfd(char *args);
 void cmd_writefd(char *args);
@@ -182,6 +183,7 @@ void cmd_help()
     printf("  setfont <id>     - Cambiar la fuente\n");
     printf("  testzerodiv      - Testea la excepcion 00 \n");
     printf("  testinvalidcode  - Testea la excepcion 06 \n");
+    printf("  testMM <bytes>   - Ejecuta stress test del manejador de memoria\n");
     printf("  createfd <name>  - Crea FD dinámico y devuelve su id\n");
     printf("  writefd <fd> <text> - Escribe texto ASCII en el FD\n");
     printf("  readfd <fd>      - Lee todos los bytes disponibles y los imprime\n");
@@ -266,6 +268,64 @@ void cmd_test0Div()
     int y = 0;
     int z = x / y;
     z++;
+}
+
+void cmd_testMM(char *args)
+{
+    if (!args)
+    {
+        printf("Uso: testMM <bytes>\n");
+        return;
+    }
+
+    while (*args == ' ')
+    {
+        args++;
+    }
+
+    if (*args == '\0')
+    {
+        printf("Uso: testMM <bytes>\n");
+        return;
+    }
+
+    char *arg_end = args;
+    while (*arg_end && *arg_end != ' ')
+    {
+        arg_end++;
+    }
+
+    char saved = *arg_end;
+    *arg_end = '\0';
+
+    if (*args == '\0')
+    {
+        printf("Uso: testMM <bytes>\n");
+        *arg_end = saved;
+        return;
+    }
+
+    if (saved != '\0')
+    {
+        char *extra = arg_end + 1;
+        while (*extra == ' ')
+        {
+            extra++;
+        }
+        if (*extra != '\0')
+        {
+            printf("Uso: testMM <bytes>\n");
+            *arg_end = saved;
+            return;
+        }
+    }
+
+    printf("Iniciando testMM con %s bytes\n", args);
+    char *test_args[] = {args};
+    uint64_t result = test_mm(1, test_args);
+    printf("testMM finalizado con codigo %x\n", (int)result);
+
+    *arg_end = saved;
 }
 
 // New: createfd <name>
@@ -435,6 +495,10 @@ void execute_command()
     else if (!strcmp(cmd_copy, "listfonts"))
     {
         shell_list_fonts();
+    }
+    else if (!strcmp(cmd_copy, "testMM"))
+    {
+        cmd_testMM(args);
     }
     else if (!strcmp(cmd_copy, "setfont"))
     {
