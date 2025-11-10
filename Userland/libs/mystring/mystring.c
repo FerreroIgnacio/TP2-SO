@@ -63,6 +63,17 @@ char *strncat(char *dest, const char *src, uint64_t n)
     return ret;
 }
 
+void *memcpy(void *dest, const void *src, size_t n)
+{
+    uint8_t *d = (uint8_t *)dest;
+    const uint8_t *s = (const uint8_t *)src;
+    while (n--)
+    {
+        *d++ = *s++;
+    }
+    return dest;
+}
+
 int64_t strtoint(const char *str)
 {
     int64_t sign = 1;

@@ -56,11 +56,11 @@ void cmd_help()
     printf("  mvar             - Implementa el problema de múltiples lectores\n");                          // TODO
 
     printf("\nTests disponibles:\n");
-    printf("  test_mm <bytes>    - Ejecuta stress test del manejador de memoria\n");
-    printf("  test_processes     - \n"); // TODO
-    printf("  test_priority      - \n"); // TODO
-    printf("  test_synchro       - \n"); // TODO
-    printf("  test_no_synchro    - \n"); // TODO
+    printf("  test_mm <max-bytes>                     - Ejecuta stress test del manejador de memoria\n");
+    printf("  test_processes <max-processes>          - Crea, bloquea, desbloquea y mata procesos aleatoriamente.\n"); // TODO
+    printf("  test_priority <end-val-for-process>     - 3 procesos se ejecutan con misma prioridad y luego con distinta\n"); // TODO
+    printf("  test_synchro <processes> <inc-dec>      - Varios procesos modifican 1 variable usando semaforos\n"); // TODO
+    printf("  test_no_synchro <processes> <inc-dec>   - Varios procesos modifican una variable sin semaforos\n"); // TODO
 
     printf("\nControles:\n");
     printf("  Enter - Ejecutar comando\n");
@@ -72,7 +72,7 @@ void cmd_clear()
     clear_screen();
 }
 
-int cmd_testMM(void *argv)
+int cmd_testMM(void *argv) //TODO
 {
 
     return (int)test_mm(1, argv);
@@ -136,36 +136,40 @@ int cmd_testMM(void *argv)
     */
 }
 
-void cmd_testProcesses(char *args)
+int cmd_testProcesses(void *argv) //TODO
 {
     printf("Iniciando testProcesses...\n");
     // char *test_args[] = {args};
     uint64_t result = 0; // test_processes(0, test_args);
     printf("testProcesses finalizado con codigo %x\n", result);
+    return result;
 }
 
-void cmd_testPriority(char *args)
+int cmd_testPriority(void *argv) //TODO
 {
     printf("Iniciando testPriority...\n");
     // char *test_args[] = {args};
     uint64_t result = 0; // test_priority(0, test_args);
     printf("testPriority finalizado con codigo %x\n", result);
+    return result;
 }
 
-void cmd_testSynchro(char *args)
+int cmd_testSynchro(void *argv) //TODO
 {
     printf("Iniciando testSynchro...\n");
     // char *test_args[] = {args};
     uint64_t result = 0; // test_synchronization(0, test_args);
     printf("testSynchro finalizado con codigo %x\n", result);
+    return result;
 }
 
-void cmd_testNoSynchro(char *args)
+int cmd_testNoSynchro(void *argv) //TODO
 {
     printf("Iniciando testNoSynchro...\n");
     // char *test_args[] = {args};
     uint64_t result = 0; // test_no_synchronization(0, test_args);
     printf("testNoSynchro finalizado con codigo %x\n", result);
+    return result;
 }
 
 void cmd_echo(char *args)
@@ -354,7 +358,7 @@ void cmd_fdlist()
 
 // TEST:
 
-void command_switch(char *cmd_copy, char *args)
+void command_switch(char *cmd_copy, char *args) //TODO revisar estar llamando bien new_proc()
 {
     if (!strcmp(cmd_copy, "help"))
     {
@@ -370,19 +374,19 @@ void command_switch(char *cmd_copy, char *args)
     }
     else if (!strcmp(cmd_copy, "test_processes"))
     {
-        // new_proc(cmd_testProcesses, args);
+        new_proc(cmd_testProcesses, args);
     }
     else if (!strcmp(cmd_copy, "test_priority"))
     {
-        // new_proc(cmd_testPriority, args);
+        new_proc(cmd_testPriority, args);
     }
     else if (!strcmp(cmd_copy, "test_synchro"))
     {
-        // new_proc(cmd_testSynchro, args);
+        new_proc(cmd_testSynchro, args);
     }
     else if (!strcmp(cmd_copy, "test_no_synchro"))
     {
-        // new_proc(cmd_testNoSynchro, args);
+        new_proc(cmd_testNoSynchro, args);
     }
 
     // Comandos realizados en Arquitectura de Computadoras (ya no se muestran en "help"):

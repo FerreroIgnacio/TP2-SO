@@ -12,6 +12,7 @@ char *strcpy(char *dest, const char *src);
 char *strncpy(char *dest, const char *src, uint64_t n);
 char *strcat(char *dest, const char *src);
 char *strncat(char *dest, const char *src, uint64_t n);
+void *memcpy(void *dest, const void *src, size_t n);
 
 int64_t strtoint(const char *str);
 uint64_t strtouint(const char *str);

@@ -5,13 +5,6 @@ GLOBAL sem_close
 GLOBAL sem_set
 
 
-#define SYSCALL_SEM_OPEN 60
-#define SYSCALL_SEM_WAIT 61
-#define SYSCALL_SEM_POST 62
-#define SYSCALL_SEM_CLOSE 63
-#define SYSCALL_SEM_SET 64
-
-
 SECTION .text
 
 sem_open:
