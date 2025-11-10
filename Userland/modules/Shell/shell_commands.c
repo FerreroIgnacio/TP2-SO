@@ -17,6 +17,9 @@
 static void *const pongisgolfModuleAddress = (void *)0x8000000;
 
 // Comandos disponibles
+
+// CMD_HELP DE ARQUI
+/*
 void cmd_help()
 {
     printf("Comandos disponibles:\n");
@@ -29,15 +32,36 @@ void cmd_help()
     printf("  setfont <id>     - Cambiar la fuente\n");
     printf("  testzerodiv      - Testea la excepcion 00 \n");
     printf("  testinvalidcode  - Testea la excepcion 06 \n");
-    printf("  testMM <bytes>   - Ejecuta stress test del manejador de memoria\n");
-    printf("  createfd <name>  - Crea FD dinámico y devuelve su id\n");
-    printf("  writefd <fd> <text> - Escribe texto ASCII en el FD\n");
-    printf("  readfd <fd>      - Lee todos los bytes disponibles y los imprime\n");
-    printf("  fdlist           - Lista FDs dinámicos (id, nombre, bytes)\n");
-    printf("\nTests disponibles:\n");
-
     printf("\nProgramas disponibles:\n");
     printf("  pongisgolf\n");
+    printf("\nControles:\n");
+    printf("  Enter - Ejecutar comando\n");
+    printf("  Backspace - Borrar caracter\n");
+}*/
+
+void cmd_help()
+{
+    printf("Comandos disponibles:\n");
+    printf("  help             - Mostrar comandos disponibles\n");
+    printf("  clear            - Limpiar pantalla\n");
+    printf("  mem              - Imprime el estado de la memoria\n");                                       // TODO
+    printf("  ps               - Imprime la lista de todos los procesos\n");                                // TODO
+    printf("  loop             - Imprime su ID con un saludo cada una determinada cantidad de segundos\n"); // TODO
+    printf("  kill <pid>       - Mata un proceso dado su ID.\n");                                           // TODO
+    printf("  nice <pid> <pri> - Cambia la prioridad de un proceso dado su ID y la nueva prioridad\n");     // TODO
+    printf("  block <pid>      - Switch entre ready y blocked de un proceso dado su ID.\n");                // TODO
+    printf("  cat              - Imprime el stdin tal como lo recibe.\n");                                  // TODO
+    printf("  wc               - Cuenta la cantidad de líneas del input\n");                                // TODO
+    printf("  filter           - Filtra las vocales del input.\n");                                         // TODO
+    printf("  mvar             - Implementa el problema de múltiples lectores\n");                          // TODO
+
+    printf("\nTests disponibles:\n");
+    printf("  test_mm <bytes>    - Ejecuta stress test del manejador de memoria\n");
+    printf("  test_processes     - \n"); // TODO
+    printf("  test_priority      - \n"); // TODO
+    printf("  test_synchro       - \n"); // TODO
+    printf("  test_no_synchro    - \n"); // TODO
+
     printf("\nControles:\n");
     printf("  Enter - Ejecutar comando\n");
     printf("  Backspace - Borrar caracter\n");
@@ -46,6 +70,102 @@ void cmd_help()
 void cmd_clear()
 {
     clear_screen();
+}
+
+int cmd_testMM(void *argv)
+{
+
+    return (int)test_mm(1, argv);
+
+    /*
+    char *args = (char *)argv;
+    if (!args)
+    {
+        printf("Uso: testMM <bytes>\n");
+        return 1;
+    }
+
+    while (*args == ' ')
+    {
+        args++;
+    }
+
+    if (*args == '\0')
+    {
+        printf("Uso: testMM <bytes>\n");
+        return 1;
+    }
+
+    char *arg_end = args;
+    while (*arg_end && *arg_end != ' ')
+    {
+        arg_end++;
+    }
+
+    char saved = *arg_end;
+    *arg_end = '\0';
+
+    if (*args == '\0')
+    {
+        printf("Uso: testMM <bytes>\n");
+        *arg_end = saved;
+        return 1;
+    }
+
+    if (saved != '\0')
+    {
+        char *extra = arg_end + 1;
+        while (*extra == ' ')
+        {
+            extra++;
+        }
+        if (*extra != '\0')
+        {
+            printf("Uso: testMM <bytes>\n");
+            *arg_end = saved;
+            return 1;
+        }
+    }
+
+    printf("Iniciando testMM con %s bytes\n", args);
+    char *test_args[] = {args};
+    uint64_t result = test_mm(1, test_args);
+    printf("testMM finalizado con codigo %x\n", result);
+
+    *arg_end = saved;
+    */
+}
+
+void cmd_testProcesses(char *args)
+{
+    printf("Iniciando testProcesses...\n");
+    // char *test_args[] = {args};
+    uint64_t result = 0; // test_processes(0, test_args);
+    printf("testProcesses finalizado con codigo %x\n", result);
+}
+
+void cmd_testPriority(char *args)
+{
+    printf("Iniciando testPriority...\n");
+    // char *test_args[] = {args};
+    uint64_t result = 0; // test_priority(0, test_args);
+    printf("testPriority finalizado con codigo %x\n", result);
+}
+
+void cmd_testSynchro(char *args)
+{
+    printf("Iniciando testSynchro...\n");
+    // char *test_args[] = {args};
+    uint64_t result = 0; // test_synchronization(0, test_args);
+    printf("testSynchro finalizado con codigo %x\n", result);
+}
+
+void cmd_testNoSynchro(char *args)
+{
+    printf("Iniciando testNoSynchro...\n");
+    // char *test_args[] = {args};
+    uint64_t result = 0; // test_no_synchronization(0, test_args);
+    printf("testNoSynchro finalizado con codigo %x\n", result);
 }
 
 void cmd_echo(char *args)
@@ -116,96 +236,6 @@ void cmd_test0Div()
     int y = 0;
     int z = x / y;
     z++;
-}
-
-void cmd_testMM(char *args)
-{
-    if (!args)
-    {
-        printf("Uso: testMM <bytes>\n");
-        return;
-    }
-
-    while (*args == ' ')
-    {
-        args++;
-    }
-
-    if (*args == '\0')
-    {
-        printf("Uso: testMM <bytes>\n");
-        return;
-    }
-
-    char *arg_end = args;
-    while (*arg_end && *arg_end != ' ')
-    {
-        arg_end++;
-    }
-
-    char saved = *arg_end;
-    *arg_end = '\0';
-
-    if (*args == '\0')
-    {
-        printf("Uso: testMM <bytes>\n");
-        *arg_end = saved;
-        return;
-    }
-
-    if (saved != '\0')
-    {
-        char *extra = arg_end + 1;
-        while (*extra == ' ')
-        {
-            extra++;
-        }
-        if (*extra != '\0')
-        {
-            printf("Uso: testMM <bytes>\n");
-            *arg_end = saved;
-            return;
-        }
-    }
-
-    printf("Iniciando testMM con %s bytes\n", args);
-    char *test_args[] = {args};
-    uint64_t result = test_mm(1, test_args);
-    printf("testMM finalizado con codigo %x\n", result);
-
-    *arg_end = saved;
-}
-
-void cmd_testProcesses(char *args)
-{
-    printf("Iniciando testProcesses...\n");
-    // char *test_args[] = {args};
-    uint64_t result = 0; // test_processes(0, test_args);
-    printf("testProcesses finalizado con codigo %x\n", result);
-}
-
-void cmd_testPriority(char *args)
-{
-    printf("Iniciando testPriority...\n");
-    // char *test_args[] = {args};
-    uint64_t result = 0; // test_priority(0, test_args);
-    printf("testPriority finalizado con codigo %x\n", result);
-}
-
-void cmd_testSynchro(char *args)
-{
-    printf("Iniciando testSynchro...\n");
-    // char *test_args[] = {args};
-    uint64_t result = 0; // test_synchronization(0, test_args);
-    printf("testSynchro finalizado con codigo %x\n", result);
-}
-
-void cmd_testNoSynchro(char *args)
-{
-    printf("Iniciando testNoSynchro...\n");
-    // char *test_args[] = {args};
-    uint64_t result = 0; // test_no_synchronization(0, test_args);
-    printf("testNoSynchro finalizado con codigo %x\n", result);
 }
 
 void cmd_createfd(char *args)
@@ -334,6 +364,28 @@ void command_switch(char *cmd_copy, char *args)
     {
         cmd_clear();
     }
+    else if (!strcmp(cmd_copy, "test_mm"))
+    {
+        new_proc(cmd_testMM, args);
+    }
+    else if (!strcmp(cmd_copy, "test_processes"))
+    {
+        // new_proc(cmd_testProcesses, args);
+    }
+    else if (!strcmp(cmd_copy, "test_priority"))
+    {
+        // new_proc(cmd_testPriority, args);
+    }
+    else if (!strcmp(cmd_copy, "test_synchro"))
+    {
+        // new_proc(cmd_testSynchro, args);
+    }
+    else if (!strcmp(cmd_copy, "test_no_synchro"))
+    {
+        // new_proc(cmd_testNoSynchro, args);
+    }
+
+    // Comandos realizados en Arquitectura de Computadoras (ya no se muestran en "help"):
     else if (!strcmp(cmd_copy, "echo"))
     {
         cmd_echo(args);
@@ -357,26 +409,6 @@ void command_switch(char *cmd_copy, char *args)
     else if (!strcmp(cmd_copy, "listfonts"))
     {
         shell_list_fonts();
-    }
-    else if (!strcmp(cmd_copy, "testMM"))
-    {
-        cmd_testMM(args);
-    }
-    else if (!strcmp(cmd_copy, "testProcesses"))
-    {
-        cmd_testProcesses(args);
-    }
-    else if (!strcmp(cmd_copy, "testPriority"))
-    {
-        cmd_testPriority(args);
-    }
-    else if (!strcmp(cmd_copy, "testSynchro"))
-    {
-        cmd_testSynchro(args);
-    }
-    else if (!strcmp(cmd_copy, "testNoSynchro"))
-    {
-        cmd_testNoSynchro(args);
     }
     else if (!strcmp(cmd_copy, "setfont"))
     {

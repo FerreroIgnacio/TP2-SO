@@ -15,7 +15,6 @@ typedef struct MM_rq
 
 uint64_t test_mm(uint64_t argc, char *argv[])
 {
-
   mm_rq mm_rqs[MAX_BLOCKS];
   uint8_t rq;
   uint32_t total;
@@ -44,9 +43,6 @@ uint64_t test_mm(uint64_t argc, char *argv[])
         rq++;
       }
     }
-
-    /* TODO: memset() on Buddy crashea y con freelist sigue en
-     *  un loop infinito (lo cual significa que funciona?) */
 
     // Set
     uint32_t i;
