@@ -4,6 +4,7 @@
 
 #include <stdint.h>
 #include <stdbool.h>
+#include <stddef.h>
 
 #define MAX_SEMAPHORES 64
 #define SEM_NAME_MAX 32
@@ -11,6 +12,8 @@
 typedef struct spinlock {
     volatile int lock;
 } spinlock_t;
+
+void cpu_relax(void);
 
 static inline void spinlock_init(spinlock_t *lock) {
     if (lock != NULL) {
@@ -20,7 +23,7 @@ static inline void spinlock_init(spinlock_t *lock) {
 
 static inline void spinlock_lock(spinlock_t *lock) {
     while (__atomic_test_and_set(&lock->lock, __ATOMIC_ACQUIRE)) {
-        __asm__ __volatile__("pause");
+        cpu_relax();
     }
 }
 

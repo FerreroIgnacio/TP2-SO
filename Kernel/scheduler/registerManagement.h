@@ -34,4 +34,11 @@ typedef struct reg_screenshot
 // return from interrupt with given registers
 void interrupt_setRegisters(reg_screenshot_t *regs);
 
+// Read current code segment selector (CS)
+uint16_t reg_read_cs(void);
+// Read current stack segment selector (SS)
+uint16_t reg_read_ss(void);
+// Read current RFLAGS value
+uint64_t reg_read_rflags(void);
+
 #endif // TP2_SO_SYS_SETREGISTERS_H
