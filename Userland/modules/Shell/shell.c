@@ -3,7 +3,11 @@
 #include "../../libs/fontManager/fontManager.h"
 #include "../../libs/invalidOpCode/invalidOpCode.h"
 #include "../../libs/test/test.h"
-// #include "../PongisGolf/pongisgolf.h"
+#include "../../libs/mystring/mystring.h"
+#include "../../libs/fileDescriptorUtils/fileDescriptorUtils.h"
+#include "../../libs/memory/memory.h"
+#include "../../libs/keyboard/keyboard.h"
+#include "../../libs/time/time.h"
 
 #define FONT_BMP_SIZE 8
 #define FONT_SIZE 1
@@ -332,7 +336,7 @@ void cmd_testProcesses(char *args)
 {
     printf("Iniciando testProcesses...\n");
     char *test_args[] = {args};
-    uint64_t result = 0; //test_processes(0, test_args);
+    uint64_t result = 0; // test_processes(0, test_args);
     printf("testProcesses finalizado con codigo %x\n", result);
 }
 
@@ -340,7 +344,7 @@ void cmd_testPriority(char *args)
 {
     printf("Iniciando testPriority...\n");
     char *test_args[] = {args};
-    uint64_t result = 0; //test_priority(0, test_args);
+    uint64_t result = 0; // test_priority(0, test_args);
     printf("testPriority finalizado con codigo %x\n", result);
 }
 
@@ -348,7 +352,7 @@ void cmd_testSynchro(char *args)
 {
     printf("Iniciando testSynchro...\n");
     char *test_args[] = {args};
-    uint64_t result = 0; //test_synchronization(0, test_args);
+    uint64_t result = 0; // test_synchronization(0, test_args);
     printf("testSynchro finalizado con codigo %x\n", result);
 }
 
@@ -356,7 +360,7 @@ void cmd_testNoSynchro(char *args)
 {
     printf("Iniciando testNoSynchro...\n");
     char *test_args[] = {args};
-    uint64_t result = 0; //test_no_synchronization(0, test_args);
+    uint64_t result = 0; // test_no_synchronization(0, test_args);
     printf("testNoSynchro finalizado con codigo %x\n", result);
 }
 

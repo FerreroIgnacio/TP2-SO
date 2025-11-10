@@ -9,10 +9,6 @@
 #include "../semaphores/sem.h"
 #include "registerManagement.h"
 
-#ifndef MAX_TASKS
-#define MAX_TASKS 16
-#endif
-
 #define TASK_STACK_SIZE (16 * 1024)
 static uint8_t task_stacks[MAX_TASKS][TASK_STACK_SIZE];
 static inline uint64_t top_of_stack(int pid)
@@ -30,14 +26,20 @@ static task_fn_t init_task_fn = default_idle;
 static void *init_task_argv = NULL;
 static int current_pid = -1;
 
+static int firstEntry = 1;
+
+static void scheduler_init(void);
+
+// tarea 0, padre de todos los procesos
+static int scheduler_genesis_proc(void);
+
 static bool is_valid_pid(int pid)
 {
-    if (pid < 0 || pid >= MAX_TASKS)
+    if (pid < 0 || pid >= MAX_TASKS || !procQueue[pid].present)
     {
         return false;
     }
-    proc_info_t *proc = &procQueue[pid];
-    return proc->present;
+    return true;
 }
 
 /*
@@ -71,6 +73,8 @@ void scheduler_set_idle(task_fn_t idle_task, void *argv)
  */
 int scheduler_add(task_fn_t task, void *argv)
 {
+    if (firstEntry)
+        scheduler_init();
     if (task == NULL)
         return -1;
     for (int i = 0; i < MAX_TASKS; i++)
@@ -110,7 +114,7 @@ int scheduler_add(task_fn_t task, void *argv)
 
 int scheduler_kill(int pid)
 {
-    if (pid < 0 || pid >= MAX_TASKS || procQueue[pid].present == false)
+    if (pid < 1 || pid >= MAX_TASKS || procQueue[pid].present == false)
         return -1;
     procQueue[pid].is_zombie = true;
     procQueue[pid].was_killed = true;
@@ -126,7 +130,7 @@ int scheduler_kill(int pid)
 void scheduler_exit(int status)
 {
     int pid = current_pid;
-    if (pid < 0 || pid >= MAX_TASKS || procQueue[pid].present == false)
+    if (pid < 1 || pid >= MAX_TASKS || procQueue[pid].present == false)
         return;
     procQueue[pid].is_zombie = true;
     procQueue[pid].status = status;
@@ -250,7 +254,7 @@ int scheduler_current_pid(void)
 
 int scheduler_block_current(struct wait_node *wait_token)
 {
-    if (current_pid < 0 || wait_token == NULL)
+    if (current_pid < 1 || wait_token == NULL)
     {
         return -1;
     }
@@ -271,7 +275,7 @@ int scheduler_block_current(struct wait_node *wait_token)
 
 void scheduler_unblock(int pid, struct wait_node *wait_token, int status)
 {
-    if (!is_valid_pid(pid) || wait_token == NULL)
+    if (pid == 0 || !is_valid_pid(pid) || wait_token == NULL)
     {
         return;
     }
@@ -289,7 +293,7 @@ void scheduler_unblock(int pid, struct wait_node *wait_token, int status)
 
 int scheduler_block_pid(int pid)
 {
-    if (!is_valid_pid(pid))
+    if (pid || !is_valid_pid(pid))
     {
         return -1;
     }
@@ -321,7 +325,7 @@ int scheduler_block_pid(int pid)
 
 int scheduler_unblock_pid(int pid)
 {
-    if (!is_valid_pid(pid))
+    if (pid == 0 || !is_valid_pid(pid))
     {
         return -1;
     }
@@ -339,7 +343,7 @@ int scheduler_unblock_pid(int pid)
 
 int scheduler_set_priority(int pid, process_priority_t new_priority)
 {
-    if (pid < 0 || pid >= MAX_TASKS || new_priority < PRIORITY_LOW || new_priority > PRIORITY_HIGH || procQueue[pid].present == false)
+    if (pid < 1 || pid >= MAX_TASKS || new_priority < PRIORITY_LOW || new_priority > PRIORITY_HIGH || procQueue[pid].present == false)
     {
         return -1;
     }
@@ -356,8 +360,86 @@ process_priority_t scheduler_get_priority(int pid)
     return procQueue[pid].priority;
 }
 
-void scheduler_start(void)
+static void scheduler_adopt_orphans()
 {
+    for (int i = 1; i <= MAX_TASKS; i++)
+    {
+        if (!procQueue[i].present)
+            continue;
+        if (!procQueue[procQueue[i].father_pid].present || procQueue[procQueue[i].father_pid].is_zombie)
+        {
+            procQueue[i].father_pid = 0;
+        }
+    }
+}
+
+static void scheduler_delete_orphan_zombies()
+{
+    for (int i = 1; i <= MAX_TASKS; i++)
+    {
+        if (procQueue[i].present && procQueue[i].father_pid == 0 && procQueue[i].is_zombie)
+        {
+            procQueue[i].present = 0;
+        }
+    }
+}
+
+static int scheduler_genesis_proc()
+{
+    while (1)
+    {
+        scheduler_adopt_orphans();
+        scheduler_delete_orphan_zombies();
+        scheduler_yield();
+    }
+    return -1;
+}
+
+int scheduler_wait_pid(int pid, int *status, waitpid_options_t hang)
+{
+    if ((!is_valid_pid(pid)) || (procQueue[pid].father_pid != current_pid))
+        return -1;
+    while (1)
+    {
+        if (pid == 0)
+        { // pid == 0 busca algún hijo que haya terminado
+            for (int i = 1; i < MAX_TASKS; i++)
+            {
+                if (procQueue[i].present && procQueue[i].father_pid == current_pid && procQueue[i].is_zombie)
+                {
+                    *status = procQueue[i].status;
+                    procQueue[i].present = false;
+                    return procQueue[i].pid;
+                }
+            }
+        }
+        else
+        { // pid > 0 espera a que el hijo pid termine
+            if (procQueue[pid].is_zombie)
+            {
+                *status = procQueue[pid].status;
+                procQueue[pid].present = false;
+                return pid;
+            }
+        }
+        if (hang == WNOHANG)
+            return 0;
+        scheduler_yield();
+    }
+}
+
+static void scheduler_init()
+{
+    firstEntry = 0;
+    current_pid = 0;
+    scheduler_add((task_fn_t)scheduler_genesis_proc, NULL);
+    procQueue[0].priority = PRIORITY_HIGH;
+}
+
+void scheduler_start()
+{
+    if (firstEntry)
+        scheduler_init();
     while (1)
     {
         int idx = find_next_ready_from(current_pid);

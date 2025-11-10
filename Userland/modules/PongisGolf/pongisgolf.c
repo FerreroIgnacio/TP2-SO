@@ -2,7 +2,12 @@
 
 #include "../../libs/standard/standard.h"
 #include "../../libs/video/video.h"
-
+#include "../../libs/mystring/mystring.h"
+#include "../../libs/audio/audio.h"
+#include "../../libs/fileDescriptorUtils/fileDescriptorUtils.h"
+#include "../../libs/memory/memory.h"
+#include "../../libs/keyboard/keyboard.h"
+#include "../../libs/time/time.h"
 // Variables globales
 
 static frameBuffer newFrame;
@@ -733,7 +738,7 @@ int runPongisGolf()
     while (1)
     {
         if (isKeyPressed(0x3C)) // Tecla F2
-        { // volver a shell
+        {                       // volver a shell
             flush(STDIN);
             return 1;
         }

@@ -4,12 +4,22 @@
 #include <stdint.h>
 #include "registerManagement.h"
 
+#ifndef MAX_TASKS
+#define MAX_TASKS 16
+#endif
+
 typedef enum
 {
     PRIORITY_LOW = 1,    // Procesos en background, tareas no urgentes
     PRIORITY_NORMAL = 2, // Prioridad por defecto
     PRIORITY_HIGH = 3,   // Procesos interactivos o de usuario
 } process_priority_t;
+
+typedef enum
+{
+    WNOHANG,
+    WHANG
+} waitpid_options_t;
 
 struct wait_node;
 
@@ -44,7 +54,7 @@ typedef struct
 } proc_info_t;
 
 /*
- * Configura la tarea init/idle que se ejecuta cuando no hay tareas listas.
+ * Configura la tarea 1/idle que se ejecuta cuando no hay tareas listas.
  * Si se pasa NULL, se usa una tarea idle por defecto que detiene la CPU una vez.
  * Uso: Opcional. Llamar después de scheduler_init para personalizar el idle.
  */
@@ -128,4 +138,9 @@ int scheduler_block_pid(int pid);
 
 // Marca un proceso bloqueado manualmente como listo otra vez.
 int scheduler_unblock_pid(int pid);
+
+// espera que termine el proceso pid
+// si pid == 0, espera a que termine cualquier hijo
+// si hang == WHANG, espera bloqueante, si hang == WNOHANG, no bloquea si el hijo no terminó
+int scheduler_wait_pid(int pid, int *status, waitpid_options_t hang);
 #endif
