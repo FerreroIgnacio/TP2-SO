@@ -323,12 +323,43 @@ void cmd_testMM(char *args)
     printf("Iniciando testMM con %s bytes\n", args);
     char *test_args[] = {args};
     uint64_t result = test_mm(1, test_args);
-    printf("testMM finalizado con codigo %x\n", (int)result);
+    printf("testMM finalizado con codigo %x\n", result);
 
     *arg_end = saved;
 }
 
-// New: createfd <name>
+void cmd_testProcesses(char *args)
+{
+    printf("Iniciando testProcesses...\n");
+    char *test_args[] = {args};
+    uint64_t result = 0; //test_processes(0, test_args);
+    printf("testProcesses finalizado con codigo %x\n", result);
+}
+
+void cmd_testPriority(char *args)
+{
+    printf("Iniciando testPriority...\n");
+    char *test_args[] = {args};
+    uint64_t result = 0; //test_priority(0, test_args);
+    printf("testPriority finalizado con codigo %x\n", result);
+}
+
+void cmd_testSynchro(char *args)
+{
+    printf("Iniciando testSynchro...\n");
+    char *test_args[] = {args};
+    uint64_t result = 0; //test_synchronization(0, test_args);
+    printf("testSynchro finalizado con codigo %x\n", result);
+}
+
+void cmd_testNoSynchro(char *args)
+{
+    printf("Iniciando testNoSynchro...\n");
+    char *test_args[] = {args};
+    uint64_t result = 0; //test_no_synchronization(0, test_args);
+    printf("testNoSynchro finalizado con codigo %x\n", result);
+}
+
 void cmd_createfd(char *args)
 {
     if (!args || *args == '\0')
@@ -499,6 +530,22 @@ void execute_command()
     else if (!strcmp(cmd_copy, "testMM"))
     {
         cmd_testMM(args);
+    }
+    else if (!strcmp(cmd_copy, "testProcesses"))
+    {
+        cmd_testProcesses(args);
+    }
+    else if (!strcmp(cmd_copy, "testPriority"))
+    {
+        cmd_testPriority(args);
+    }
+    else if (!strcmp(cmd_copy, "testSynchro"))
+    {
+        cmd_testSynchro(args);
+    }
+    else if (!strcmp(cmd_copy, "testNoSynchro"))
+    {
+        cmd_testNoSynchro(args);
     }
     else if (!strcmp(cmd_copy, "setfont"))
     {

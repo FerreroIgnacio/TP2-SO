@@ -40,7 +40,10 @@ uint64_t test_mm(uint64_t argc, char *argv[]) {
       }
     }
 
-    // Set (No funca)
+    /* TODO: memset() on Buddy crashea y con freelist sigue en
+    *  un loop infinito (lo cual significa que funciona?) */
+   
+    // Set
     uint32_t i;
     for (i = 0; i < rq; i++)
       if (mm_rqs[i].address)
