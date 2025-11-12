@@ -42,8 +42,8 @@ void cmd_help()
 void cmd_help()
 {
     printf("Comandos disponibles:\n");
-    printf("  help             - Mostrar comandos disponibles\n");
-    printf("  clear            - Limpiar pantalla\n");
+    printf("  help             - Mostrar comandos disponibles\n");                                          // OK
+    printf("  clear            - Limpiar pantalla\n");                                                      // OK
     printf("  mem              - Imprime el estado de la memoria\n");                                       // TODO
     printf("  ps               - Imprime la lista de todos los procesos\n");                                // TODO
     printf("  loop             - Imprime su ID con un saludo cada una determinada cantidad de segundos\n"); // TODO
@@ -57,7 +57,7 @@ void cmd_help()
 
     printf("\nTests disponibles:\n");
     printf("  test_mm <max-bytes>                     - Ejecuta stress test del manejador de memoria\n");
-    printf("  test_processes <max-processes>          - Crea, bloquea, desbloquea y mata procesos aleatoriamente.\n");       // TODO
+    printf("  test_processes <max-processes>          - Crea, bloquea, desbloquea y mata procesos aleatoriamente.\n");       // OK: falta fix en buddy
     printf("  test_priority <end-val-for-process>     - 3 procesos se ejecutan con misma prioridad y luego con distinta\n"); // TODO
     printf("  test_synchro <processes> <inc-dec>      - Varios procesos modifican 1 variable usando semaforos\n");           // TODO
     printf("  test_no_synchro <processes> <inc-dec>   - Varios procesos modifican una variable sin semaforos\n");            // TODO
@@ -72,7 +72,7 @@ void cmd_clear()
     clear_screen();
 }
 
-int cmd_testMM(void *argv) // TODO
+int cmd_testMM(void *argv)
 {
 
     char *args = (char *)argv;
@@ -354,7 +354,7 @@ void cmd_fdlist()
 
 // TEST:
 
-void command_switch(char *cmd_copy, char *args) // TODO revisar estar llamando bien new_proc()
+void command_switch(char *cmd_copy, char *args)
 {
     if (!strcmp(cmd_copy, "help"))
     {

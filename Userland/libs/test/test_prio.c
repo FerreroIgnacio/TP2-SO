@@ -5,23 +5,27 @@
 
 #define TOTAL_PROCESSES 3
 
-#define LOWEST 0  // TODO: Change as required
-#define MEDIUM 1  // TODO: Change as required
-#define HIGHEST 2 // TODO: Change as required
+// Change as required
+#define LOWEST 1
+#define MEDIUM 2
+#define HIGHEST 3
 
 int64_t prio[TOTAL_PROCESSES] = {LOWEST, MEDIUM, HIGHEST};
 
 uint64_t max_value = 0;
 
-void zero_to_max() {
+void zero_to_max()
+{
   uint64_t value = 0;
 
-  while (value++ != max_value);
+  while (value++ != max_value)
+    ;
 
   printf("PROCESS %d DONE!\n", my_getpid());
 }
 
-uint64_t test_prio(uint64_t argc, char *argv[]) {
+uint64_t test_prio(uint64_t argc, char *argv[])
+{
   int64_t pids[TOTAL_PROCESSES];
   char *ztm_argv[] = {0};
   uint64_t i;
@@ -44,7 +48,8 @@ uint64_t test_prio(uint64_t argc, char *argv[]) {
 
   printf("SAME PRIORITY, THEN CHANGE IT...\n");
 
-  for (i = 0; i < TOTAL_PROCESSES; i++) {
+  for (i = 0; i < TOTAL_PROCESSES; i++)
+  {
     pids[i] = my_create_process("zero_to_max", 0, ztm_argv);
     my_nice(pids[i], prio[i]);
     printf("  PROCESS %d NEW PRIORITY: %d\n", pids[i], prio[i]);
@@ -57,7 +62,8 @@ uint64_t test_prio(uint64_t argc, char *argv[]) {
 
   printf("SAME PRIORITY, THEN CHANGE IT WHILE BLOCKED...\n");
 
-  for (i = 0; i < TOTAL_PROCESSES; i++) {
+  for (i = 0; i < TOTAL_PROCESSES; i++)
+  {
     pids[i] = my_create_process("zero_to_max", 0, ztm_argv);
     my_block(pids[i]);
     my_nice(pids[i], prio[i]);
