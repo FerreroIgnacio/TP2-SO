@@ -75,9 +75,6 @@ void cmd_clear()
 int cmd_testMM(void *argv)
 {
 
-    return (int)test_mm(1, argv);
-
-    /*
     char *args = (char *)argv;
     if (!args)
     {
@@ -133,7 +130,6 @@ int cmd_testMM(void *argv)
     printf("testMM finalizado con codigo %x\n", result);
 
     *arg_end = saved;
-    */
 }
 
 void cmd_testProcesses(char *args)
@@ -366,23 +362,23 @@ void command_switch(char *cmd_copy, char *args)
     }
     else if (!strcmp(cmd_copy, "test_mm"))
     {
-        new_proc(cmd_testMM, args);
+        new_proc(cmd_testMM, &args);
     }
     else if (!strcmp(cmd_copy, "test_processes"))
     {
-        // new_proc(cmd_testProcesses, args);
+        new_proc(cmd_testProcesses, &args);
     }
     else if (!strcmp(cmd_copy, "test_priority"))
     {
-        // new_proc(cmd_testPriority, args);
+        new_proc(cmd_testPriority, &args);
     }
     else if (!strcmp(cmd_copy, "test_synchro"))
     {
-        // new_proc(cmd_testSynchro, args);
+        new_proc(cmd_testSynchro, &args);
     }
     else if (!strcmp(cmd_copy, "test_no_synchro"))
     {
-        // new_proc(cmd_testNoSynchro, args);
+        new_proc(cmd_testNoSynchro, &args);
     }
 
     // Comandos realizados en Arquitectura de Computadoras (ya no se muestran en "help"):

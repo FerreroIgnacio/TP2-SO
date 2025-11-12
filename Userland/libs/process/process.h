@@ -77,6 +77,7 @@ typedef struct
 } proc_info_t;
 
 pid_t new_proc(task_fn_t entry, void *argv);
+
 void exit(int exit_code);
 pid_t getpid(void);
 int get_proc_list(proc_info_t *out, int max);
