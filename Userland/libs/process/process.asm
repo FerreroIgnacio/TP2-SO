@@ -9,6 +9,7 @@ GLOBAL block_proc
 GLOBAL unblock_proc
 GLOBAL yield
 GLOBAL waitpid
+GLOBAL sleep
 
 
 SECTION .text
@@ -68,3 +69,7 @@ waitpid:
     int 0x80 
     ret;
 
+sleep:
+    mov rax, 0x33
+    int 0x80 
+    ret;

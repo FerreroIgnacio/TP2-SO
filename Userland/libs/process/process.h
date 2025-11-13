@@ -53,20 +53,22 @@ typedef struct wait_node
 
 typedef struct
 {
-    int pid; // Identificador de tarea
+    int pid;
     int present;
-    task_fn_t entryPoint; // Puntero a la función asociada a la tarea
+    task_fn_t entryPoint;
     void *argv;
     int father_pid;
 
-    uint64_t startTime_ticks; // Tiempo transcurrido en ms desde que se encoló (aprox.)
+    uint64_t startTime_ticks;
 
-    reg_screenshot_t ctx; // último contexto de registros guardado para este pid (20 qwords)
+    reg_screenshot_t ctx;
 
     int ready;
     int waiting;
-    wait_node_t *waiting_node;
+    struct wait_node *waiting_node;
     int wait_status;
+
+    int wakeup_time; // si un proceso duerme, guarda el tiempo en el que debe despertar
 
     int priority;
     int run_tokens; // 1 token = 1 quantum de cpu, a mayor prioridad, mayor tiempo de cpu.
@@ -88,5 +90,6 @@ int block_proc(pid_t pid);
 int unblock_proc(pid_t pid);
 void yield(void);
 pid_t waitpid(pid_t pid, int *status, waitpid_options_t options);
+void sleep(int s);
 
 #endif

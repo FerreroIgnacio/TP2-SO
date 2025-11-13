@@ -1,6 +1,7 @@
 #include "standard.h"
 #include <stdarg.h>
 #include "../mystring/mystring.h"
+#include "../time/time.h"
 
 static uint64_t rand_seed = 0;
 void autoinit()

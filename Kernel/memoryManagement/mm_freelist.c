@@ -158,6 +158,7 @@ void freelist_init(void *heap_start, size_t heap_size)
     free_list_head = NULL;
     heap_begin = NULL;
     heap_end = NULL;
+    total_memory = heap_size;
 
     if (!heap_start || heap_size < sizeof(block_header_t) + ALIGNMENT)
     {

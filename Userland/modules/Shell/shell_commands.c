@@ -14,11 +14,13 @@
 #include "./shell_defs.h"
 #include "./shell_render.h"
 
+#define MAX_PROCESS 100
+
 static void *const pongisgolfModuleAddress = (void *)0x8000000;
 
 // Comandos disponibles
 
-// CMD_HELP DE ARQUI
+// CMD_HELP DE ARQUITECTURA DE COMPUTADORAS
 /*
 void cmd_help()
 {
@@ -39,15 +41,15 @@ void cmd_help()
     printf("  Backspace - Borrar caracter\n");
 }*/
 
-void cmd_help()
+int cmd_help()
 {
     printf("Comandos disponibles:\n");
     printf("  help             - Mostrar comandos disponibles\n");                                          // OK
     printf("  clear            - Limpiar pantalla\n");                                                      // OK
-    printf("  mem              - Imprime el estado de la memoria\n");                                       // TODO
-    printf("  ps               - Imprime la lista de todos los procesos\n");                                // TODO
-    printf("  loop             - Imprime su ID con un saludo cada una determinada cantidad de segundos\n"); // TODO
-    printf("  kill <pid>       - Mata un proceso dado su ID.\n");                                           // TODO
+    printf("  mem              - Imprime el estado de la memoria\n");                                       // OK:
+    printf("  ps               - Imprime la lista de todos los procesos\n");                                // OK:
+    printf("  loop <segundos>  - Imprime su ID con un saludo cada una determinada cantidad de segundos\n"); // OK: (falta fix en new_proc)
+    printf("  kill <pid>       - Mata un proceso dado su ID.\n");                                           // OK: (falta hacerlo proceso)
     printf("  nice <pid> <pri> - Cambia la prioridad de un proceso dado su ID y la nueva prioridad\n");     // TODO
     printf("  block <pid>      - Switch entre ready y blocked de un proceso dado su ID.\n");                // TODO
     printf("  cat              - Imprime el stdin tal como lo recibe.\n");                                  // TODO
@@ -57,7 +59,7 @@ void cmd_help()
 
     printf("\nTests disponibles:\n");
     printf("  test_mm <max-bytes>                     - Ejecuta stress test del manejador de memoria\n");
-    printf("  test_processes <max-processes>          - Crea, bloquea, desbloquea y mata procesos aleatoriamente.\n");       // OK: falta fix en buddy
+    printf("  test_processes <max-processes>          - Crea, bloquea, desbloquea y mata procesos aleatoriamente.\n");       // OK: (falta fix en mm's + fix en new_proc)
     printf("  test_priority <end-val-for-process>     - 3 procesos se ejecutan con misma prioridad y luego con distinta\n"); // TODO
     printf("  test_synchro <processes> <inc-dec>      - Varios procesos modifican 1 variable usando semaforos\n");           // TODO
     printf("  test_no_synchro <processes> <inc-dec>   - Varios procesos modifican una variable sin semaforos\n");            // TODO
@@ -65,6 +67,9 @@ void cmd_help()
     printf("\nControles:\n");
     printf("  Enter - Ejecutar comando\n");
     printf("  Backspace - Borrar caracter\n");
+
+    exit(0);
+    return 0;
 }
 
 void cmd_clear()
@@ -72,10 +77,66 @@ void cmd_clear()
     clear_screen();
 }
 
+int cmd_mem()
+{
+    size_t total, used, free;
+    getMemInfo(&total, &used, &free);
+    printf("Estado de la memoria:\n");
+    printf("TOTAL: %d   USADO: %d   LIBRE: %d\n", total, used, free);
+    exit(0);
+    return 0;
+}
+
+int cmd_loop(void *argv) // TODO: FIX NEW_PROC
+{
+    printf("%s\n", argv);
+    int segs = 5; // (int)strtoint(argv);
+    if (segs <= 0)
+    {
+        printf("Uso: loop <segundos>\n");
+        exit(0);
+    }
+    while (1)
+    {
+        printf("Hola! soy el proceso: %d. Este mensaje aparecera cada %d segundos \n", (int)getpid(), segs);
+        sleep(segs);
+    }
+    exit(0);
+    return 0;
+}
+
+int cmd_ps()
+{
+    proc_info_t proc_list[MAX_PROCESS];
+    int count = get_proc_list(proc_list, MAX_PROCESS);
+    for (int i = 0; i < count; i++)
+    {
+        proc_info_t *p = &proc_list[i];
+        printf(
+            "PID:%d | Father:%d | Pri:%d | Ready:%d | Wait:%d | Zombie:%d | Status:%d\n",
+            p->pid,
+            p->father_pid,
+            p->priority,
+            p->ready,
+            p->waiting,
+            p->is_zombie,
+            p->status);
+    }
+    exit(0);
+    return 0;
+}
+
+void cmd_kill(pid_t pid)
+{
+    int status = kill(pid);
+    printf("Kill a proceso: %d termino con estado: %d \n", pid, status);
+}
+
 int cmd_testMM(void *argv)
 {
 
     char *args = (char *)argv;
+
     if (!args)
     {
         printf("Uso: testMM <bytes>\n");
@@ -130,6 +191,8 @@ int cmd_testMM(void *argv)
     printf("testMM finalizado con codigo %x\n", result);
 
     *arg_end = saved;
+    exit(1);
+    return 1;
 }
 
 int cmd_testProcesses(void *argv) // TODO
@@ -167,6 +230,8 @@ int cmd_testNoSynchro(void *argv) // TODO
     printf("testNoSynchro finalizado con codigo %x\n", result);
     return result;
 }
+
+// ARQUI
 
 void cmd_echo(char *args)
 {
@@ -352,18 +417,53 @@ void cmd_fdlist()
     }
 }
 
-// TEST:
-
 void command_switch(char *cmd_copy, char *args)
 {
     if (!strcmp(cmd_copy, "help"))
     {
-        cmd_help();
+        new_proc((task_fn_t)cmd_help, NULL);
     }
     else if (!strcmp(cmd_copy, "clear"))
     {
         cmd_clear();
     }
+
+    else if (!strcmp(cmd_copy, "mem"))
+    {
+        new_proc(cmd_mem, NULL);
+    }
+
+    else if (!strcmp(cmd_copy, "ps"))
+    {
+        new_proc(cmd_ps, NULL);
+    }
+    else if (!strcmp(cmd_copy, "loop"))
+    {
+        char param[10];
+        strcpy(param, args);
+        new_proc((task_fn_t)cmd_loop, (void *)param);
+    }
+    else if (!strcmp(cmd_copy, "kill"))
+    {
+        cmd_kill(strtoint(args));
+    }
+    /*
+    else if (!strcmp(cmd_copy, "nice"))
+    {
+    }
+    else if (!strcmp(cmd_copy, "block"))
+    {
+    }
+    else if (!strcmp(cmd_copy, "cat"))
+    {
+    }
+    else if (!strcmp(cmd_copy, "wc"))
+    {
+    }
+    else if (!strcmp(cmd_copy, "filter"))
+    {
+    }
+    */
     else if (!strcmp(cmd_copy, "test_mm"))
     {
         new_proc(cmd_testMM, &args);

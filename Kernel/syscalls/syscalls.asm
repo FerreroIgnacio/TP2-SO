@@ -29,21 +29,32 @@ bcd_to_bin:			; en el rtc se guardan los valores en bcd, hay que pasarlos a deci
     ret
 
 sys_getTime:
-	mov al, 0x00 	; leer segundos
-	call read_rtc		
-	call bcd_to_bin
-	mov [rdx], al   ; cargar los segundos
 
-	mov al, 0x02 	; leer minutos
-	call read_rtc	
-	call bcd_to_bin	
-	mov [rsi], al	; cargar los minutos
+    mov  al, 0x00          ; registro de segundos en el RTC
+    call read_rtc
+    call bcd_to_bin         ; convierte a binario
+    cmp  rdx, 0
+    je   .skip_sec
+    mov  [rdx], al          ; guarda segundos en *rdx
+.skip_sec:
 
-	mov al, 0x04 	; leer horas
-	call read_rtc	
-	call bcd_to_bin	
-	mov [rdi], al	; cargar las horas
+    ; ======== Minutos ========
+    mov  al, 0x02          ; registro de minutos
+    call read_rtc
+    call bcd_to_bin
+    cmp  rsi, 0
+    je   .skip_min
+    mov  [rsi], al          ; guarda minutos en *rsi
+.skip_min:
 
+    ; ======== Horas ========
+    mov  al, 0x04          ; registro de horas
+    call read_rtc
+    call bcd_to_bin
+    cmp  rdi, 0
+    je   .skip_hr
+    mov  [rdi], al          ; guarda horas en *rdi
+.skip_hr:
 	ret
 
 sys_getDate:

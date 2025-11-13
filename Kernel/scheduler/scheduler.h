@@ -5,7 +5,7 @@
 #include "registerManagement.h"
 
 #ifndef MAX_TASKS
-#define MAX_TASKS 16
+#define MAX_TASKS 100
 #endif
 
 typedef enum
@@ -30,20 +30,22 @@ typedef int (*task_fn_t)(void *);
 // Información mínima de un proceso/tarea expuesta para listados.
 typedef struct
 {
-    int pid; // Identificador de tarea
+    int pid;
     int present;
-    task_fn_t entryPoint; // Puntero a la función asociada a la tarea
+    task_fn_t entryPoint;
     void *argv;
     int father_pid;
 
-    uint64_t startTime_ticks; // Tiempo transcurrido en ms desde que se encoló (aprox.)
+    uint64_t startTime_ticks;
 
-    reg_screenshot_t ctx; // último contexto de registros guardado para este pid (20 qwords)
+    reg_screenshot_t ctx;
 
     int ready;
     int waiting;
     struct wait_node *waiting_node;
     int wait_status;
+
+    int wakeup_time; // si un proceso duerme, guarda el tiempo en el que debe despertar
 
     int priority;
     int run_tokens; // 1 token = 1 quantum de cpu, a mayor prioridad, mayor tiempo de cpu.
@@ -143,4 +145,7 @@ int scheduler_unblock_pid(int pid);
 // si pid == 0, espera a que termine cualquier hijo
 // si hang == WHANG, espera bloqueante, si hang == WNOHANG, no bloquea si el hijo no terminó
 int scheduler_wait_pid(int pid, int *status, waitpid_options_t hang);
+
+// bloquea el proceso ms milisegundos
+void scheduler_sleep(int ms);
 #endif

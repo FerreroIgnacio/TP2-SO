@@ -2,7 +2,7 @@
 #define ISR_HANDLERS_H
 #include <stdint.h>
 #include "../scheduler/registerManagement.h"
-#define SCHED_QUANTUM_TICKS 10
+#define SCHED_QUANTUM_TICKS 3
 
 void ex00Handler();
 void zeroDivDispatcher();

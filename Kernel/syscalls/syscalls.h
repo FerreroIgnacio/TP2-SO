@@ -52,6 +52,8 @@
 #define SYSCALL_YIELD 49
 // Esperar a que los hijos terminen
 #define SYSCALL_WAIT_PID 50
+// Dormir ms milisegundos
+#define SYSCALL_SLEEP 51
 
 // Semáforos
 #define SYSCALL_SEM_OPEN 60
@@ -106,6 +108,7 @@ int sys_block_proc(int pid);
 int sys_unblock_proc(int pid);
 void sys_yield(void);
 int sys_waitpid(int pid, int *status, int options);
+void sys_sleep(int ms);
 
 int sys_sem_open(const char *name, int initial_value);
 int sys_sem_wait(int sem_id);

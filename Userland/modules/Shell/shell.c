@@ -46,7 +46,7 @@ static void execute_command()
 }
 
 // Manejar entrada del teclado usando syscalls
-void handle_keyboard_input()
+static void handle_keyboard_input()
 {
     update_cursor();
     // Actualizar estado de shift usando isKeyPressed
@@ -129,6 +129,8 @@ int main()
             handle_keyboard_input();
 
         setFB(frame);
+        int status;
+        waitpid(0, &status, WNOHANG);
     }
 
     return 0;

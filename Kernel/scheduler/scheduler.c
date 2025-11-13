@@ -93,6 +93,7 @@ int scheduler_add(task_fn_t task, void *argv)
                 .waiting = false,
                 .waiting_node = NULL,
                 .wait_status = 0,
+                .wakeup_time = 0,
                 .priority = PRIORITY_NORMAL,
                 .run_tokens = PRIORITY_NORMAL,
                 .was_killed = false,
@@ -140,6 +141,7 @@ void scheduler_exit(int status)
 
 void scheduler_yield()
 {
+    procQueue[current_pid].run_tokens = 0;
     scheduler_save_and_switch();
 }
 
@@ -169,9 +171,14 @@ int scheduler_list(proc_info_t *out, int max)
  */
 static int find_next_ready_from(int start_exclusive)
 {
+    uint8_t current_secs;
+    sys_getTime(NULL, NULL, &current_secs);
     for (int step = 1; step <= MAX_TASKS; step++)
     {
+
         int idx = (start_exclusive + step) % MAX_TASKS;
+        procQueue[idx].ready = (procQueue[idx].wakeup_time <= current_secs ? 1 : 0);
+
         if (procQueue[idx].present == true && procQueue[idx].ready && !procQueue[idx].is_zombie)
         {
             return idx;
@@ -397,7 +404,7 @@ static int scheduler_genesis_proc()
 
 int scheduler_wait_pid(int pid, int *status, waitpid_options_t hang)
 {
-    if ((!is_valid_pid(pid)) || (procQueue[pid].father_pid != current_pid))
+    if (pid != 0 && ((!is_valid_pid(pid)) || (procQueue[pid].father_pid != current_pid)))
         return -1;
     while (1)
     {
@@ -471,4 +478,12 @@ void scheduler_start()
             (void)init_task_fn(init_task_argv);
         }
     }
+}
+
+void scheduler_sleep(int secs)
+{
+    uint8_t start_secs;
+    sys_getTime(NULL, NULL, &start_secs);
+    procQueue[current_pid].wakeup_time = start_secs + secs;
+    scheduler_yield();
 }

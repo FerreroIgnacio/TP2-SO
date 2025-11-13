@@ -21,6 +21,7 @@ clean:
 	cd modules/Shell; make clean
 	cd modules/PongisGolf; make clean
 	cd modules/TestModule; make clean
+	cd libs; make clean
 	rm -rf *.bin
 
 .PHONY: Shell PongisGolf all clean

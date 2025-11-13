@@ -81,6 +81,9 @@ uint64_t syscallHandler(int syscall_num, uint64_t arg1, uint64_t arg2, uint64_t 
         return 1;
     case SYSCALL_WAIT_PID:
         return sys_waitpid((int)arg1, (int *)arg2, (int)arg3);
+    case SYSCALL_SLEEP:
+        sys_sleep((int)(arg1));
+        return 1;
     case SYSCALL_SEM_OPEN:
         return sys_sem_open((const char *)arg1, (int)arg2);
     case SYSCALL_SEM_WAIT:
@@ -347,6 +350,14 @@ void sys_yield(void)
 int sys_waitpid(int pid, int *status, int options)
 {
     return scheduler_wait_pid(pid, status, options);
+}
+
+/*
+ * ID 51
+ */
+void sys_sleep(int ms)
+{
+    scheduler_sleep(ms);
 }
 
 int sys_sem_open(const char *name, int initial_value)

@@ -4,6 +4,9 @@
 // #include <stdlib.h>
 #include <string.h>
 #include "../standard/standard.h"
+#include "../process/process.h"
+#include "../memory/memory.h"
+#include "../fileDescriptorUtils/fileDescriptorUtils.h"
 
 #define MAX_BLOCKS 128
 
@@ -43,6 +46,7 @@ uint64_t test_mm(uint64_t argc, char *argv[])
         rq++;
       }
     }
+    yield();
 
     // Set
     uint32_t i;
@@ -50,6 +54,7 @@ uint64_t test_mm(uint64_t argc, char *argv[])
       if (mm_rqs[i].address)
         memset(mm_rqs[i].address, i, mm_rqs[i].size);
 
+    yield();
     // Check
     for (i = 0; i < rq; i++)
       if (mm_rqs[i].address)
@@ -58,10 +63,12 @@ uint64_t test_mm(uint64_t argc, char *argv[])
           printf("test_mm ERROR\n");
           return -1;
         }
-
+    yield();
     // Free
     for (i = 0; i < rq; i++)
       if (mm_rqs[i].address)
         free(mm_rqs[i].address);
+
+    yield();
   }
 }
