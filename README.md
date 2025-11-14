@@ -27,7 +27,16 @@ En caso de querer compilarlo de vuelta, es conveniente borrar los archivos de la
 //TODO
 
 ## Limitaciones
-//TODO
+El trabajo presenta grandes limitaciones debido a las funcionalidaddes que no llegamos a implementar. Nuestro objetivo de esta entrega es recibir correcciones sobre aquello que si pudimos implementar y consideramos que funciona correctamente. 
+
+
+-buddy
+-faltan pipes esstan solo en kernel
+-faltan test
+-faltan comandos
+-falta distrincion de un proceso en foreground
+-ctrl+c y ctrl+d
+-new_proc() se pasan mal los parametros
 
 ## Uso de IA
 La inteligencia artificial fue una herramienta fundamental para el desarrollo de nuestro proyecto. Esta nos permitió resolver dudas específicas teniendo nuestro proyecto como contexto, algo que sería imposible con Google/StackOverflow. Era capaz de analizar errores y revisar cientos de líneas de código en minutos para proporcionar posibles soluciones a nuestro problema. Esto nos acotó el tiempo de debugging significativamente. Además, el poder crear funciones enteras solo especificando el funcionamiento de las mismas nos permitió dedicarle el tiempo a pensar las funciones de una forma más abstracta. Sin embargo, la IA era incapaz de implementar por sí misma funcionalidades completas. Al no ser específico, esta interpretaba mal las funcionalidades e implementaba algo diferente a lo que uno quería o directamente con suficientes errores como para que convenga implementarlo a mano. Por otro lado, varias veces era incapaz de diagnosticar correctamente la causa de los errores, por lo cual uno debía hacer seguimiento de las funciones que fallaban a ojo. En conclusión, si bien la IA fue una herramienta increíblemente útil para acotar el tiempo dedicado a cosas frívolas, su incapacidad de razonar hizo que tuviéramos que relegar en la nuestra para obtener un proyecto funcional.
