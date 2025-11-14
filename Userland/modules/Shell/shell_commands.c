@@ -46,12 +46,12 @@ int cmd_help()
     printf("Comandos disponibles:\n");
     printf("  help             - Mostrar comandos disponibles\n");                                          // OK
     printf("  clear            - Limpiar pantalla\n");                                                      // OK
-    printf("  mem              - Imprime el estado de la memoria\n");                                       // OK:
-    printf("  ps               - Imprime la lista de todos los procesos\n");                                // OK:
+    printf("  mem              - Imprime el estado de la memoria\n");                                       // OK
+    printf("  ps               - Imprime la lista de todos los procesos\n");                                // OK
     printf("  loop <segundos>  - Imprime su ID con un saludo cada una determinada cantidad de segundos\n"); // OK: (falta fix en new_proc)
     printf("  kill <pid>       - Mata un proceso dado su ID.\n");                                           // OK: (falta hacerlo proceso)
     printf("  nice <pid> <pri> - Cambia la prioridad de un proceso dado su ID y la nueva prioridad\n");     // TODO
-    printf("  block <pid>      - Switch entre ready y blocked de un proceso dado su ID.\n");                // TODO
+    printf("  block <pid>      - Switch entre ready y blocked de un proceso dado su ID.\n");                // OK
     printf("  cat              - Imprime el stdin tal como lo recibe.\n");                                  // TODO
     printf("  wc               - Cuenta la cantidad de líneas del input\n");                                // TODO
     printf("  filter           - Filtra las vocales del input.\n");                                         // TODO
@@ -130,6 +130,23 @@ void cmd_kill(pid_t pid)
 {
     int status = kill(pid);
     printf("Kill a proceso: %d termino con estado: %d \n", pid, status);
+}
+
+void cmd_nice(pid_t pid, process_priority_t prio)
+{
+    printf("cambiando la prioridad del proceso: %d a %d", pid, prio);
+    set_priority(pid, prio);
+}
+
+void cmd_block(pid_t pid)
+{
+    if (block_proc(pid) == 0)
+    {
+        printf("bloqueando el proceso: %d", pid);
+        return;
+    }
+    printf("desbloqueando el proceso: %d", pid);
+    unblock_proc(pid);
 }
 
 int cmd_testMM(void *argv)
@@ -261,8 +278,10 @@ int cmd_testProcesses(void *argv)
 int cmd_testPriority(void *argv) // TODO
 {
     printf("Iniciando testPriority...\n");
-    // char *test_args[] = {args};
-    uint64_t result = 0; // test_priority(0, test_args);
+
+    char *test_args[] = {"3"}; //{argv};
+
+    uint64_t result = test_prio(1, test_args);
     printf("testPriority finalizado con codigo %x\n", result);
     return result;
 }
@@ -481,12 +500,10 @@ void command_switch(char *cmd_copy, char *args)
     {
         cmd_clear();
     }
-
     else if (!strcmp(cmd_copy, "mem"))
     {
         new_proc(cmd_mem, NULL);
     }
-
     else if (!strcmp(cmd_copy, "ps"))
     {
         new_proc(cmd_ps, NULL);
@@ -501,13 +518,16 @@ void command_switch(char *cmd_copy, char *args)
     {
         cmd_kill(strtoint(args));
     }
-    /*
+
     else if (!strcmp(cmd_copy, "nice"))
     {
+        cmd_nice(strtoint(args), strtoint(args + 1));
     }
     else if (!strcmp(cmd_copy, "block"))
     {
+        cmd_block(strtoint(args));
     }
+    /*
     else if (!strcmp(cmd_copy, "cat"))
     {
     }
