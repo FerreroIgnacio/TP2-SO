@@ -151,6 +151,9 @@ void cmd_block(pid_t pid)
 
 int cmd_testMM(void *argv)
 {
+    char *test[] = {"100000000"};
+    test_mm(1, test);
+    exit(0);
 
     char *args = (char *)argv;
 
@@ -540,7 +543,7 @@ void command_switch(char *cmd_copy, char *args)
     */
     else if (!strcmp(cmd_copy, "test_mm"))
     {
-        new_proc(cmd_testMM, &args);
+        new_proc(cmd_testMM, args);
     }
     else if (!strcmp(cmd_copy, "test_processes"))
     {
