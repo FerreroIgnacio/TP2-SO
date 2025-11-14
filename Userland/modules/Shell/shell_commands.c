@@ -195,13 +195,67 @@ int cmd_testMM(void *argv)
     return 1;
 }
 
-int cmd_testProcesses(void *argv) // TODO
+int cmd_testProcesses(void *argv)
 {
-    printf("Iniciando testProcesses...\n");
-    // char *test_args[] = {args};
-    uint64_t result = 0; // test_processes(0, test_args);
-    printf("testProcesses finalizado con codigo %x\n", result);
-    return result;
+    char *args = (char *)argv;
+    const char *usage_msg = "Uso: test_processes <max-processes>";
+
+    if (!args)
+    {
+        printf("%s\n", usage_msg);
+        return 1;
+    }
+
+    while (*args == ' ')
+    {
+        args++;
+    }
+
+    if (*args == '\0')
+    {
+        printf("%s\n", usage_msg);
+        return 1;
+    }
+
+    char *arg_end = args;
+    while (*arg_end && *arg_end != ' ')
+    {
+        arg_end++;
+    }
+
+    char saved = *arg_end;
+    *arg_end = '\0';
+
+    if (*args == '\0')
+    {
+        printf("%s\n", usage_msg);
+        *arg_end = saved;
+        return 1;
+    }
+
+    if (saved != '\0')
+    {
+        char *extra = arg_end + 1;
+        while (*extra == ' ')
+        {
+            extra++;
+        }
+        if (*extra != '\0')
+        {
+            printf("%s\n", usage_msg);
+            *arg_end = saved;
+            return 1;
+        }
+    }
+
+    printf("Iniciando testProcesses con max %s procesos...\n", args);
+    char *test_args[] = {args};
+    int64_t result = test_processes(1, test_args);
+    printf("testProcesses finalizado con codigo %x\n", (uint32_t)result);
+
+    *arg_end = saved;
+    exit((int)result);
+    return (int)result;
 }
 
 int cmd_testPriority(void *argv) // TODO

@@ -300,7 +300,7 @@ void scheduler_unblock(int pid, struct wait_node *wait_token, int status)
 
 int scheduler_block_pid(int pid)
 {
-    if (pid || !is_valid_pid(pid))
+    if (pid == 0 || !is_valid_pid(pid))
     {
         return -1;
     }
