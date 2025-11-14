@@ -177,7 +177,14 @@ static int find_next_ready_from(int start_exclusive)
     {
 
         int idx = (start_exclusive + step) % MAX_TASKS;
-        procQueue[idx].ready = (procQueue[idx].wakeup_time <= current_secs ? 1 : 0);
+        if (procQueue[idx].waiting)
+        {
+            procQueue[idx].ready = 0;
+        }
+        else
+        {
+            procQueue[idx].ready = (procQueue[idx].wakeup_time <= current_secs ? 1 : 0);
+        }
 
         if (procQueue[idx].present == true && procQueue[idx].ready && !procQueue[idx].is_zombie)
         {
@@ -306,18 +313,13 @@ int scheduler_block_pid(int pid)
     }
 
     proc_info_t *proc = &procQueue[pid];
-    if (!proc->ready)
-    {
-        return -1;
-    }
-
-    if (proc->waiting)
+    if (!proc->ready || proc->waiting)
     {
         return -1;
     }
 
     proc->ready = 0;
-    proc->waiting = 0;
+    proc->waiting = 1;
     proc->waiting_node = NULL;
     proc->wait_status = 0;
     proc->run_tokens = 0;
@@ -338,11 +340,12 @@ int scheduler_unblock_pid(int pid)
     }
 
     proc_info_t *proc = &procQueue[pid];
-    if (proc->ready || proc->waiting)
+    if (proc->ready || !proc->waiting || proc->waiting_node != NULL)
     {
         return -1;
     }
 
+    proc->waiting = 0;
     proc->ready = 1;
     proc->run_tokens = proc->priority;
     return 0;
