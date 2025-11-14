@@ -24,8 +24,8 @@ En caso de querer compilarlo de vuelta, es conveniente borrar los archivos de la
 `make clean`
 
 ## Limitaciones
-El trabajo presenta grandes limitaciones debido a las funcionalidaddes que no llegamos a implementar. Nuestro objetivo de esta entrega es recibir correcciones sobre aquello que si pudimos implementar y consideramos que funciona correctamente. Las funcionalidades que presentan errores son (por ahora):
-- El Buddy memory manager no pasa el test de memoria (freelist si los pasa)
+El trabajo presenta grandes limitaciones debido a las funcionalidades que no llegamos a implementar. Nuestro objetivo de esta entrega es recibir correcciones sobre aquello que sí pudimos implementar y consideramos que funciona correctamente. Las funcionalidades que presentan errores son (por ahora):
+- El Buddy memory manager no pasa el test de memoria (freelist sí los pasa).
 - El pasaje de parámetros en la creación de procesos no funciona: un proceso sin parámetros se crea correctamente desde shell, pero si se quiere que ese proceso reciba parámetros, no se puede en la versión actual. Este es el principal limitante a la hora de implementar funcionalidades de shell. Es por esto que prácticamente todos los comandos (si es que están implementados) tienen valores hardcodeado o no corren como procesos (corren como función dentro de shell).
 
 
@@ -41,8 +41,8 @@ Comandos implementados:
 - `block <pid>`      : bloquea el proceso pid (built-in, no crea un proceso)
 - `test_mm <max_mem>`: test del memory manager (hardcodeado a 10000000 bytes)
 
-- Faltan implementar los test de procesos, prioridad y sincronización
-- Faltan funcionalidades de shell: Pipear comandos, Atajos (ctrl+d , ctrl+c), Elección de background o foreground (&)  
+- Falta implementar los test de procesos, prioridad y sincronización
+- Faltan funcionalidades de shell: Pipear comandos, atajos (ctrl+d y ctrl+c), Elección de background o foreground (&)  
 - Faltan los comandos de shell: `nice`, `cat`, `wc`, `filter`, `mvar` y comandos de test.
 
 ## Uso de IA
