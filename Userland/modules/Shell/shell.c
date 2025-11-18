@@ -38,6 +38,82 @@ static void execute_command()
 
     command_buffer[buffer_pos] = '\0';
 
+    // Detectar pipeline "proc1 | proc2"
+    char line[BUFFER_SIZE];
+    strcpy(line, (char *)command_buffer);
+    char *bar = NULL;
+    for (char *p = line; *p; ++p) { if (*p == '|') { bar = p; break; } }
+    if (bar) {
+        // Split and trim both sides
+        *bar = '\0';
+        char *left = line;
+        char *right = bar + 1;
+        while (*left == ' ') left++;
+        while (*right == ' ') right++;
+        // rtrim left
+        char *lend = left + strlen(left);
+        while (lend > left && (lend[-1] == ' ')) { lend--; }
+        *lend = '\0';
+        // rtrim right
+        char *rend = right + strlen(right);
+        while (rend > right && (rend[-1] == ' ')) { rend--; }
+        *rend = '\0';
+
+        if (*left == '\0' || *right == '\0') {
+            shell_print_colored("Error de sintaxis en pipeline\n", ERROR_COLOR);
+            return;
+        }
+        // Parse name/args for left and right
+        char left_copy[BUFFER_SIZE]; strcpy(left_copy, left);
+        char right_copy[BUFFER_SIZE]; strcpy(right_copy, right);
+        char *left_args = find_args(left_copy);
+        char *right_args = find_args(right_copy);
+
+        // Si el comando izquierdo es un builtin soportado (echo), no spawnear proceso
+        if (!strcmp(left_copy, "echo")) {
+            int pipe_id = pipe_create();
+            if (pipe_id < 0) {
+                shell_print_colored("No se pudo crear pipe\n", ERROR_COLOR);
+                return;
+            }
+            int pid2 = shell_launch_program(right_copy, right_args);
+            if (pid2 < 0) {
+                shell_print_colored("Programa der. desconocido\n", ERROR_COLOR);
+                return;
+            }
+            // Conectar stdin del consumidor y stdout de la shell al pipe
+            fd_bind_std(pid2, 0 /*STDIN*/, pipe_id);
+            fd_bind_std(getpid(), 1 /*STDOUT*/, pipe_id);
+            // Ejecutar el builtin para volcar su salida al pipe
+            cmd_echo(left_args ? left_args : "");
+            // Restaurar stdout de la shell
+            fd_bind_std(getpid(), 1 /*STDOUT*/, -1);
+            return;
+        }
+
+        int pipe_id = pipe_create();
+        if (pipe_id < 0) {
+            shell_print_colored("No se pudo crear pipe\n", ERROR_COLOR);
+            return;
+        }
+
+        int pid1 = shell_launch_program(left_copy, left_args);
+        if (pid1 < 0) {
+            shell_print_colored("Programa izq. desconocido\n", ERROR_COLOR);
+            return;
+        }
+        int pid2 = shell_launch_program(right_copy, right_args);
+        if (pid2 < 0) {
+            shell_print_colored("Programa der. desconocido\n", ERROR_COLOR);
+            return;
+        }
+
+        // Vincular stdout de proc1 -> pipe, stdin de proc2 <- pipe
+        fd_bind_std(pid1, 1 /*STDOUT*/, pipe_id);
+        fd_bind_std(pid2, 0 /*STDIN*/, pipe_id);
+        return;
+    }
+
     char cmd_copy[BUFFER_SIZE];
     strcpy(cmd_copy, (char *)command_buffer);
     char *args = find_args(cmd_copy);

@@ -65,6 +65,8 @@
 // File Descriptors dynamic
 #define SYSCALL_FD_OPEN 70
 #define SYSCALL_FD_LIST 71
+#define SYSCALL_PIPE_CREATE 72
+#define SYSCALL_FD_BIND_STD 73
 
 int sys_read(int fd, char *buffer, uint64_t count);
 
@@ -118,5 +120,7 @@ void sys_sem_set(int sem_id, int new_value);
 
 int sys_fd_open(const char *name);
 int sys_fd_list(fd_info_t *out, int max);
+int sys_pipe_create(void);
+int sys_fd_bind_std(int pid, int which, int pipe_id);
 
 #endif

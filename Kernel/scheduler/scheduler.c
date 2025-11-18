@@ -8,6 +8,7 @@
 #include "../syscalls/syscalls.h" // saveRegisters / sys_getRegisters
 #include "../semaphores/sem.h"
 #include "registerManagement.h"
+#include "../filesDescriptors/fd.h"
 
 #define TASK_STACK_SIZE (16 * 1024)
 static uint8_t task_stacks[MAX_TASKS][TASK_STACK_SIZE];
@@ -99,6 +100,8 @@ int scheduler_add(task_fn_t task, void *argv)
                 .was_killed = false,
                 .is_zombie = false,
                 .status = 0};
+            // Reset per-process FDs for the new process slot
+            fd_reset_pid(i);
             return i;
         }
     }

@@ -56,6 +56,11 @@ int cmd_help()
     printf("  wc               - Cuenta la cantidad de líneas del input\n");                                // TODO
     printf("  filter           - Filtra las vocales del input.\n");                                         // TODO
     printf("  mvar             - Implementa el problema de múltiples lectores\n");                          // TODO
+    // Nuevos comandos de FDs dinamicos (por proceso)
+    printf("  createfd <name>  - Crea un FD dinamico en este proceso (desde 3 en adelante)\n");
+    printf("  writefd <fd> <texto> - Escribe texto en un FD dinamico de este proceso\n");
+    printf("  readfd <fd>      - Lee y muestra el contenido de un FD dinamico de este proceso\n");
+    printf("  fdlist           - Lista los FDs dinamicos del proceso actual\n");
 
     printf("\nTests disponibles:\n");
     printf("  test_mm <max-bytes>                     - Ejecuta stress test del manejador de memoria\n");
@@ -483,14 +488,34 @@ void cmd_fdlist()
     int n = fd_list(infos, 32);
     if (n <= 0)
     {
-        printf("(sin FDs dinamicos)\n");
+        printf("(sin FDs dinamicos en este proceso)\n");
         return;
     }
-    printf("FDs dinamicos (%d):\n", n);
+    printf("FDs dinamicos del proceso actual (%d):\n", n);
     for (int i = 0; i < n; i++)
     {
         printf("  id=%d name=%s bytes=%u\n", infos[i].fd, infos[i].name, (unsigned)infos[i].size);
     }
+}
+
+    static int launch_cat(char *args);
+
+int shell_launch_program(const char *name, char *args)
+{
+    if (name == NULL || *name == '\0') return -1;
+    if (!strcmp(name, "cat"))
+    {
+        return launch_cat(args);
+    }
+    // otros programas externos en el futuro
+    return -1;
+}
+
+extern int cat_proc(void *argv);
+static int launch_cat(char *args)
+{
+    (void)args;
+    return new_proc(cat_proc, NULL);
 }
 
 void command_switch(char *cmd_copy, char *args)
@@ -630,9 +655,13 @@ void command_switch(char *cmd_copy, char *args)
     }
     else if (cmd_copy[0] != '\0')
     {
-        shell_print_colored("Error: ", ERROR_COLOR);
-        printf("Comando desconocido '%s'\n", cmd_copy);
-
-        printf("Escribe 'help' para ver comandos disponibles.\n");
+        // Intentar programa externo (no builtin)
+        int pid = shell_launch_program(cmd_copy, args);
+        if (pid < 0)
+        {
+            shell_print_colored("Error: ", ERROR_COLOR);
+            printf("Comando desconocido '%s'\n", cmd_copy);
+            printf("Escribe 'help' para ver comandos disponibles.\n");
+        }
     }
 }

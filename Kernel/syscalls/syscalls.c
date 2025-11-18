@@ -9,6 +9,7 @@
 #include "../scheduler/scheduler.h"
 #include "../semaphores/sem.h"
 #include "../filesDescriptors/fd.h" // added
+#include "../filesDescriptors/pipes.h"
 
 uint64_t syscallHandler(int syscall_num, uint64_t arg1, uint64_t arg2, uint64_t arg3, uint64_t arg4, uint64_t arg5, uint64_t arg6)
 {
@@ -99,6 +100,10 @@ uint64_t syscallHandler(int syscall_num, uint64_t arg1, uint64_t arg2, uint64_t 
         return sys_fd_open((const char *)arg1);
     case SYSCALL_FD_LIST: // list dynamic FDs
         return sys_fd_list((fd_info_t *)arg1, (int)arg2);
+    case SYSCALL_PIPE_CREATE:
+        return sys_pipe_create();
+    case SYSCALL_FD_BIND_STD:
+        return sys_fd_bind_std((int)arg1, (int)arg2, (int)arg3);
     default:
         return -1;
     }
@@ -115,6 +120,11 @@ int sys_read(int fd, char *buffer, uint64_t count)
     {
     case STDIN:
     {
+        int pipe_id = fd_get_bound_stdin_pipe();
+        if (pipe_id >= 0)
+        {
+            return pipe_read(pipe_id, buffer, count);
+        }
         uint64_t i = 0;
         while (i < count && stdin_has_data())
         { // Solo leer si hay datos
@@ -161,11 +171,18 @@ int sys_write(int fd, const char *buffer, uint64_t count)
     switch (fd)
     {
     case STDOUT: // buffer everything (no filter)
+    {
+        int pipe_id = fd_get_bound_stdout_pipe();
+        if (pipe_id >= 0)
+        {
+            return pipe_write(pipe_id, buffer, count);
+        }
         for (uint64_t i = 0; i < count; i++)
         {
             queueKeyStdout(buffer[i]);
         }
         return count;
+    }
     case STDERR: // buffer everything (no filter)
         for (uint64_t i = 0; i < count; i++)
         {
@@ -392,4 +409,14 @@ int sys_fd_open(const char *name)
 int sys_fd_list(fd_info_t *out, int max)
 {
     return fd_list(out, max);
+}
+
+int sys_pipe_create(void)
+{
+    return pipe_create();
+}
+
+int sys_fd_bind_std(int pid, int which, int pipe_id)
+{
+    return fd_bind_std_for_pid(pid, which, pipe_id);
 }
