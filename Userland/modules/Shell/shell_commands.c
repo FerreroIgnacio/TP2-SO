@@ -48,8 +48,8 @@ int cmd_help()
     printf("  clear            - Limpiar pantalla\n");                                                      // OK
     printf("  mem              - Imprime el estado de la memoria\n");                                       // OK
     printf("  ps               - Imprime la lista de todos los procesos\n");                                // OK
-    printf("  loop <segundos>  - Imprime su ID con un saludo cada una determinada cantidad de segundos\n"); // OK: (falta fix en new_proc)
-    printf("  kill <pid>       - Mata un proceso dado su ID.\n");                                           // OK: (falta hacerlo proceso)
+    printf("  loop <segundos>  - Imprime su ID con un saludo cada una determinada cantidad de segundos\n"); // OK
+    printf("  kill <pid>       - Mata un proceso dado su ID.\n");                                           // OK
     printf("  nice <pid> <pri> - Cambia la prioridad de un proceso dado su ID y la nueva prioridad\n");     // TODO
     printf("  block <pid>      - Switch entre ready y blocked de un proceso dado su ID.\n");                // OK
     printf("  cat              - Imprime el stdin tal como lo recibe.\n");                                  // TODO
@@ -92,10 +92,13 @@ int cmd_mem()
     return 0;
 }
 
-int cmd_loop(void *argv) // TODO: FIX NEW_PROC
+int cmd_loop_argv[1];
+int cmd_loop(void *argv)
 {
-    printf("%s\n", argv);
-    int segs = 5; // (int)strtoint(argv);
+    if (argv == NULL)
+        return -1;
+    int *args = (int *)argv;
+    int segs = args[0];
     if (segs <= 0)
     {
         printf("Uso: loop <segundos>\n");
@@ -131,20 +134,50 @@ int cmd_ps()
     return 0;
 }
 
-void cmd_kill(pid_t pid)
+int cmd_kill_argv[1];
+void cmd_kill(void *argv)
 {
+    if (argv == NULL)
+    {
+        exit(-1);
+    }
+    int *args = (int *)argv;
+    pid_t pid = args[0];
     int status = kill(pid);
     printf("Kill a proceso: %d termino con estado: %d \n", pid, status);
+    exit(status);
 }
 
-void cmd_nice(pid_t pid, process_priority_t prio)
+int cmd_nice_argv[2];
+void cmd_nice(void *argv)
 {
-    printf("cambiando la prioridad del proceso: %d a %d", pid, prio);
-    set_priority(pid, prio);
+    if (argv == NULL)
+    {
+        exit(-1);
+    }
+    int *args = (int *)argv;
+    pid_t pid = args[0];
+    process_priority_t prio = args[1];
+    if (prio < PRIORITY_LOW || prio > PRIORITY_HIGH)
+    {
+        printf("Error, prioridades disponibles:\nLOW : %d\nNORMAL : %d\nHIGH: %d\n", PRIORITY_LOW, PRIORITY_NORMAL, PRIORITY_HIGH);
+        exit(-1);
+    }
+    printf("cambiando la prioridad del proceso: %d a %d\n", pid, prio);
+    int status = set_priority(pid, prio);
+    exit(status);
 }
 
-void cmd_block(pid_t pid)
+int cmd_block_argv[1];
+void cmd_block(void *argv)
 {
+    if (argv == NULL)
+    {
+        exit(-1);
+    }
+    int *args = (int *)argv;
+    pid_t pid = args[0];
+
     if (block_proc(pid) == 0)
     {
         printf("bloqueando el proceso: %d", pid);
@@ -498,11 +531,12 @@ void cmd_fdlist()
     }
 }
 
-    static int launch_cat(char *args);
+static int launch_cat(char *args);
 
 int shell_launch_program(const char *name, char *args)
 {
-    if (name == NULL || *name == '\0') return -1;
+    if (name == NULL || *name == '\0')
+        return -1;
     if (!strcmp(name, "cat"))
     {
         return launch_cat(args);
@@ -512,6 +546,7 @@ int shell_launch_program(const char *name, char *args)
 }
 
 extern int cat_proc(void *argv);
+
 static int launch_cat(char *args)
 {
     (void)args;
@@ -530,30 +565,35 @@ void command_switch(char *cmd_copy, char *args)
     }
     else if (!strcmp(cmd_copy, "mem"))
     {
-        new_proc(cmd_mem, NULL);
+        new_proc((task_fn_t)cmd_mem, NULL);
     }
     else if (!strcmp(cmd_copy, "ps"))
     {
-        new_proc(cmd_ps, NULL);
+        new_proc((task_fn_t)cmd_ps, NULL);
     }
     else if (!strcmp(cmd_copy, "loop"))
     {
-        char param[10];
-        strcpy(param, args);
-        new_proc((task_fn_t)cmd_loop, (void *)param);
+        cmd_loop_argv[0] = strtoint(args);
+        new_proc((task_fn_t)cmd_loop, cmd_loop_argv);
     }
     else if (!strcmp(cmd_copy, "kill"))
     {
-        cmd_kill(strtoint(args));
+        cmd_kill_argv[0] = strtoint(args);
+        new_proc((task_fn_t)cmd_kill, cmd_kill_argv);
     }
 
     else if (!strcmp(cmd_copy, "nice"))
     {
-        cmd_nice(strtoint(args), strtoint(args + 1));
+        char *p1 = strtok(args, " ");
+        char *p2 = strtok(NULL, " ");
+        cmd_nice_argv[0] = strtoint(p1);
+        cmd_nice_argv[1] = strtoint(p2);
+        new_proc((task_fn_t)cmd_nice, cmd_nice_argv);
     }
     else if (!strcmp(cmd_copy, "block"))
     {
-        cmd_block(strtoint(args));
+        cmd_block_argv[0] = strtoint(args);
+        new_proc((task_fn_t)cmd_block, cmd_block_argv);
     }
     /*
     else if (!strcmp(cmd_copy, "cat"))
@@ -568,11 +608,11 @@ void command_switch(char *cmd_copy, char *args)
     */
     else if (!strcmp(cmd_copy, "test_mm"))
     {
-        new_proc(cmd_testMM, args);
+        new_proc((task_fn_t)cmd_testMM, args);
     }
     else if (!strcmp(cmd_copy, "test_processes"))
     {
-        new_proc(cmd_testProcesses, &args);
+        new_proc((task_fn_t)cmd_testProcesses, &args);
     }
     else if (!strcmp(cmd_copy, "test_priority"))
     {

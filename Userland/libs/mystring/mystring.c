@@ -63,6 +63,19 @@ char *strncat(char *dest, const char *src, uint64_t n)
     return ret;
 }
 
+char *strchr(const char *s, int c)
+{
+    while (*s)
+    {
+        if (*s == (char)c)
+            return (char *)s;
+        s++;
+    }
+    if (c == '\0')
+        return (char *)s;
+    return NULL;
+}
+
 void *memcpy(void *dest, const void *src, size_t n)
 {
     uint8_t *d = (uint8_t *)dest;
@@ -150,4 +163,35 @@ char *find_args(char *cmd)
             cmd++;
     }
     return cmd;
+}
+
+char *strtok(char *str, const char *delim)
+{
+    static char *next;
+    char *start;
+
+    if (str != NULL)
+        next = str;
+
+    if (next == NULL || *next == '\0')
+        return NULL;
+
+    while (*next && strchr(delim, *next))
+        next++;
+
+    if (*next == '\0')
+        return NULL;
+
+    start = next;
+
+    while (*next && !strchr(delim, *next))
+        next++;
+
+    if (*next)
+    {
+        *next = '\0';
+        next++;
+    }
+
+    return start;
 }

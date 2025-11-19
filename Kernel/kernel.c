@@ -79,8 +79,8 @@ int main()
     fd_init();
 
     scheduler_add((task_fn_t)shellModuleAddress, NULL);
-
     // scheduler_add((task_fn_t)pongisgolfModuleAddress, NULL);
+
     scheduler_start();
     while (1)
         ;
