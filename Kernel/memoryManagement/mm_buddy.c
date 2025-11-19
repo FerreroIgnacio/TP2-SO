@@ -21,6 +21,8 @@ size_t heap_order = 0;
 
 static size_t total_memory = 0;
 static size_t used_memory = 0;
+static uint8_t *heap_base = NULL;
+static size_t heap_block_size = 0; // bytes covered by the top-level block
 
 static size_t calculate_order(size_t size)
 {
@@ -36,11 +38,30 @@ static size_t calculate_order(size_t size)
     return order;
 }
 
+static size_t floor_order(size_t size)
+{
+    // Largest order such that 2^order <= size
+    size_t order = 0;
+    size_t blockSize = 1;
+    while ((blockSize << 1) <= size && order < MAX_ORDER)
+    {
+        blockSize <<= 1;
+        order++;
+    }
+    return order;
+}
+
 static block_t *find_buddy(block_t *block)
 {
-    // buddy difiere en un bit, se calcula su dirección con XOR en ese bit.
-    size_t buddy_address = (size_t)block ^ (1UL << block->order);
-    return (block_t *)buddy_address;
+    // Compute buddy relative to the heap base so the XOR stays inside the heap
+    size_t offset = (size_t)((uint8_t *)block - heap_base);
+    size_t buddy_offset = offset ^ (1UL << block->order);
+
+    if (buddy_offset >= heap_block_size)
+    {
+        return NULL;
+    }
+    return (block_t *)(heap_base + buddy_offset);
 }
 
 static void insert_into_freelist(block_t *block)
@@ -85,14 +106,31 @@ void buddy_get_memory_info(size_t *total, size_t *used)
 
 void buddy_init(void *heap_start, size_t heap_size)
 {
-    size_t order = calculate_order(heap_size);
+    // Align the start to the block header size to avoid misaligned metadata
+    uintptr_t aligned_start = ((uintptr_t)heap_start + (sizeof(block_t) - 1)) & ~(uintptr_t)(sizeof(block_t) - 1);
+    if (heap_size <= aligned_start - (uintptr_t)heap_start)
+    {
+        return;
+    }
+
+    heap_base = (uint8_t *)aligned_start;
+    heap_size -= aligned_start - (uintptr_t)heap_start;
+
+    size_t order = floor_order(heap_size);
     if (order > MAX_ORDER)
     {
         order = MAX_ORDER;
     }
     heap_order = order;
-    ((block_t *)heap_start)->order = order;
-    insert_into_freelist((block_t *)heap_start);
+    heap_block_size = (1UL << order);
+    total_memory = heap_block_size;
+    used_memory = 0;
+
+    block_t *initial = (block_t *)heap_base;
+    initial->order = order;
+    initial->next = NULL;
+    initial->prev = NULL;
+    insert_into_freelist(initial);
 }
 
 void *buddy_malloc(size_t size)
@@ -113,8 +151,8 @@ void *buddy_malloc(size_t size)
                 insert_into_freelist(buddy);
                 block->order--;
             }
-            total_memory += (1UL << order);
-            return block + sizeof(block_t);
+            used_memory += (1UL << block->order);
+            return (uint8_t *)block + sizeof(block_t);
         }
     }
     return NULL;
@@ -148,7 +186,7 @@ void *buddy_realloc(void *ptr, size_t size)
     for (int currentOrder = block->order; currentOrder <= order; currentOrder++)
     {
         block_t *buddy = find_buddy(block);
-        if (buddy->is_free == 1)
+        if (buddy && buddy->is_free == 1 && buddy->order == block->order)
         {
             delete_from_freelist(buddy);
             if (block < buddy)
@@ -174,9 +212,11 @@ void *buddy_realloc(void *ptr, size_t size)
     void *new_ptr = buddy_malloc(size);
     if (new_ptr)
     {
-        memcpy(new_ptr, ptr, (1UL << order) - sizeof(block_t));
+        size_t old_payload = (1UL << block->order) - sizeof(block_t);
+        size_t new_payload = (1UL << calculate_order(size)) - sizeof(block_t);
+        size_t copy_size = old_payload < new_payload ? old_payload : new_payload;
+        memcpy(new_ptr, ptr, copy_size);
         buddy_free(ptr);
-        used_memory += (1UL << order);
         return new_ptr;
     }
     return NULL;
@@ -189,12 +229,16 @@ void buddy_free(void *ptr)
         return;
     }
     block_t *block = (block_t *)((uint8_t *)ptr - sizeof(block_t));
+    size_t block_size = (1UL << block->order);
+    used_memory -= block_size;
     block->is_free = 1;
-    used_memory -= (1UL << block->order);
 
-    while (find_buddy(block)->is_free == 1 && find_buddy(block)->order <= heap_order - 1)
+    while (block->order < heap_order)
     {
         block_t *buddy = find_buddy(block);
+        if (!buddy || buddy->is_free != 1 || buddy->order != block->order) {
+            break;
+        }
 
         delete_from_freelist(buddy);
         if (block < buddy)
