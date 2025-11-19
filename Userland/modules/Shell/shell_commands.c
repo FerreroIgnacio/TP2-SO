@@ -17,6 +17,22 @@
 #define MAX_PROCESS 100
 
 static void *const pongisgolfModuleAddress = (void *)0x8000000;
+static char *dup_args(const char *args);
+
+static char *dup_args(const char *args)
+{
+    if (args == NULL)
+    {
+        return NULL;
+    }
+    size_t len = strlen(args) + 1;
+    char *copy = malloc(len);
+    if (copy)
+    {
+        strcpy(copy, args);
+    }
+    return copy;
+}
 
 // Comandos disponibles
 
@@ -189,16 +205,13 @@ void cmd_block(void *argv)
 
 int cmd_testMM(void *argv)
 {
-    char *test[] = {"100000000"};
-    test_mm(1, test);
-    exit(0);
-
     char *args = (char *)argv;
+    const char *usage = "Uso: testMM <bytes>";
 
     if (!args)
     {
-        printf("Uso: testMM <bytes>\n");
-        return 1;
+        printf("%s\n", usage);
+        goto cleanup;
     }
 
     while (*args == ' ')
@@ -208,8 +221,8 @@ int cmd_testMM(void *argv)
 
     if (*args == '\0')
     {
-        printf("Uso: testMM <bytes>\n");
-        return 1;
+        printf("%s\n", usage);
+        goto cleanup;
     }
 
     char *arg_end = args;
@@ -218,17 +231,7 @@ int cmd_testMM(void *argv)
         arg_end++;
     }
 
-    char saved = *arg_end;
-    *arg_end = '\0';
-
-    if (*args == '\0')
-    {
-        printf("Uso: testMM <bytes>\n");
-        *arg_end = saved;
-        return 1;
-    }
-
-    if (saved != '\0')
+    if (*arg_end != '\0')
     {
         char *extra = arg_end + 1;
         while (*extra == ' ')
@@ -237,18 +240,25 @@ int cmd_testMM(void *argv)
         }
         if (*extra != '\0')
         {
-            printf("Uso: testMM <bytes>\n");
-            *arg_end = saved;
-            return 1;
+            printf("%s\n", usage);
+            goto cleanup;
         }
     }
+
+    *arg_end = '\0';
 
     printf("Iniciando testMM con %s bytes\n", args);
     char *test_args[] = {args};
     uint64_t result = test_mm(1, test_args);
-    printf("testMM finalizado con codigo %x\n", result);
+    printf("testMM finalizado con codigo %d\n", result);
 
-    *arg_end = saved;
+    if (argv)
+        free(argv);
+    exit((int)result);
+
+cleanup:
+    if (argv)
+        free(argv);
     exit(1);
     return 1;
 }
@@ -261,7 +271,7 @@ int cmd_testProcesses(void *argv)
     if (!args)
     {
         printf("%s\n", usage_msg);
-        return 1;
+        goto cleanup;
     }
 
     while (*args == ' ')
@@ -272,7 +282,7 @@ int cmd_testProcesses(void *argv)
     if (*args == '\0')
     {
         printf("%s\n", usage_msg);
-        return 1;
+        goto cleanup;
     }
 
     char *arg_end = args;
@@ -281,17 +291,7 @@ int cmd_testProcesses(void *argv)
         arg_end++;
     }
 
-    char saved = *arg_end;
-    *arg_end = '\0';
-
-    if (*args == '\0')
-    {
-        printf("%s\n", usage_msg);
-        *arg_end = saved;
-        return 1;
-    }
-
-    if (saved != '\0')
+    if (*arg_end != '\0')
     {
         char *extra = arg_end + 1;
         while (*extra == ' ')
@@ -301,23 +301,34 @@ int cmd_testProcesses(void *argv)
         if (*extra != '\0')
         {
             printf("%s\n", usage_msg);
-            *arg_end = saved;
-            return 1;
+            goto cleanup;
         }
     }
+
+    *arg_end = '\0';
 
     printf("Iniciando testProcesses con max %s procesos...\n", args);
     char *test_args[] = {args};
     int64_t result = test_processes(1, test_args);
     printf("testProcesses finalizado con codigo %x\n", (uint32_t)result);
 
-    *arg_end = saved;
+    if (argv)
+        free(argv);
     exit((int)result);
-    return (int)result;
+
+cleanup:
+    if (argv)
+        free(argv);
+    exit(1);
+    return 1;
 }
 
 int cmd_testPriority(void *argv) // TODO
 {
+    if (argv)
+    {
+        free(argv);
+    }
     printf("Iniciando testPriority...\n");
 
     char *test_args[] = {"3"}; //{argv};
@@ -329,6 +340,10 @@ int cmd_testPriority(void *argv) // TODO
 
 int cmd_testSynchro(void *argv) // TODO
 {
+    if (argv)
+    {
+        free(argv);
+    }
     printf("Iniciando testSynchro...\n");
     // char *test_args[] = {args};
     uint64_t result = 0; // test_synchronization(0, test_args);
@@ -338,6 +353,10 @@ int cmd_testSynchro(void *argv) // TODO
 
 int cmd_testNoSynchro(void *argv) // TODO
 {
+    if (argv)
+    {
+        free(argv);
+    }
     printf("Iniciando testNoSynchro...\n");
     // char *test_args[] = {args};
     uint64_t result = 0; // test_no_synchronization(0, test_args);
@@ -608,23 +627,53 @@ void command_switch(char *cmd_copy, char *args)
     */
     else if (!strcmp(cmd_copy, "test_mm"))
     {
-        new_proc((task_fn_t)cmd_testMM, args);
+        char *args_copy = dup_args(args);
+        if (args && args_copy == NULL)
+        {
+            printf("Error: sin memoria para argumentos\n");
+            return;
+        }
+        new_proc((task_fn_t)cmd_testMM, args_copy);
     }
     else if (!strcmp(cmd_copy, "test_processes"))
     {
-        new_proc((task_fn_t)cmd_testProcesses, &args);
+        char *args_copy = dup_args(args);
+        if (args && args_copy == NULL)
+        {
+            printf("Error: sin memoria para argumentos\n");
+            return;
+        }
+        new_proc((task_fn_t)cmd_testProcesses, args_copy);
     }
     else if (!strcmp(cmd_copy, "test_priority"))
     {
-        new_proc(cmd_testPriority, &args);
+        char *args_copy = dup_args(args);
+        if (args && args_copy == NULL)
+        {
+            printf("Error: sin memoria para argumentos\n");
+            return;
+        }
+        new_proc(cmd_testPriority, args_copy);
     }
     else if (!strcmp(cmd_copy, "test_synchro"))
     {
-        new_proc(cmd_testSynchro, &args);
+        char *args_copy = dup_args(args);
+        if (args && args_copy == NULL)
+        {
+            printf("Error: sin memoria para argumentos\n");
+            return;
+        }
+        new_proc(cmd_testSynchro, args_copy);
     }
     else if (!strcmp(cmd_copy, "test_no_synchro"))
     {
-        new_proc(cmd_testNoSynchro, &args);
+        char *args_copy = dup_args(args);
+        if (args && args_copy == NULL)
+        {
+            printf("Error: sin memoria para argumentos\n");
+            return;
+        }
+        new_proc(cmd_testNoSynchro, args_copy);
     }
 
     // Comandos realizados en Arquitectura de Computadoras (ya no se muestran en "help"):
