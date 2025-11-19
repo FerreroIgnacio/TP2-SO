@@ -250,7 +250,7 @@ int cmd_testMM(void *argv)
     printf("Iniciando testMM con %s bytes\n", args);
     char *test_args[] = {args};
     uint64_t result = test_mm(1, test_args);
-    printf("testMM finalizado con codigo %d\n", result);
+    printf("testMM finalizado con codigo %x\n", result);
 
     if (argv)
         free(argv);
