@@ -10,22 +10,14 @@ void flush(int fd)
 }
 
 /* UTILIDADES STDIN */
+// getchar bloqueante porque read es bloqueante: espera hasta obtener 1 byte válido de STDIN.
 unsigned char getchar()
 {
     unsigned char c = 0;
     int count;
-
-    // versión bloqueante
-    /*
-    do{
+    do {
         count = read(STDIN, &c, 1);
-    }while (!count);
-    */
-
-    // versión no bloqueante
-    count = read(STDIN, &c, 1);
-    if (count == 0)
-        return 0; // si no hay nada para leer, retorna 0
+    } while (count <= 0);
     return c;
 }
 
@@ -46,19 +38,12 @@ int scanf(const char *format, ...)
             unsigned char c;
 
             // Saltar marcadores de fin
-            do
-            {
+            do {
                 c = getchar();
             } while (c == ' ' || c == '\n' || c == '\r' || c == '\t' || c == '\v' || c == '\b');
-
-            // Leer token hasta encontrar separador
-            // el código es bloqueante, hasta no encontrar un caracter de fin no sigue ejecutando.
-            while (c == 0 || (c != ' ' && c != '\n' && c != '\r' && c != '\t' && c != '\v' && c != '\b' && bufIndex < STD_BUFF_SIZE - 1))
-            {
-                if (c != 0)
-                {
-                    buffer[bufIndex++] = c;
-                }
+            // Leer token hasta separador
+            while (c != ' ' && c != '\n' && c != '\r' && c != '\t' && c != '\v' && c != '\b' && bufIndex < STD_BUFF_SIZE - 1) {
+                buffer[bufIndex++] = c;
                 c = getchar();
             }
             buffer[bufIndex] = '\0';

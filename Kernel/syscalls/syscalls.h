@@ -7,7 +7,7 @@
 
 #define STDIN 0
 #define STDOUT 1
-#define STDERR 2 // reserved; dynamic FDs start at 3
+#define STDERR 2 // standard per-process FDs; dynamic also start at 0 using fd subsystem
 
 #define SYSCALL_READ 0
 #define SYSCALL_WRITE 1

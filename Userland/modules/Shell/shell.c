@@ -25,7 +25,6 @@ static char firstEntry = 1;
 // Prototipos de funciones
 static void execute_command();
 static void handle_keyboard_input();
-
 // Ejecutar comando
 static void execute_command()
 {
@@ -56,7 +55,7 @@ static void execute_command()
         *lend = '\0';
         // rtrim right
         char *rend = right + strlen(right);
-        while (rend > right && (rend[-1] == ' ')) { rend--; }
+        while (rend > right && (rend[-1] == ' ')){rend--;}
         *rend = '\0';
 
         if (*left == '\0' || *right == '\0') {
@@ -69,48 +68,42 @@ static void execute_command()
         char *left_args = find_args(left_copy);
         char *right_args = find_args(right_copy);
 
-        // Si el comando izquierdo es un builtin soportado (echo), no spawnear proceso
-        if (!strcmp(left_copy, "echo")) {
-            int pipe_id = pipe_create();
-            if (pipe_id < 0) {
-                shell_print_colored("No se pudo crear pipe\n", ERROR_COLOR);
-                return;
-            }
-            int pid2 = shell_launch_program(right_copy, right_args);
-            if (pid2 < 0) {
-                shell_print_colored("Programa der. desconocido\n", ERROR_COLOR);
-                return;
-            }
-            // Conectar stdin del consumidor y stdout de la shell al pipe
-            fd_bind_std(pid2, 0 /*STDIN*/, pipe_id);
-            fd_bind_std(getpid(), 1 /*STDOUT*/, pipe_id);
-            // Ejecutar el builtin para volcar su salida al pipe
-            cmd_echo(left_args ? left_args : "");
-            // Restaurar stdout de la shell
-            fd_bind_std(getpid(), 1 /*STDOUT*/, -1);
-            return;
-        }
-
         int pipe_id = pipe_create();
         if (pipe_id < 0) {
             shell_print_colored("No se pudo crear pipe\n", ERROR_COLOR);
             return;
         }
 
-        int pid1 = shell_launch_program(left_copy, left_args);
-        if (pid1 < 0) {
-            shell_print_colored("Programa izq. desconocido\n", ERROR_COLOR);
-            return;
-        }
-        int pid2 = shell_launch_program(right_copy, right_args);
-        if (pid2 < 0) {
+        int pid_right = shell_launch_program(right_copy, right_args);
+        if (pid_right < 0) {
             shell_print_colored("Programa der. desconocido\n", ERROR_COLOR);
             return;
         }
+        fd_bind_std(pid_right, 0 /*STDIN*/, pipe_id);
 
-        // Vincular stdout de proc1 -> pipe, stdin de proc2 <- pipe
-        fd_bind_std(pid1, 1 /*STDOUT*/, pipe_id);
-        fd_bind_std(pid2, 0 /*STDIN*/, pipe_id);
+        // Manejar proceso izquierdo (builtin echo especial) o programa externo
+        if (!strcmp(left_copy, "echo")) {
+            // lanzar proceso echo para escribir en el pipe
+            extern int echo_proc(void *);
+            // duplicar args (puede ser NULL)
+            char *dup = NULL;
+            if (left_args && *left_args) {
+                int len = strlen(left_args);
+                dup = (char*)malloc(len + 1);
+                if (dup) { memcpy(dup, left_args, len + 1); }
+            }
+            int pid_echo = new_proc((task_fn_t)echo_proc, dup);
+            if (pid_echo < 0) {
+                shell_print_colored("No se pudo lanzar echo\n", ERROR_COLOR); if(dup) free(dup); return; }
+            fd_bind_std(pid_echo, 1 /*STDOUT*/, pipe_id);
+        } else {
+            int pid_left = shell_launch_program(left_copy, left_args);
+            if (pid_left < 0) {
+                shell_print_colored("Programa izq. desconocido\n", ERROR_COLOR);
+                return;
+            }
+            fd_bind_std(pid_left, 1 /*STDOUT*/, pipe_id);
+        }
         return;
     }
 
@@ -122,46 +115,36 @@ static void execute_command()
 }
 
 // Manejar entrada del teclado usando syscalls
-static void handle_keyboard_input()
-{
+static void handle_keyboard_input() {
     update_cursor();
-    // Actualizar estado de shift usando isKeyPressed
-    unsigned char c;
-    if ((c = getchar()) > 0)
-    {
-        // Manejar teclas especiales
-        if (c == '\n')
-        { // Enter
-            shell_newline();
-            execute_command();
-            clear_buffer();
-            shell_print_prompt();
-            return;
-        }
-        if (c == '\b')
-        { // Backspace
-            if (buffer_pos > 0)
-            {
-                buffer_pos--;
-                hide_cursor();
-                font_info_t currentFont = fontmanager_get_current_font();
-
-                command_buffer[buffer_pos] = '\0';
-                if (cursor_x >= FONT_SIZE * currentFont.width)
-                {
-                    cursor_x -= FONT_SIZE * currentFont.width;
-                    frameDrawChar(frame, ' ', FONT_COLOR, SHELL_COLOR, cursor_x, cursor_y);
-                }
+    unsigned char c = getchar(); // bloqueante
+    if (c == '\n') {
+        shell_newline();
+        execute_command();
+        clear_buffer();
+        shell_print_prompt();
+        reset_cursor();
+        return;
+    }
+    if (c == '\b') {
+        if (buffer_pos > 0) {
+            buffer_pos--;
+            hide_cursor();
+            font_info_t currentFont = fontmanager_get_current_font();
+            command_buffer[buffer_pos] = '\0';
+            if (cursor_x >= FONT_SIZE * currentFont.width) {
+                cursor_x -= FONT_SIZE * currentFont.width;
+                frameDrawChar(frame, ' ', FONT_COLOR, SHELL_COLOR, cursor_x, cursor_y);
             }
-            return;
+            reset_cursor();
         }
-
-        // Solo agregar caracteres imprimibles
-        if (c && (buffer_pos < (BUFFER_SIZE - 1)))
-        {
-            command_buffer[buffer_pos++] = c;
-            shell_putchar(c);
-        }
+        return;
+    }
+    if (buffer_pos < (BUFFER_SIZE - 1)) {
+        command_buffer[buffer_pos++] = c;
+        command_buffer[buffer_pos] = '\0';
+        shell_putchar(c);
+        reset_cursor();
     }
 }
 
@@ -170,7 +153,7 @@ static void shell_welcome()
     shell_print_colored("=================================================\n", PROMPT_COLOR);
     shell_print_colored("             SHELL\n", PROMPT_COLOR);
     shell_print_colored("=================================================\n", PROMPT_COLOR);
-    printf("Escribe 'help' para ver comandos disponibles.\n\n");
+    shell_print("Escribe 'help' para ver comandos disponibles.\n\n");
 }
 
 int main()
@@ -182,32 +165,19 @@ int main()
         {
             return -1;
         }
+
         clear_screen();
         clear_buffer();
         fontmanager_set_font(1);
         shell_welcome();
         shell_print_prompt();
+        // Aumentar prioridad de la shell para evitar que quede bloqueada por procesos hijos.
+        set_priority(getpid(), 0); // asumir 0 = mayor prioridad
         firstEntry = 0;
     }
-
-    while (1)
-    {
-        unsigned char stdoutBuff[STDOUT_BUFFER_SIZE];
-        read(STDOUT, stdoutBuff, STDOUT_BUFFER_SIZE);
-        if (strlen((char *)stdoutBuff) > 0)
-        {
-            cursor_x = 0;
-            shell_print((char *)stdoutBuff);
-            shell_print_prompt();
-        }
-
-        for (int i = 0; i < KEYS_PER_LOOP; i++)
+    while (1) {
+            setFB(frame);
             handle_keyboard_input();
-
-        setFB(frame);
-        int status;
-        waitpid(0, &status, WNOHANG);
     }
-
     return 0;
 }

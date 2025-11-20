@@ -1,6 +1,7 @@
 #include "fd.h"
 #include "../scheduler/scheduler.h"
-#include <string.h>
+#include "pipes.h"
+#include "../utils/lib.h" // para strcpy
 
 // Tabla de FDs por proceso
 static fd_entry_t proc_fds[MAX_TASKS][MAX_PROCESS_FDS];
@@ -12,7 +13,8 @@ static inline int valid_pid(int pid) {
 }
 
 void fd_init(void) {
-    // Limpia todas las tablas
+    // Crear pipe 0 para stdin global
+    int _p0 = pipe_create();
     for (int p = 0; p < MAX_TASKS; p++) {
         for (int i = 0; i < MAX_PROCESS_FDS; i++) {
             proc_fds[p][i].in_use = 0;
@@ -21,7 +23,12 @@ void fd_init(void) {
             proc_fds[p][i].write_pos = 0;
             proc_fds[p][i].size = 0;
         }
-        bound_stdin_pipe[p] = -1;
+        // Initialize standard FDs 0,1,2
+        proc_fds[p][0].in_use = 1; strcpy(proc_fds[p][0].name, "stdin");
+        proc_fds[p][1].in_use = 1; strcpy(proc_fds[p][1].name, "stdout");
+        proc_fds[p][2].in_use = 1; strcpy(proc_fds[p][2].name, "stderr");
+        // Enlazar SOLO stdin a pipe 0;
+        bound_stdin_pipe[p] = 0;
         bound_stdout_pipe[p] = -1;
     }
 }
@@ -35,7 +42,11 @@ void fd_reset_pid(int pid) {
         proc_fds[pid][i].write_pos = 0;
         proc_fds[pid][i].size = 0;
     }
-    bound_stdin_pipe[pid] = -1;
+    proc_fds[pid][0].in_use = 1; strcpy(proc_fds[pid][0].name, "stdin");
+    proc_fds[pid][1].in_use = 1; strcpy(proc_fds[pid][1].name, "stdout");
+    proc_fds[pid][2].in_use = 1; strcpy(proc_fds[pid][2].name, "stderr");
+    // Reenlazar SOLO stdin del nuevo proceso a pipe 0;
+    bound_stdin_pipe[pid] = 0;
     bound_stdout_pipe[pid] = -1;
 }
 
@@ -55,18 +66,6 @@ int fd_bind_std_for_pid(int pid, int which, int pipe_id) {
     if (!valid_pid(pid) || (which != 0 && which != 1)) return -1;
     if (which == 0) bound_stdin_pipe[pid] = pipe_id; else bound_stdout_pipe[pid] = pipe_id;
     return 0;
-}
-
-int fd_get_bound_stdin_pipe(void) {
-    int pid = scheduler_current_pid();
-    if (!valid_pid(pid)) return -1;
-    return bound_stdin_pipe[pid];
-}
-
-int fd_get_bound_stdout_pipe(void) {
-    int pid = scheduler_current_pid();
-    if (!valid_pid(pid)) return -1;
-    return bound_stdout_pipe[pid];
 }
 
 int fd_create(const char *name) {
@@ -93,10 +92,21 @@ int fd_create(const char *name) {
 int fd_write(int fd, const char *buffer, uint64_t count) {
     fd_entry_t *table = get_current_table();
     int idx = idx_from_fd(fd);
-    if (table == NULL || idx < 0 || !table[idx].in_use || buffer == NULL || count == 0) return -1;
+    if (buffer == NULL || count == 0) return -1;
 
+    int pid = scheduler_current_pid();
+    if (fd == STDOUT && valid_pid(pid) && bound_stdout_pipe[pid] >= 0) {
+        return pipe_write(bound_stdout_pipe[pid], buffer, count); // blocking via pipe
+    }
+    if (fd == STDIN && valid_pid(pid) && bound_stdin_pipe[pid] >= 0) {
+        return pipe_write(bound_stdin_pipe[pid], buffer, count);
+    }
+    if (table == NULL || idx < 0 || !table[idx].in_use) return -1;
     uint64_t written = 0;
-    while (written < count && table[idx].size < FD_BUFFER_CAPACITY) {
+    while (written < count) {
+        while (table[idx].size == FD_BUFFER_CAPACITY) {
+            scheduler_yield();
+        }
         table[idx].buffer[table[idx].write_pos] = (uint8_t)buffer[written];
         table[idx].write_pos = (table[idx].write_pos + 1) % FD_BUFFER_CAPACITY;
         table[idx].size++;
@@ -108,10 +118,21 @@ int fd_write(int fd, const char *buffer, uint64_t count) {
 int fd_read(int fd, char *buffer, uint64_t count) {
     fd_entry_t *table = get_current_table();
     int idx = idx_from_fd(fd);
-    if (table == NULL || idx < 0 || !table[idx].in_use || buffer == NULL || count == 0) return -1;
-
+    if (buffer == NULL || count == 0) return -1;
+    int pid = scheduler_current_pid();
+    // STDIN: si está redirigido a una pipe usarla; si no, usar buffer propio como cualquier FD
+    if (fd == STDIN && valid_pid(pid) && bound_stdin_pipe[pid] >= 0) {
+        return pipe_read(bound_stdin_pipe[pid], buffer, count);
+    }
+    if (fd == STDOUT && valid_pid(pid) && bound_stdout_pipe[pid] >= 0) {
+        return pipe_read(bound_stdout_pipe[pid], buffer, count);
+    }
+    if (table == NULL || idx < 0 || !table[idx].in_use) return -1;
     uint64_t read = 0;
-    while (read < count && table[idx].size > 0) {
+    while (read < count) {
+        while (table[idx].size == 0) {
+            scheduler_yield();
+        }
         buffer[read] = (char)table[idx].buffer[table[idx].read_pos];
         table[idx].read_pos = (table[idx].read_pos + 1) % FD_BUFFER_CAPACITY;
         table[idx].size--;
