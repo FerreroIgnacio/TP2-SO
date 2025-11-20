@@ -242,8 +242,6 @@ int64_t my_create_process(char *name, uint64_t argc, char *argv[])
     free(payload);
     return -1;
   }
-
-  // TODO: CORREGIR PROCESOS
   int pid = new_proc(test_process_trampoline, payload);
 
   if (pid < 0)

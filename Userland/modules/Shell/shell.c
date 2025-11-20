@@ -25,6 +25,8 @@ static char firstEntry = 1;
 // Prototipos de funciones
 static void execute_command();
 static void handle_keyboard_input();
+
+extern void cmd_echo(char *args);
 // Ejecutar comando
 static void execute_command()
 {
@@ -41,64 +43,98 @@ static void execute_command()
     char line[BUFFER_SIZE];
     strcpy(line, (char *)command_buffer);
     char *bar = NULL;
-    for (char *p = line; *p; ++p) { if (*p == '|') { bar = p; break; } }
-    if (bar) {
+    for (char *p = line; *p; ++p)
+    {
+        if (*p == '|')
+        {
+            bar = p;
+            break;
+        }
+    }
+    if (bar)
+    {
         // Split and trim both sides
         *bar = '\0';
         char *left = line;
         char *right = bar + 1;
-        while (*left == ' ') left++;
-        while (*right == ' ') right++;
+        while (*left == ' ')
+            left++;
+        while (*right == ' ')
+            right++;
         // rtrim left
         char *lend = left + strlen(left);
-        while (lend > left && (lend[-1] == ' ')) { lend--; }
+        while (lend > left && (lend[-1] == ' '))
+        {
+            lend--;
+        }
         *lend = '\0';
         // rtrim right
         char *rend = right + strlen(right);
-        while (rend > right && (rend[-1] == ' ')){rend--;}
+        while (rend > right && (rend[-1] == ' '))
+        {
+            rend--;
+        }
         *rend = '\0';
 
-        if (*left == '\0' || *right == '\0') {
+        if (*left == '\0' || *right == '\0')
+        {
             shell_print_colored("Error de sintaxis en pipeline\n", ERROR_COLOR);
             return;
         }
         // Parse name/args for left and right
-        char left_copy[BUFFER_SIZE]; strcpy(left_copy, left);
-        char right_copy[BUFFER_SIZE]; strcpy(right_copy, right);
+        char left_copy[BUFFER_SIZE];
+        strcpy(left_copy, left);
+        char right_copy[BUFFER_SIZE];
+        strcpy(right_copy, right);
         char *left_args = find_args(left_copy);
         char *right_args = find_args(right_copy);
 
         int pipe_id = pipe_create();
-        if (pipe_id < 0) {
+        if (pipe_id < 0)
+        {
             shell_print_colored("No se pudo crear pipe\n", ERROR_COLOR);
             return;
         }
 
         int pid_right = shell_launch_program(right_copy, right_args);
-        if (pid_right < 0) {
+        if (pid_right < 0)
+        {
             shell_print_colored("Programa der. desconocido\n", ERROR_COLOR);
             return;
         }
         fd_bind_std(pid_right, 0 /*STDIN*/, pipe_id);
 
         // Manejar proceso izquierdo (builtin echo especial) o programa externo
-        if (!strcmp(left_copy, "echo")) {
+        if (!strcmp(left_copy, "echo"))
+        {
             // lanzar proceso echo para escribir en el pipe
             extern int echo_proc(void *);
             // duplicar args (puede ser NULL)
             char *dup = NULL;
-            if (left_args && *left_args) {
+            if (left_args && *left_args)
+            {
                 int len = strlen(left_args);
-                dup = (char*)malloc(len + 1);
-                if (dup) { memcpy(dup, left_args, len + 1); }
+                dup = (char *)malloc(len + 1);
+                if (dup)
+                {
+                    memcpy(dup, left_args, len + 1);
+                }
             }
             int pid_echo = new_proc((task_fn_t)echo_proc, dup);
-            if (pid_echo < 0) {
-                shell_print_colored("No se pudo lanzar echo\n", ERROR_COLOR); if(dup) free(dup); return; }
+            if (pid_echo < 0)
+            {
+                shell_print_colored("No se pudo lanzar echo\n", ERROR_COLOR);
+                if (dup)
+                    free(dup);
+                return;
+            }
             fd_bind_std(pid_echo, 1 /*STDOUT*/, pipe_id);
-        } else {
+        }
+        else
+        {
             int pid_left = shell_launch_program(left_copy, left_args);
-            if (pid_left < 0) {
+            if (pid_left < 0)
+            {
                 shell_print_colored("Programa izq. desconocido\n", ERROR_COLOR);
                 return;
             }
@@ -115,10 +151,12 @@ static void execute_command()
 }
 
 // Manejar entrada del teclado usando syscalls
-static void handle_keyboard_input() {
+static void handle_keyboard_input()
+{
     update_cursor();
     unsigned char c = getchar(); // bloqueante
-    if (c == '\n') {
+    if (c == '\n')
+    {
         shell_newline();
         execute_command();
         clear_buffer();
@@ -126,13 +164,16 @@ static void handle_keyboard_input() {
         reset_cursor();
         return;
     }
-    if (c == '\b') {
-        if (buffer_pos > 0) {
+    if (c == '\b')
+    {
+        if (buffer_pos > 0)
+        {
             buffer_pos--;
             hide_cursor();
             font_info_t currentFont = fontmanager_get_current_font();
             command_buffer[buffer_pos] = '\0';
-            if (cursor_x >= FONT_SIZE * currentFont.width) {
+            if (cursor_x >= FONT_SIZE * currentFont.width)
+            {
                 cursor_x -= FONT_SIZE * currentFont.width;
                 frameDrawChar(frame, ' ', FONT_COLOR, SHELL_COLOR, cursor_x, cursor_y);
             }
@@ -140,7 +181,8 @@ static void handle_keyboard_input() {
         }
         return;
     }
-    if (buffer_pos < (BUFFER_SIZE - 1)) {
+    if (buffer_pos < (BUFFER_SIZE - 1))
+    {
         command_buffer[buffer_pos++] = c;
         command_buffer[buffer_pos] = '\0';
         shell_putchar(c);
@@ -175,9 +217,10 @@ int main()
         set_priority(getpid(), 0); // asumir 0 = mayor prioridad
         firstEntry = 0;
     }
-    while (1) {
-            setFB(frame);
-            handle_keyboard_input();
+    while (1)
+    {
+        setFB(frame);
+        handle_keyboard_input();
     }
     return 0;
 }
