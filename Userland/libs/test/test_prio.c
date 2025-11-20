@@ -24,19 +24,16 @@ void zero_to_max()
   printf("PROCESS %d DONE!\n", my_getpid());
 }
 
-uint64_t test_prio(uint64_t argc, char *argv[])
+int test_prio(int max_val)
 {
   int64_t pids[TOTAL_PROCESSES];
   char *ztm_argv[] = {0};
   uint64_t i;
 
-  if (argc != 1)
+  if ((max_value = max_val) <= 0)
     return -1;
 
-  if ((max_value = satoi(argv[0])) <= 0)
-    return -1;
-
-  printf("SAME PRIORITY...\n");
+  printf("\nSAME PRIORITY...\n");
 
   for (i = 0; i < TOTAL_PROCESSES; i++)
     pids[i] = my_create_process("zero_to_max", 0, ztm_argv);
@@ -46,7 +43,7 @@ uint64_t test_prio(uint64_t argc, char *argv[])
   for (i = 0; i < TOTAL_PROCESSES; i++)
     my_wait(pids[i]);
 
-  printf("SAME PRIORITY, THEN CHANGE IT...\n");
+  printf("\nSAME PRIORITY, THEN CHANGE IT...\n");
 
   for (i = 0; i < TOTAL_PROCESSES; i++)
   {
@@ -60,7 +57,7 @@ uint64_t test_prio(uint64_t argc, char *argv[])
   for (i = 0; i < TOTAL_PROCESSES; i++)
     my_wait(pids[i]);
 
-  printf("SAME PRIORITY, THEN CHANGE IT WHILE BLOCKED...\n");
+  printf("\nSAME PRIORITY, THEN CHANGE IT WHILE BLOCKED...\n");
 
   for (i = 0; i < TOTAL_PROCESSES; i++)
   {

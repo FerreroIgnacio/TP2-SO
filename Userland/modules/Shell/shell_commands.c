@@ -126,7 +126,7 @@ int cmd_help()
     printf("  ps               - Imprime la lista de todos los procesos\n");                                // OK
     printf("  loop <segundos>  - Imprime su ID con un saludo cada una determinada cantidad de segundos\n"); // OK
     printf("  kill <pid>       - Mata un proceso dado su ID.\n");                                           // OK
-    printf("  nice <pid> <pri> - Cambia la prioridad de un proceso dado su ID y la nueva prioridad\n");     // TODO
+    printf("  nice <pid> <pri> - Cambia la prioridad de un proceso dado su ID y la nueva prioridad\n");     // OK
     printf("  block <pid>      - Switch entre ready y blocked de un proceso dado su ID.\n");                // OK
     printf("  cat              - Imprime el stdin tal como lo recibe.\n");                                  // TODO
     printf("  wc               - Cuenta la cantidad de líneas del input\n");                                // TODO
@@ -139,9 +139,9 @@ int cmd_help()
     printf("  fdlist           - Lista los FDs dinamicos del proceso actual\n");
 
     printf("\nTests disponibles:\n");
-    printf("  test_mm <max-bytes>                     - Ejecuta stress test del manejador de memoria\n");
-    printf("  test_processes <max-processes>          - Crea, bloquea, desbloquea y mata procesos aleatoriamente.\n");       // OK: (falta fix en mm's + fix en new_proc)
-    printf("  test_priority <end-val-for-process>     - 3 procesos se ejecutan con misma prioridad y luego con distinta\n"); // TODO
+    printf("  test_mm <max-bytes>                     - Ejecuta stress test del manejador de memoria\n");                    // OK
+    printf("  test_processes <max-processes>          - Crea, bloquea, desbloquea y mata procesos aleatoriamente.\n");       // OK
+    printf("  test_priority <end-val-for-process>     - 3 procesos se ejecutan con misma prioridad y luego con distinta\n"); // OK
     printf("  test_synchro <processes> <inc-dec>      - Varios procesos modifican 1 variable usando semaforos\n");           // TODO
     printf("  test_no_synchro <processes> <inc-dec>   - Varios procesos modifican una variable sin semaforos\n");            // TODO
 
@@ -168,7 +168,6 @@ int cmd_mem()
     return 0;
 }
 
-int cmd_loop_argv[1];
 int cmd_loop(void *argv)
 {
     if (argv == NULL)
@@ -210,7 +209,6 @@ int cmd_ps()
     return 0;
 }
 
-int cmd_kill_argv[1];
 void cmd_kill(void *argv)
 {
     if (argv == NULL)
@@ -224,7 +222,6 @@ void cmd_kill(void *argv)
     exit(status);
 }
 
-int cmd_nice_argv[2];
 void cmd_nice(void *argv)
 {
     if (argv == NULL)
@@ -244,7 +241,6 @@ void cmd_nice(void *argv)
     exit(status);
 }
 
-int cmd_block_argv[1];
 void cmd_block(void *argv)
 {
     if (argv == NULL)
@@ -257,144 +253,58 @@ void cmd_block(void *argv)
     if (block_proc(pid) == 0)
     {
         printf("bloqueando el proceso: %d", pid);
-        return;
+        exit(0);
     }
     printf("desbloqueando el proceso: %d", pid);
-    unblock_proc(pid);
+    exit(unblock_proc(pid));
 }
 
 int cmd_testMM(void *argv)
 {
-    char *args = (char *)argv;
+    int *args = (int *)argv;
     const char *usage = "Uso: testMM <bytes>";
-
-    if (!args)
+    if (argv == NULL || args[0] <= 1)
     {
         printf("%s\n", usage);
-        goto cleanup;
+        exit(-1);
     }
-
-    while (*args == ' ')
-    {
-        args++;
-    }
-
-    if (*args == '\0')
-    {
-        printf("%s\n", usage);
-        goto cleanup;
-    }
-
-    char *arg_end = args;
-    while (*arg_end && *arg_end != ' ')
-    {
-        arg_end++;
-    }
-
-    if (*arg_end != '\0')
-    {
-        char *extra = arg_end + 1;
-        while (*extra == ' ')
-        {
-            extra++;
-        }
-        if (*extra != '\0')
-        {
-            printf("%s\n", usage);
-            goto cleanup;
-        }
-    }
-
-    *arg_end = '\0';
-
-    printf("Iniciando testMM con %s bytes\n", args);
-    char *test_args[] = {args};
-    uint64_t result = test_mm(1, test_args);
-    printf("testMM finalizado con codigo %x\n", result);
-
-    if (argv)
-        free(argv);
-    exit((int)result);
-
-cleanup:
-    if (argv)
-        free(argv);
-    exit(1);
-    return 1;
+    printf("Iniciando testMM con %d bytes\n", args[0]);
+    int result = test_mm(args[0]);
+    printf("testMM finalizado con codigo %d\n", result);
+    exit(result);
+    return result;
 }
 
 int cmd_testProcesses(void *argv)
 {
-    char *args = (char *)argv;
-    const char *usage_msg = "Uso: test_processes <max-processes>";
-
-    if (!args)
+    int *args = (int *)argv;
+    const char *usage = "Uso: test_processes <max-processes>";
+    if (argv == NULL || args[0] <= 1)
     {
-        printf("%s\n", usage_msg);
-        goto cleanup;
+        printf("%s\n", usage);
+        exit(-1);
     }
 
-    while (*args == ' ')
-    {
-        args++;
-    }
-
-    if (*args == '\0')
-    {
-        printf("%s\n", usage_msg);
-        goto cleanup;
-    }
-
-    char *arg_end = args;
-    while (*arg_end && *arg_end != ' ')
-    {
-        arg_end++;
-    }
-
-    if (*arg_end != '\0')
-    {
-        char *extra = arg_end + 1;
-        while (*extra == ' ')
-        {
-            extra++;
-        }
-        if (*extra != '\0')
-        {
-            printf("%s\n", usage_msg);
-            goto cleanup;
-        }
-    }
-
-    *arg_end = '\0';
-
-    printf("Iniciando testProcesses con max %s procesos...\n", args);
-    char *test_args[] = {args};
-    int64_t result = test_processes(1, test_args);
-    printf("testProcesses finalizado con codigo %x\n", (uint32_t)result);
-
-    if (argv)
-        free(argv);
-    exit((int)result);
-
-cleanup:
-    if (argv)
-        free(argv);
-    exit(1);
-    return 1;
+    printf("Iniciando testProcesses con max %d procesos...\n", args[0]);
+    int result = test_processes(args[0]);
+    printf("testProcesses finalizado con codigo %d\n", result);
+    exit(result);
+    return result;
 }
 
-int cmd_testPriority(void *argv) // TODO
+int cmd_testPriority(void *argv)
 {
-    if (argv)
+    int *args = (int *)argv;
+    const char *usage = "Uso: test_priority <end-val-for-process>";
+    if (argv == NULL || args[0] <= 1)
     {
-        free(argv);
+        printf("%s\n", usage);
+        exit(-1);
     }
-    printf("Iniciando testPriority...\n");
-
-    char *test_args[] = {"3"}; //{argv};
-
-    uint64_t result = test_prio(1, test_args);
-    printf("testPriority finalizado con codigo %x\n", result);
+    printf("Iniciando testPriority con max_val %d ...\n", args[0]);
+    int result = test_prio(args[0]);
+    printf("testPriority finalizado con codigo %d\n", result);
+    exit(result);
     return result;
 }
 
@@ -636,27 +546,26 @@ void command_switch(char *cmd_copy, char *args)
     }
     else if (!strcmp(cmd_copy, "loop"))
     {
-        cmd_loop_argv[0] = strtoint(args);
-        new_proc((task_fn_t)cmd_loop, cmd_loop_argv);
+        int argv[] = {strtoint(args)};
+        new_proc((task_fn_t)cmd_loop, argv);
     }
     else if (!strcmp(cmd_copy, "kill"))
     {
-        cmd_kill_argv[0] = strtoint(args);
-        new_proc((task_fn_t)cmd_kill, cmd_kill_argv);
+        int argv[] = {strtoint(args)};
+        new_proc((task_fn_t)cmd_kill, argv);
     }
 
     else if (!strcmp(cmd_copy, "nice"))
     {
         char *p1 = strtok(args, " ");
         char *p2 = strtok(NULL, " ");
-        cmd_nice_argv[0] = strtoint(p1);
-        cmd_nice_argv[1] = strtoint(p2);
-        new_proc((task_fn_t)cmd_nice, cmd_nice_argv);
+        int argv[] = {strtoint(p1), strtoint(p2)};
+        new_proc((task_fn_t)cmd_nice, argv);
     }
     else if (!strcmp(cmd_copy, "block"))
     {
-        cmd_block_argv[0] = strtoint(args);
-        new_proc((task_fn_t)cmd_block, cmd_block_argv);
+        int argv[] = {strtoint(args)};
+        new_proc((task_fn_t)cmd_block, argv);
     }
     /*
     else if (!strcmp(cmd_copy, "cat"))
@@ -671,33 +580,18 @@ void command_switch(char *cmd_copy, char *args)
     */
     else if (!strcmp(cmd_copy, "test_mm"))
     {
-        char *args_copy = dup_args(args);
-        if (args && args_copy == NULL)
-        {
-            printf("Error: sin memoria para argumentos\n");
-            return;
-        }
-        new_proc((task_fn_t)cmd_testMM, args_copy);
+        int argv[] = {strtoint(args)};
+        new_proc((task_fn_t)cmd_testMM, argv);
     }
     else if (!strcmp(cmd_copy, "test_processes"))
     {
-        char *args_copy = dup_args(args);
-        if (args && args_copy == NULL)
-        {
-            printf("Error: sin memoria para argumentos\n");
-            return;
-        }
-        new_proc((task_fn_t)cmd_testProcesses, args_copy);
+        int argv[] = {strtoint(args)};
+        new_proc((task_fn_t)cmd_testProcesses, argv);
     }
     else if (!strcmp(cmd_copy, "test_priority"))
     {
-        char *args_copy = dup_args(args);
-        if (args && args_copy == NULL)
-        {
-            printf("Error: sin memoria para argumentos\n");
-            return;
-        }
-        new_proc(cmd_testPriority, args_copy);
+        int argv[] = {strtoint(args)};
+        new_proc((task_fn_t)cmd_testPriority, argv);
     }
     else if (!strcmp(cmd_copy, "test_synchro"))
     {

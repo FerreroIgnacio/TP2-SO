@@ -39,12 +39,12 @@ kill:
     int 0x80 
     ret;
 
-get_priority:
+set_priority:
     mov rax, 0x2D
     int 0x80 
     ret;
 
-set_priority:
+get_priority:
     mov rax, 0x2E
     int 0x80 
     ret;
