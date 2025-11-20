@@ -18,6 +18,7 @@
 
 static void *const pongisgolfModuleAddress = (void *)0x8000000;
 static char *dup_args(const char *args);
+static int run_test_sync_cmd(void *argv, int use_sem, const char *usage);
 
 static char *dup_args(const char *args)
 {
@@ -32,6 +33,65 @@ static char *dup_args(const char *args)
         strcpy(copy, args);
     }
     return copy;
+}
+
+static int run_test_sync_cmd(void *argv, int use_sem, const char *usage)
+{
+    char *args = (char *)argv;
+    if (!args)
+    {
+        printf("%s\n", usage);
+        goto cleanup;
+    }
+
+    while (*args == ' ')
+    {
+        args++;
+    }
+
+    if (*args == '\0')
+    {
+        printf("%s\n", usage);
+        goto cleanup;
+    }
+
+    char *arg_end = args;
+    while (*arg_end && *arg_end != ' ')
+    {
+        arg_end++;
+    }
+
+    if (*arg_end != '\0')
+    {
+        char *extra = arg_end + 1;
+        while (*extra == ' ')
+        {
+            extra++;
+        }
+        if (*extra != '\0')
+        {
+            printf("%s\n", usage);
+            goto cleanup;
+        }
+    }
+
+    *arg_end = '\0';
+
+    char *test_args[] = {args, use_sem ? "1" : "0"};
+
+    printf("Iniciando test_sync %s con n=%s\n", use_sem ? "con semaforos" : "sin semaforos", args);
+    uint64_t result = test_sync(2, test_args);
+    printf("test_sync finalizado con codigo %x\n", result);
+
+    if (argv)
+        free(argv);
+    exit((int)result);
+
+cleanup:
+    if (argv)
+        free(argv);
+    exit(1);
+    return 1;
 }
 
 // Comandos disponibles
@@ -340,28 +400,12 @@ int cmd_testPriority(void *argv) // TODO
 
 int cmd_testSynchro(void *argv) // TODO
 {
-    if (argv)
-    {
-        free(argv);
-    }
-    printf("Iniciando testSynchro...\n");
-    // char *test_args[] = {args};
-    uint64_t result = 0; // test_synchronization(0, test_args);
-    printf("testSynchro finalizado con codigo %x\n", result);
-    return result;
+    return run_test_sync_cmd(argv, 1, "Uso: test_synchro <n>");
 }
 
 int cmd_testNoSynchro(void *argv) // TODO
 {
-    if (argv)
-    {
-        free(argv);
-    }
-    printf("Iniciando testNoSynchro...\n");
-    // char *test_args[] = {args};
-    uint64_t result = 0; // test_no_synchronization(0, test_args);
-    printf("testNoSynchro finalizado con codigo %x\n", result);
-    return result;
+    return run_test_sync_cmd(argv, 0, "Uso: test_no_synchro <n>");
 }
 
 // ARQUI
