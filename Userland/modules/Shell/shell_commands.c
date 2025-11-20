@@ -310,12 +310,23 @@ int cmd_testPriority(void *argv)
 
 int cmd_testSynchro(void *argv) // TODO
 {
-    return run_test_sync_cmd(argv, 1, "Uso: test_synchro <n>");
-}
+    int *args = (int *)argv;
+    // args[0] = iter
+    // args[1] = use_sem
 
-int cmd_testNoSynchro(void *argv) // TODO
-{
-    return run_test_sync_cmd(argv, 0, "Uso: test_no_synchro <n>");
+    const char *usage = "Uso: test_sync <end-val-for-process>"; // modificar
+    if (argv == NULL || args[0] <= 1)                           // validar parámetros
+    {
+        printf("%s\n", usage);
+        exit(-1);
+    }
+    printf("Iniciando testPriority con max_val %d ...\n", args[0]); // modificar
+    int result = test_sync(args[0], args[1]);
+    printf("testPriority finalizado con codigo %d\n", result); // modificar
+    exit(result);
+    return result;
+
+    return run_test_sync_cmd(argv, 1, "Uso: test_synchro <n>");
 }
 
 // ARQUI
@@ -595,23 +606,13 @@ void command_switch(char *cmd_copy, char *args)
     }
     else if (!strcmp(cmd_copy, "test_synchro"))
     {
-        char *args_copy = dup_args(args);
-        if (args && args_copy == NULL)
-        {
-            printf("Error: sin memoria para argumentos\n");
-            return;
-        }
-        new_proc(cmd_testSynchro, args_copy);
+        int argv[] = {strtoint(args), 0};
+        new_proc((task_fn_t)cmd_testSynchro, argv);
     }
     else if (!strcmp(cmd_copy, "test_no_synchro"))
     {
-        char *args_copy = dup_args(args);
-        if (args && args_copy == NULL)
-        {
-            printf("Error: sin memoria para argumentos\n");
-            return;
-        }
-        new_proc(cmd_testNoSynchro, args_copy);
+        int argv[] = {strtoint(args), 1};
+        new_proc((task_fn_t)cmd_testSynchro, argv);
     }
 
     // Comandos realizados en Arquitectura de Computadoras (ya no se muestran en "help"):
