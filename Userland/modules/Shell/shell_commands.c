@@ -13,12 +13,14 @@
 #include "../../libs/semaphores/semaphores.h"
 #include "./shell_defs.h"
 #include "./shell_render.h"
+#include <stdarg.h>
 
 // Forward declarations of shell print helpers to avoid implicit declaration warnings
 static void sp_print(const char *s);
 static void sp_uint(uint64_t v);
 static void sp_dec(int64_t v);
 static void sp_hex(uint64_t v);
+static void shell_printf(const char *fmt, ...); // nueva función de formato
 // Synchronous execution helper: crea proceso y espera a que termine
 static void run_sync(task_fn_t fn, void *arg, int free_after){
     pid_t pid = new_proc(fn, arg);
@@ -34,6 +36,56 @@ static void run_sync(task_fn_t fn, void *arg, int free_after){
 #define MAX_PROCESS 100
 
 static void *const pongisgolfModuleAddress = (void *)0x8000000;
+static char *dup_args(const char *args);
+static int run_test_sync_cmd(void *argv, int use_sem, const char *usage);
+
+static char *dup_args(const char *args)
+{
+    if (args == NULL)
+    {
+        return NULL;
+    }
+    size_t len = strlen(args) + 1;
+    char *copy = malloc(len);
+    if (copy)
+    {
+        strcpy(copy, args);
+    }
+    return copy;
+}
+
+static void shell_printf(const char *fmt, ...){
+    va_list ap; va_start(ap, fmt);
+    while(*fmt){
+        if(*fmt=='%'){ fmt++; switch(*fmt){
+            case 'd': { int v=va_arg(ap,int); sp_dec(v); break; }
+            case 'u': { unsigned int v=va_arg(ap,unsigned int); sp_uint(v); break; }
+            case 'x': case 'X': { unsigned int v=va_arg(ap,unsigned int); sp_hex(v); break; }
+            case 's': { const char *s=va_arg(ap,const char*); sp_print(s); break; }
+            case 'c': { int c=va_arg(ap,int); shell_putchar((char)c); break; }
+            case '%': { shell_putchar('%'); break; }
+            default: shell_putchar('%'); shell_putchar(*fmt); break; }
+        } else { shell_putchar(*fmt); }
+        if(*fmt) fmt++; }
+    va_end(ap);
+}
+
+static int run_test_sync_cmd(void *argv, int use_sem, const char *usage)
+{
+    char *args = (char *)argv;
+    if (!args){ shell_printf("%s\n", usage); goto cleanup; }
+    while (*args==' ') args++;
+    if (*args=='\0'){ shell_printf("%s\n", usage); goto cleanup; }
+    char *arg_end=args; while(*arg_end && *arg_end!=' ') arg_end++;
+    if (*arg_end!='\0'){ char *extra=arg_end+1; while(*extra==' ') extra++; if(*extra!='\0'){ shell_printf("%s\n", usage); goto cleanup; } }
+    *arg_end='\0';
+    char *test_args[]={ args, use_sem?"1":"0" };
+    shell_printf("Iniciando test_sync %s con n=%s\n", use_sem?"con semaforos":"sin semaforos", args);
+    uint64_t result = test_sync(2, test_args);
+    shell_printf("test_sync finalizado con codigo %x\n", (unsigned int)result);
+    if(argv) free(argv); exit((int)result);
+cleanup: if(argv) free(argv); exit(1); return 1;
+}
 
 // Comandos disponibles
 
@@ -61,29 +113,35 @@ void cmd_help()
 int cmd_help()
 {
     sp_print("Comandos disponibles:\n");
-    sp_print("  help             - Mostrar comandos disponibles\n");
-    sp_print("  clear            - Limpiar pantalla\n");
-    sp_print("  mem              - Imprime el estado de la memoria\n");
-    sp_print("  ps               - Imprime la lista de todos los procesos\n");
-    sp_print("  loop <segundos>  - Imprime su ID con un saludo cada cantidad de segundos\n");
-    sp_print("  kill <pid>       - Mata un proceso dado su ID\n");
-    sp_print("  nice <pid> <pri> - Cambia la prioridad de un proceso\n");
-    sp_print("  block <pid>      - Alterna entre ready y blocked un proceso\n");
-    sp_print("  cat              - Imprime el stdin tal como lo recibe\n");
-    sp_print("  wc               - Cuenta lineas del input\n");
-    sp_print("  filter           - Filtra vocales del input\n");
-    sp_print("  mvar             - Multiple readers problem\n");
-    sp_print("  createfd <name>  - Crea un FD dinamico\n");
-    sp_print("  writefd <fd> <texto> - Escribe texto en un FD dinamico\n");
-    sp_print("  readfd <fd>      - Lee contenido de un FD dinamico\n");
-    sp_print("  fdlist           - Lista FDs dinamicos\n");
+    sp_print("  help             - Mostrar comandos disponibles\n");                                          // OK
+    sp_print("  clear            - Limpiar pantalla\n");                                                      // OK
+    sp_print("  mem              - Imprime el estado de la memoria\n");                                       // OK
+    sp_print("  ps               - Imprime la lista de todos los procesos\n");                                // OK
+    sp_print("  loop <segundos>  - Imprime su ID con un saludo cada una determinada cantidad de segundos\n"); // OK
+    sp_print("  kill <pid>       - Mata un proceso dado su ID.\n");                                           // OK
+    sp_print("  nice <pid> <pri> - Cambia la prioridad de un proceso dado su ID y la nueva prioridad\n");     // TODO
+    sp_print("  block <pid>      - Switch entre ready y blocked de un proceso dado su ID.\n");                // OK
+    sp_print("  cat              - Imprime el stdin tal como lo recibe.\n");                                  // TODO
+    sp_print("  wc               - Cuenta la cantidad de líneas del input\n");                                // TODO
+    sp_print("  filter           - Filtra las vocales del input.\n");                                         // TODO
+    sp_print("  mvar             - Implementa el problema de múltiples lectores\n");                          // TODO
+    // Nuevos comandos de FDs dinamicos (por proceso)
+    sp_print("  createfd <name>  - Crea un FD dinamico en este proceso (desde 3 en adelante)\n");
+    sp_print("  writefd <fd> <texto> - Escribe texto en un FD dinamico de este proceso\n");
+    sp_print("  readfd <fd>      - Lee y muestra el contenido de un FD dinamico de este proceso\n");
+    sp_print("  fdlist           - Lista los FDs dinamicos del proceso actual\n");
+
     sp_print("\nTests disponibles:\n");
-    sp_print("  test_mm <max-bytes>                     - Stress test memoria\n");
-    sp_print("  test_processes <max-processes>          - Opera procesos aleatoriamente\n");
-    sp_print("  test_priority <end-val-for-process>     - Prueba prioridades\n");
-    sp_print("  test_synchro <processes> <inc-dec>      - Modifica variable con semaforos\n");
-    sp_print("  test_no_synchro <processes> <inc-dec>   - Modifica variable sin semaforos\n");
-    sp_print("\nControles:\n  Enter - Ejecutar comando\n  Backspace - Borrar caracter\n");
+    sp_print("  test_mm <max-bytes>                     - Ejecuta stress test del manejador de memoria\n");
+    sp_print("  test_processes <max-processes>          - Crea, bloquea, desbloquea y mata procesos aleatoriamente.\n");       // OK: (falta fix en mm's + fix en new_proc)
+    sp_print("  test_priority <end-val-for-process>     - 3 procesos se ejecutan con misma prioridad y luego con distinta\n"); // TODO
+    sp_print("  test_synchro <processes> <inc-dec>      - Varios procesos modifican 1 variable usando semaforos\n");           // TODO
+    sp_print("  test_no_synchro <processes> <inc-dec>   - Varios procesos modifican una variable sin semaforos\n");            // TODO
+
+    sp_print("\nControles:\n");
+    sp_print("  Enter - Ejecutar comando\n");
+    sp_print("  Backspace - Borrar caracter\n");
+
     exit(0);
     return 0;
 }
@@ -102,24 +160,24 @@ int cmd_mem()
     return 0;
 }
 
-static char *dup_args(const char *src){
-    if(src==NULL) return NULL;
-    while(*src==' ') src++; // trim leading spaces
-    int len=0; const char *p=src; while(*p && *p!='\n') { len++; p++; }
-    char *d = (char*)malloc(len+1);
-    if(!d) return NULL;
-    for(int i=0;i<len;i++) d[i]=src[i];
-    d[len]='\0';
-    return d;
-}
-
+int cmd_loop_argv[1];
 int cmd_loop(void *argv)
 {
-    char *arg = (char*)argv; int segs;
-    if(arg==NULL || *arg=='\0'){ sp_print("Uso: loop <segundos>\n"); exit(0); }
-    segs = (int)strtoint(arg);
-    if(segs <= 0){ sp_print("Uso: loop <segundos>\n"); exit(0); }
-    while (1){ sp_print("Hola! soy el proceso: "); sp_dec(getpid()); sp_print(". Este mensaje aparecera cada "); sp_dec(segs); sp_print(" segundos \n"); sleep(segs); }
+    if (argv == NULL)
+        return -1;
+    int *args = (int *)argv;
+    int segs = args[0];
+    if (segs <= 0)
+    {
+        printf("Uso: loop <segundos>\n");
+        exit(0);
+    }
+    while (1)
+    {
+        printf("Hola! soy el proceso: %d. Este mensaje aparecera cada %d segundos \n", (int)getpid(), segs);
+        sleep(segs);
+    }
+    exit(0);
     return 0;
 }
 
@@ -138,83 +196,106 @@ int cmd_ps()
     return 0;
 }
 
-void cmd_kill(pid_t pid){ int status = kill(pid); sp_print("Kill a proceso: "); sp_dec(pid); sp_print(" termino con estado: "); sp_dec(status); sp_print(" \n"); }
-void cmd_nice(pid_t pid, process_priority_t prio){ sp_print("cambiando la prioridad del proceso: "); sp_dec(pid); sp_print(" a "); sp_dec(prio); set_priority(pid, prio); }
-void cmd_block(pid_t pid){ if (block_proc(pid) == 0){ sp_print("bloqueando el proceso: "); sp_dec(pid); return; } sp_print("desbloqueando el proceso: "); sp_dec(pid); unblock_proc(pid); }
+int cmd_kill_argv[1];
+void cmd_kill(void *argv)
+{
+    if (argv == NULL)
+    {
+        exit(-1);
+    }
+    int *args = (int *)argv;
+    pid_t pid = args[0];
+    int status = kill(pid);
+    shell_printf("Kill a proceso: %d termino con estado: %d \n", pid, status);
+    exit(status);
+}
 
-int cmd_testMM(void *argv){
-    char *args = (char*)argv;
-    const char *usage = "Uso: test_mm <bytes>";
-    if (!args || *args == '\0') {
-        sp_print(usage); sp_print("\n"); exit(1);
+int cmd_nice_argv[2];
+void cmd_nice(void *argv)
+{
+    if (argv == NULL)
+    {
+        exit(-1);
     }
-    while (*args == ' ') args++;
-    if (*args == '\0') { sp_print(usage); sp_print("\n"); exit(1); }
-    char *end = args;
-    while (*end && *end != ' ') end++;
-    char saved = *end;
-    *end = '\0';
-    if (*args == '\0') { *end = saved; sp_print(usage); sp_print("\n"); exit(1); }
-    if (saved != '\0') {
-        char *extra = end + 1;
-        while (*extra == ' ') extra++;
-        if (*extra != '\0') { *end = saved; sp_print(usage); sp_print("\n"); exit(1); }
+    int *args = (int *)argv;
+    pid_t pid = args[0];
+    process_priority_t prio = args[1];
+    if (prio < PRIORITY_LOW || prio > PRIORITY_HIGH)
+    {
+        shell_printf("Error, prioridades disponibles:\nLOW : %d\nNORMAL : %d\nHIGH: %d\n", PRIORITY_LOW, PRIORITY_NORMAL, PRIORITY_HIGH);
+        exit(-1);
     }
-    sp_print("Iniciando testMM con "); sp_print(args); sp_print(" bytes\n");
-    char *test_args[] = { args };
-    uint64_t result = test_mm(1, test_args);
-    sp_print("testMM finalizado con codigo "); sp_hex(result); sp_print("\n");
-    *end = saved;
-    exit((int)result);
-    return 0;
+    shell_printf("cambiando la prioridad del proceso: %d a %d\n", pid, prio);
+    int status = set_priority(pid, prio);
+    exit(status);
+}
+
+int cmd_block_argv[1];
+void cmd_block(void *argv)
+{
+    if (argv == NULL)
+    {
+        exit(-1);
+    }
+    int *args = (int *)argv;
+    pid_t pid = args[0];
+
+    if (block_proc(pid) == 0){ shell_printf("bloqueando el proceso: %d\n", pid); return; }
+    shell_printf("desbloqueando el proceso: %d\n", pid); unblock_proc(pid);
+}
+
+int cmd_testMM(void *argv)
+{
+    char *args = (char*)argv; const char *usage="Uso: test_mm <bytes>";
+    if(!args){ shell_printf("%s\n", usage); goto cleanup; }
+    while(*args==' ') args++;
+    if(*args=='\0'){ shell_printf("%s\n", usage); goto cleanup; }
+    char *end=args; while(*end && *end!=' ') end++;
+    if(*end!='\0'){ char *extra=end+1; while(*extra==' ') extra++; if(*extra!='\0'){ shell_printf("%s\n", usage); goto cleanup; } }
+    *end='\0';
+    shell_printf("Iniciando testMM con %s bytes\n", args);
+    char *test_args[]={ args };
+    uint64_t result = test_mm(1,test_args);
+    shell_printf("testMM finalizado con codigo %x\n", (unsigned int)result);
+    if(argv) free(argv); exit((int)result); return 0;
+cleanup: if(argv) free(argv); exit(1); return 1;
 }
 
 int cmd_testProcesses(void *argv){
-    char *args = (char*)argv;
-    const char *usage_msg = "Uso: test_processes <max-processes>";
-    if (!args) { sp_print(usage_msg); sp_print("\n"); return 1; }
-    while (*args == ' ') args++;
-    if (*args == '\0') { sp_print(usage_msg); sp_print("\n"); return 1; }
-    char *arg_end = args;
-    while (*arg_end && *arg_end != ' ') arg_end++;
-    char saved = *arg_end;
-    *arg_end = '\0';
-    if (*args == '\0') { sp_print(usage_msg); sp_print("\n"); *arg_end = saved; return 1; }
-    if (saved != '\0') {
-        char *extra = arg_end + 1;
-        while (*extra == ' ') extra++;
-        if (*extra != '\0') { sp_print(usage_msg); sp_print("\n"); *arg_end = saved; return 1; }
-    }
-    sp_print("Iniciando testProcesses con max "); sp_print(args); sp_print(" procesos...\n");
-    char *test_args[] = { args };
-    int64_t result = test_processes(1, test_args);
-    sp_print("testProcesses finalizado con codigo "); sp_hex((uint32_t)result); sp_print("\n");
-    *arg_end = saved;
-    exit((int)result);
-    return (int)result;
+    char *args=(char*)argv; const char *usage_msg="Uso: test_processes <max-processes>";
+    if(!args){ shell_printf("%s\n", usage_msg); goto cleanup; }
+    while(*args==' ') args++;
+    if(*args=='\0'){ shell_printf("%s\n", usage_msg); goto cleanup; }
+    char *end=args; while(*end && *end!=' ') end++;
+    if(*end!='\0'){ char *extra=end+1; while(*extra==' ') extra++; if(*extra!='\0'){ shell_printf("%s\n", usage_msg); goto cleanup; } }
+    *end='\0';
+    shell_printf("Iniciando testProcesses con max %s procesos...\n", args);
+    char *test_args[]={ args }; int64_t result=test_processes(1,test_args);
+    shell_printf("testProcesses finalizado con codigo %x\n", (unsigned int)result);
+    if(argv) free(argv); exit((int)result); return (int)result;
+cleanup: if(argv) free(argv); exit(1); return 1;
 }
 
-int cmd_testPriority(void *argv){
-    (void)argv;
-    sp_print("Iniciando testPriority...\n");
-    char *test_args[] = { "3" };
-    uint64_t result = test_prio(1, test_args);
-    sp_print("testPriority finalizado con codigo "); sp_hex(result); sp_print("\n");
-    return (int)result;
+int cmd_testPriority(void *argv) // TODO
+{
+    if (argv)
+    {
+        free(argv);
+    }
+    shell_printf("Iniciando testPriority...\n");
+    char *test_args[]={(char*)"3"};
+    uint64_t result = test_prio(1,test_args);
+    shell_printf("testPriority finalizado con codigo %x\n", (unsigned int)result);
+    exit((int)result);
 }
-int cmd_testSynchro(void *argv){
-    (void)argv;
-    sp_print("Iniciando testSynchro...\n");
-    uint64_t result = 0; // TODO: implementar
-    sp_print("testSynchro finalizado con codigo "); sp_hex(result); sp_print("\n");
-    return (int)result;
+
+int cmd_testSynchro(void *argv) // TODO
+{
+    return run_test_sync_cmd(argv,1,"Uso: test_synchro <n>");
 }
-int cmd_testNoSynchro(void *argv){
-    (void)argv;
-    sp_print("Iniciando testNoSynchro...\n");
-    uint64_t result = 0; // TODO: implementar
-    sp_print("testNoSynchro finalizado con codigo "); sp_hex(result); sp_print("\n");
-    return (int)result;
+int cmd_testNoSynchro(void *argv) // TODO
+{
+    return run_test_sync_cmd(argv,0,"Uso: test_no_synchro <n>");
 }
 
 // ARQUI
@@ -292,17 +373,23 @@ void cmd_readfd(char *args){
     int fd = strtoint(args);
     unsigned char buf[256];
     int total = 0;
+    int chunk;
+    // Leer al menos una vez; continuar sólo si buffer se llenó completamente (indica posible más datos disponibles inmediatamente)
     while (1) {
-        int n = read(fd, buf, sizeof(buf) - 1);
-        if (n <= 0) break;
-        buf[n] = '\0';
+        chunk = read(fd, buf, sizeof(buf) - 1);
+        if (chunk < 0) { sp_print("Error de lectura\n"); break; }
+        if (chunk == 0) { break; }
+        buf[chunk] = '\0';
         shell_print((char*)buf);
-        total += n;
+        total += chunk;
+        if (chunk < (int)(sizeof(buf) - 1)) { // lectura parcial, no volver a bloquear esperando más
+            break;
+        }
     }
     if (total == 0) {
         sp_print("(sin datos)\n");
     } else {
-        sp_print("\nLeidos "); sp_dec(total); sp_print(" bytes de fd "); sp_dec(fd); sp_print("\n");
+        shell_printf("\nLeidos %d bytes de fd %d\n", total, fd);
     }
 }
 
@@ -328,11 +415,12 @@ void cmd_fdlist(){
     }
 }
 
-    static int launch_cat(char *args);
+static int launch_cat(char *args);
 
 int shell_launch_program(const char *name, char *args)
 {
-    if (name == NULL || *name == '\0') return -1;
+    if (name == NULL || *name == '\0')
+        return -1;
     if (!strcmp(name, "cat"))
     {
         return launch_cat(args);
@@ -342,6 +430,7 @@ int shell_launch_program(const char *name, char *args)
 }
 
 extern int cat_proc(void *argv);
+
 static int launch_cat(char *args)
 {
     (void)args;
@@ -374,47 +463,82 @@ void command_switch(char *cmd_copy, char *args)
     }
     else if (!strcmp(cmd_copy, "kill"))
     {
-        cmd_kill(strtoint(args));
+        cmd_kill_argv[0] = strtoint(args);
+        new_proc((task_fn_t)cmd_kill, cmd_kill_argv);
     }
     else if (!strcmp(cmd_copy, "nice"))
     {
-        if(!args){ sp_print("Uso: nice <pid> <pri>\n"); }
-        else {
-            char *copy = dup_args(args);
-            char *pri = find_args(copy);
-            if(!pri || *pri=='\0'){ sp_print("Uso: nice <pid> <pri>\n"); }
-            else { pid_t pid = strtoint(copy); process_priority_t pr = (process_priority_t)strtoint(pri); cmd_nice(pid, pr); }
-            free(copy);
-        }
+        char *p1 = strtok(args, " ");
+        char *p2 = strtok(NULL, " ");
+        cmd_nice_argv[0] = strtoint(p1);
+        cmd_nice_argv[1] = strtoint(p2);
+        new_proc((task_fn_t)cmd_nice, cmd_nice_argv);
     }
     else if (!strcmp(cmd_copy, "block"))
     {
-        cmd_block(strtoint(args));
+        cmd_block_argv[0] = strtoint(args);
+        new_proc((task_fn_t)cmd_block, cmd_block_argv);
     }
+    /*
+    else if (!strcmp(cmd_copy, "cat"))
+    {
+    }
+    else if (!strcmp(cmd_copy, "wc"))
+    {
+    }
+    else if (!strcmp(cmd_copy, "filter"))
+    {
+    }
+    */
     else if (!strcmp(cmd_copy, "test_mm"))
     {
-        char *copy = dup_args(args);
-        run_sync(cmd_testMM, copy, 1);
+        char *args_copy = dup_args(args);
+        if (args && args_copy == NULL)
+        {
+            printf("Error: sin memoria para argumentos\n");
+            return;
+        }
+        new_proc((task_fn_t)cmd_testMM, args_copy);
     }
     else if (!strcmp(cmd_copy, "test_processes"))
     {
-        char *copy = dup_args(args);
-        run_sync(cmd_testProcesses, copy, 1);
+        char *args_copy = dup_args(args);
+        if (args && args_copy == NULL)
+        {
+            printf("Error: sin memoria para argumentos\n");
+            return;
+        }
+        new_proc((task_fn_t)cmd_testProcesses, args_copy);
     }
     else if (!strcmp(cmd_copy, "test_priority"))
     {
-        char *copy = dup_args(args);
-        run_sync(cmd_testPriority, copy, 1);
+        char *args_copy = dup_args(args);
+        if (args && args_copy == NULL)
+        {
+            printf("Error: sin memoria para argumentos\n");
+            return;
+        }
+        new_proc(cmd_testPriority, args_copy);
     }
     else if (!strcmp(cmd_copy, "test_synchro"))
     {
-        char *copy = dup_args(args);
-        run_sync(cmd_testSynchro, copy, 1);
+        char *args_copy = dup_args(args);
+        if (args && args_copy == NULL)
+        {
+            printf("Error: sin memoria para argumentos\n");
+            return;
+        }
+        new_proc(cmd_testSynchro, args_copy);
     }
     else if (!strcmp(cmd_copy, "test_no_synchro"))
     {
-        char *copy = dup_args(args);
-        run_sync(cmd_testNoSynchro, copy, 1);
+        char *args_copy = dup_args(args);
+        if (args && args_copy == NULL)
+        {
+            printf("Error: sin memoria para argumentos\n");
+            return;
+        }
+        new_proc(cmd_testNoSynchro, args_copy);
     }
 
     // Comandos realizados en Arquitectura de Computadoras (ya no se muestran en "help"):

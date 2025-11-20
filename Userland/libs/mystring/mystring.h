@@ -12,6 +12,8 @@ char *strcpy(char *dest, const char *src);
 char *strncpy(char *dest, const char *src, uint64_t n);
 char *strcat(char *dest, const char *src);
 char *strncat(char *dest, const char *src, uint64_t n);
+char *strchr(const char *s, int c);
+
 void *memcpy(void *dest, const void *src, size_t n);
 
 int64_t strtoint(const char *str);
@@ -22,5 +24,6 @@ uint64_t strtooct(const char *str);
 uint64_t strtoint_complete(const char *str);
 
 char *find_args(char *cmd);
+char *strtok(char *str, const char *delim);
 
 #endif

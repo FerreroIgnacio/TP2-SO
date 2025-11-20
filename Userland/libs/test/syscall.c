@@ -16,17 +16,67 @@ typedef struct
   char **argv;
 } test_process_payload_t;
 
+static char **dup_argv(uint64_t argc, char *argv[])
+{
+  if (argc == 0 || argv == NULL)
+  {
+    return NULL;
+  }
+
+  char **copy = malloc((argc + 1) * sizeof(char *));
+  if (copy == NULL)
+  {
+    return NULL;
+  }
+
+  for (uint64_t i = 0; i < argc; i++)
+  {
+    size_t len = strlen(argv[i]) + 1;
+    copy[i] = malloc(len);
+    if (copy[i] == NULL)
+    {
+      for (uint64_t j = 0; j < i; j++)
+      {
+        free(copy[j]);
+      }
+      free(copy);
+      return NULL;
+    }
+    strcpy(copy[i], argv[i]);
+  }
+  copy[argc] = NULL; // sentinel for convenience
+  return copy;
+}
+
+static void free_argv_copy(uint64_t argc, char **argv)
+{
+  if (argv == NULL)
+  {
+    return;
+  }
+  for (uint64_t i = 0; i < argc; i++)
+  {
+    if (argv[i])
+    {
+      free(argv[i]);
+    }
+  }
+  free(argv);
+}
+
 static int test_process_trampoline(void *arg)
 {
   test_process_payload_t *payload = (test_process_payload_t *)arg;
   if (payload == NULL || payload->fn == NULL)
   {
-    return -1;
+    exit(-1);
   }
 
   uint64_t ret = payload->fn(payload->argc, payload->argv);
+  free_argv_copy(payload->argc, payload->argv);
   free(payload);
-  return (int)ret;
+  exit((int)ret);
+  return (int)ret; // no se alcanza, pero ayuda a quietar warnings
 }
 
 extern void zero_to_max(void);
@@ -186,13 +236,19 @@ int64_t my_create_process(char *name, uint64_t argc, char *argv[])
 
   payload->fn = entry;
   payload->argc = argc;
-  payload->argv = argv;
+  payload->argv = dup_argv(argc, argv);
+  if (argc > 0 && payload->argv == NULL)
+  {
+    free(payload);
+    return -1;
+  }
 
   // TODO: CORREGIR PROCESOS
   int pid = new_proc(test_process_trampoline, payload);
 
   if (pid < 0)
   {
+    free_argv_copy(argc, payload->argv);
     free(payload);
     return -1;
   }

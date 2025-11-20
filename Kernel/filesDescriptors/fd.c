@@ -120,7 +120,7 @@ int fd_read(int fd, char *buffer, uint64_t count) {
     int idx = idx_from_fd(fd);
     if (buffer == NULL || count == 0) return -1;
     int pid = scheduler_current_pid();
-    // STDIN: si está redirigido a una pipe usarla; si no, usar buffer propio como cualquier FD
+    // STDIN/STDOUT via pipes keep original blocking semantics (full count)
     if (fd == STDIN && valid_pid(pid) && bound_stdin_pipe[pid] >= 0) {
         return pipe_read(bound_stdin_pipe[pid], buffer, count);
     }
@@ -128,17 +128,18 @@ int fd_read(int fd, char *buffer, uint64_t count) {
         return pipe_read(bound_stdout_pipe[pid], buffer, count);
     }
     if (table == NULL || idx < 0 || !table[idx].in_use) return -1;
-    uint64_t read = 0;
-    while (read < count) {
-        while (table[idx].size == 0) {
-            scheduler_yield();
-        }
-        buffer[read] = (char)table[idx].buffer[table[idx].read_pos];
+    // Dynamic FD: if no data, block until at least 1 byte; then return up to available (partial ok)
+    while (table[idx].size == 0) {
+        scheduler_yield();
+    }
+    uint64_t available = table[idx].size;
+    uint64_t to_read = (count < available) ? count : available;
+    for (uint64_t i = 0; i < to_read; i++) {
+        buffer[i] = (char)table[idx].buffer[table[idx].read_pos];
         table[idx].read_pos = (table[idx].read_pos + 1) % FD_BUFFER_CAPACITY;
         table[idx].size--;
-        read++;
     }
-    return (int)read;
+    return (int)to_read;
 }
 
 int fd_has_data(int fd) {

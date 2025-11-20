@@ -2,6 +2,8 @@
 #include <stdio.h>
 #include "syscall.h"
 #include "test_util.h"
+#include <stdlib.h>
+#include <string.h>
 
 #define SEM_ID "sem"
 #define TOTAL_PAIR_PROCESSES 2
@@ -51,14 +53,25 @@ uint64_t my_process_inc(uint64_t argc, char *argv[]) {
   return 0;
 }
 
-uint64_t test_sync(uint64_t argc, char *argv[]) { //{n, use_sem, 0}
+uint64_t test_sync(uint64_t argc, char *argv[]) { //{n, use_sem}
   uint64_t pids[2 * TOTAL_PAIR_PROCESSES];
 
   if (argc != 2)
     return -1;
 
-  char *argvDec[] = {argv[0], "-1", argv[1], NULL};
-  char *argvInc[] = {argv[0], "1", argv[1], NULL};
+  // Duplicar argumentos para que los hijos no lean memoria de stack modificada
+  char *n_copy = malloc(strlen(argv[0]) + 1);
+  char *use_sem_copy = malloc(strlen(argv[1]) + 1);
+  if (n_copy == NULL || use_sem_copy == NULL) {
+    free(n_copy);
+    free(use_sem_copy);
+    return -1;
+  }
+  strcpy(n_copy, argv[0]);
+  strcpy(use_sem_copy, argv[1]);
+
+  char *argvDec[] = {n_copy, "-1", use_sem_copy, NULL};
+  char *argvInc[] = {n_copy, "1", use_sem_copy, NULL};
 
   global = 0;
 
@@ -74,6 +87,9 @@ uint64_t test_sync(uint64_t argc, char *argv[]) { //{n, use_sem, 0}
   }
 
   printf("Final value: %d\n", global);
+
+  free(n_copy);
+  free(use_sem_copy);
 
   return 0;
 }
