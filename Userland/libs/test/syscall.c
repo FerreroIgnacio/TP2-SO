@@ -5,6 +5,7 @@
 #include "../memory/memory.h"
 #include "../semaphores/semaphores.h"
 #include "../mystring/mystring.h"
+#include "../fileDescriptorUtils/fileDescriptorUtils.h"
 #include "test_util.h"
 
 typedef uint64_t (*test_entry_fn_t)(uint64_t argc, char *argv[]);

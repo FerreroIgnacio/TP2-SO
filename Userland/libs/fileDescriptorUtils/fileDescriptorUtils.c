@@ -3,8 +3,8 @@
 #include <stdarg.h>
 
 // stubs de syscalls implementados en ASM (fileDescriptorUtils.asm)
-extern int asm_poll(int *fds, int count);      // rdi=fds, rsi=count
-extern int asm_select(int *fds, int count);    // rdi=fds, rsi=count
+extern int asm_poll(int *fds, int count);   // rdi=fds, rsi=count
+extern int asm_select(int *fds, int count); // rdi=fds, rsi=count
 
 // borra todo el file descriptor
 void flush(int fd)
@@ -19,7 +19,8 @@ unsigned char getchar()
 {
     unsigned char c = 0;
     int count;
-    do {
+    do
+    {
         count = read(STDIN, &c, 1);
     } while (count <= 0);
     return c;
@@ -42,11 +43,13 @@ int scanf(const char *format, ...)
             unsigned char c;
 
             // Saltar marcadores de fin
-            do {
+            do
+            {
                 c = getchar();
             } while (c == ' ' || c == '\n' || c == '\r' || c == '\t' || c == '\v' || c == '\b');
             // Leer token hasta separador
-            while (c != ' ' && c != '\n' && c != '\r' && c != '\t' && c != '\v' && c != '\b' && bufIndex < STD_BUFF_SIZE - 1) {
+            while (c != ' ' && c != '\n' && c != '\r' && c != '\t' && c != '\v' && c != '\b' && bufIndex < STD_BUFF_SIZE - 1)
+            {
                 buffer[bufIndex++] = c;
                 c = getchar();
             }
@@ -238,86 +241,300 @@ void puthexupper(uint64_t value)
     }
 }
 
-static void write_char_fd(int fd, char c){ write(fd, &c, 1); }
+static void write_char_fd(int fd, char c) { write(fd, &c, 1); }
 
-uint64_t fprintf(int fd, const char *format, ...){
-    if(!format) return 0;
-    va_list args; va_start(args, format);
+uint64_t fprintf(int fd, const char *format, ...)
+{
+    if (!format)
+        return 0;
+    va_list args;
+    va_start(args, format);
     uint64_t count_out = 0;
-    while(*format){
+    while (*format)
+    {
         char c = *format++;
-        if(c != '%'){ write_char_fd(fd,c); count_out++; continue; }
+        if (c != '%')
+        {
+            write_char_fd(fd, c);
+            count_out++;
+            continue;
+        }
         c = *format++;
-        if(c=='%'){ write_char_fd(fd,'%'); count_out++; continue; }
-        int longFlag=0, longLongFlag=0, altFlag=0;
+        if (c == '%')
+        {
+            write_char_fd(fd, '%');
+            count_out++;
+            continue;
+        }
+        int longFlag = 0, longLongFlag = 0, altFlag = 0;
         // soporte basico de modificadores (# y l / ll)
-        int parsing=1; while(parsing){
-            switch(c){
-                case '#': altFlag=1; c=*format++; break;
-                case 'l': if(longFlag){ longLongFlag=1; } else longFlag=1; c=*format++; break;
-                default: parsing=0; break;
+        int parsing = 1;
+        while (parsing)
+        {
+            switch (c)
+            {
+            case '#':
+                altFlag = 1;
+                c = *format++;
+                break;
+            case 'l':
+                if (longFlag)
+                {
+                    longLongFlag = 1;
+                }
+                else
+                    longFlag = 1;
+                c = *format++;
+                break;
+            default:
+                parsing = 0;
+                break;
             }
         }
-        switch(c){
-            case 'c': {
-                char ch=(char)va_arg(args,int); write_char_fd(fd,ch); count_out++; break;
+        switch (c)
+        {
+        case 'c':
+        {
+            char ch = (char)va_arg(args, int);
+            write_char_fd(fd, ch);
+            count_out++;
+            break;
+        }
+        case 's':
+        {
+            const char *s = va_arg(args, const char *);
+            if (!s)
+                s = "(null)";
+            size_t len = strlen(s);
+            write(fd, s, len);
+            count_out += len;
+            break;
+        }
+        case 'd':
+        case 'u':
+        case 'x':
+        case 'X':
+        case 'o':
+        case 'p':
+        case 'P':
+        {
+            unsigned long long val = 0;
+            int is_signed = (c == 'd');
+            if (is_signed)
+            {
+                long long sv = longLongFlag ? va_arg(args, long long) : (longFlag ? va_arg(args, long) : va_arg(args, int));
+                if (sv < 0)
+                {
+                    write_char_fd(fd, '-');
+                    count_out++;
+                    val = (unsigned long long)(-sv);
+                }
+                else
+                    val = (unsigned long long)sv;
             }
-            case 's': {
-                const char *s=va_arg(args,const char*); if(!s) s="(null)"; size_t len=strlen(s); write(fd,s,len); count_out+=len; break; }
-            case 'd': case 'u': case 'x': case 'X': case 'o': case 'p': case 'P': {
-                unsigned long long val=0; int is_signed=(c=='d');
-                if(is_signed){ long long sv = longLongFlag? va_arg(args,long long) : (longFlag? va_arg(args,long) : va_arg(args,int)); if(sv<0){ write_char_fd(fd,'-'); count_out++; val=(unsigned long long)(-sv); } else val=(unsigned long long)sv; }
-                else { val = longLongFlag? va_arg(args,unsigned long long) : (longFlag? va_arg(args,unsigned long) : va_arg(args,unsigned int)); }
-                char buf[64]; int idx=0; int base=10; const char *digits=(c=='X'||c=='P')?"0123456789ABCDEF":"0123456789abcdef"; if(c=='o') base=8; else if(c=='x'||c=='X'||c=='p'||c=='P') base=16;
-                if(val==0){ buf[idx++]='0'; }
-                else { while(val && idx < (int)sizeof(buf)){ buf[idx++] = digits[val % base]; val /= base; } }
-                // alt flag
-                if(altFlag){ if(base==16){ write(fd,(digits=="0123456789ABCDEF")?"0x":"0x",2); count_out+=2; } else if(base==8){ write_char_fd(fd,'0'); count_out++; } }
-                while(idx--){ write_char_fd(fd, buf[idx]); count_out++; }
-                break; }
-            default: write_char_fd(fd,'%'); write_char_fd(fd,c); count_out+=2; break;
+            else
+            {
+                val = longLongFlag ? va_arg(args, unsigned long long) : (longFlag ? va_arg(args, unsigned long) : va_arg(args, unsigned int));
+            }
+            char buf[64];
+            int idx = 0;
+            int base = 10;
+            const char *digits = (c == 'X' || c == 'P') ? "0123456789ABCDEF" : "0123456789abcdef";
+            if (c == 'o')
+                base = 8;
+            else if (c == 'x' || c == 'X' || c == 'p' || c == 'P')
+                base = 16;
+            if (val == 0)
+            {
+                buf[idx++] = '0';
+            }
+            else
+            {
+                while (val && idx < (int)sizeof(buf))
+                {
+                    buf[idx++] = digits[val % base];
+                    val /= base;
+                }
+            }
+            // alt flag
+            if (altFlag)
+            {
+                if (base == 16)
+                {
+                    write(fd, (digits == "0123456789ABCDEF") ? "0x" : "0x", 2);
+                    count_out += 2;
+                }
+                else if (base == 8)
+                {
+                    write_char_fd(fd, '0');
+                    count_out++;
+                }
+            }
+            while (idx--)
+            {
+                write_char_fd(fd, buf[idx]);
+                count_out++;
+            }
+            break;
+        }
+        default:
+            write_char_fd(fd, '%');
+            write_char_fd(fd, c);
+            count_out += 2;
+            break;
         }
     }
     va_end(args);
     return count_out;
 }
 
-uint64_t printf(const char *format, ...){
-    va_list ap; va_start(ap, format);
+uint64_t printf(const char *format, ...)
+{
+    va_list ap;
+    va_start(ap, format);
     // Usar fprintf con buffer dinamico pasandole los argumentos manualmente no es trivial; reusar implementacion: construir lista de formato recorriendo dos veces.
     // Para simplicidad: delegar a vfprintf interno replicando logica (wrap):
-    uint64_t out=0; const char *f=format; // reutilizamos fprintf pieza copiando logica parcial sin duplicar extraction
+    uint64_t out = 0;
+    const char *f = format; // reutilizamos fprintf pieza copiando logica parcial sin duplicar extraction
     // Implementacion simple: crear copia leyendo formato y usando va_list en una funcion auxiliar
     // Para evitar duplicar todo, iteramos igual que fprintf pero escribiendo en STDOUT
-    while(*f){ char c=*f++; if(c!='%'){ write(STDOUT,&c,1); out++; continue; } c=*f++; if(c=='%'){ write(STDOUT,&c,1); out++; continue; }
-        int longFlag=0,longLongFlag=0,altFlag=0; int parsing=1; while(parsing){ switch(c){ case '#': altFlag=1; c=*f++; break; case 'l': if(longFlag){ longLongFlag=1; } else longFlag=1; c=*f++; break; default: parsing=0; break; } }
-        switch(c){
-            case 'c': { char ch=(char)va_arg(ap,int); write(STDOUT,&ch,1); out++; break; }
-            case 's': { const char *s=va_arg(ap,const char*); if(!s) s="(null)"; size_t len=strlen(s); write(STDOUT,s,len); out+=len; break; }
-            case 'd': case 'u': case 'x': case 'X': case 'o': case 'p': case 'P': {
-                unsigned long long val=0; int is_signed=(c=='d'); if(is_signed){ long long sv = longLongFlag? va_arg(ap,long long) : (longFlag? va_arg(ap,long) : va_arg(ap,int)); if(sv<0){ char m='-'; write(STDOUT,&m,1); out++; val=(unsigned long long)(-sv);} else val=(unsigned long long)sv; }
-                else { val = longLongFlag? va_arg(ap,unsigned long long) : (longFlag? va_arg(ap,unsigned long) : va_arg(ap,unsigned int)); }
-                char buf[64]; int idx=0; int base=10; const char *digits=(c=='X'||c=='P')?"0123456789ABCDEF":"0123456789abcdef"; if(c=='o') base=8; else if(c=='x'||c=='X'||c=='p'||c=='P') base=16; if(val==0){ buf[idx++]='0'; } else { while(val && idx<(int)sizeof(buf)){ buf[idx++]=digits[val%base]; val/=base; } }
-                if(altFlag){ if(base==16){ write(STDOUT,"0x",2); out+=2; } else if(base==8){ char z='0'; write(STDOUT,&z,1); out++; } }
-                while(idx--){ write(STDOUT,&buf[idx],1); out++; } break; }
-            default: { char pct='%'; write(STDOUT,&pct,1); write(STDOUT,&c,1); out+=2; break; }
+    while (*f)
+    {
+        char c = *f++;
+        if (c != '%')
+        {
+            write(STDOUT, &c, 1);
+            out++;
+            continue;
+        }
+        c = *f++;
+        if (c == '%')
+        {
+            write(STDOUT, &c, 1);
+            out++;
+            continue;
+        }
+        int longFlag = 0, longLongFlag = 0, altFlag = 0;
+        int parsing = 1;
+        while (parsing)
+        {
+            switch (c)
+            {
+            case '#':
+                altFlag = 1;
+                c = *f++;
+                break;
+            case 'l':
+                if (longFlag)
+                {
+                    longLongFlag = 1;
+                }
+                else
+                    longFlag = 1;
+                c = *f++;
+                break;
+            default:
+                parsing = 0;
+                break;
+            }
+        }
+        switch (c)
+        {
+        case 'c':
+        {
+            char ch = (char)va_arg(ap, int);
+            write(STDOUT, &ch, 1);
+            out++;
+            break;
+        }
+        case 's':
+        {
+            const char *s = va_arg(ap, const char *);
+            if (!s)
+                s = "(null)";
+            size_t len = strlen(s);
+            write(STDOUT, s, len);
+            out += len;
+            break;
+        }
+        case 'd':
+        case 'u':
+        case 'x':
+        case 'X':
+        case 'o':
+        case 'p':
+        case 'P':
+        {
+            unsigned long long val = 0;
+            int is_signed = (c == 'd');
+            if (is_signed)
+            {
+                long long sv = longLongFlag ? va_arg(ap, long long) : (longFlag ? va_arg(ap, long) : va_arg(ap, int));
+                if (sv < 0)
+                {
+                    char m = '-';
+                    write(STDOUT, &m, 1);
+                    out++;
+                    val = (unsigned long long)(-sv);
+                }
+                else
+                    val = (unsigned long long)sv;
+            }
+            else
+            {
+                val = longLongFlag ? va_arg(ap, unsigned long long) : (longFlag ? va_arg(ap, unsigned long) : va_arg(ap, unsigned int));
+            }
+            char buf[64];
+            int idx = 0;
+            int base = 10;
+            const char *digits = (c == 'X' || c == 'P') ? "0123456789ABCDEF" : "0123456789abcdef";
+            if (c == 'o')
+                base = 8;
+            else if (c == 'x' || c == 'X' || c == 'p' || c == 'P')
+                base = 16;
+            if (val == 0)
+            {
+                buf[idx++] = '0';
+            }
+            else
+            {
+                while (val && idx < (int)sizeof(buf))
+                {
+                    buf[idx++] = digits[val % base];
+                    val /= base;
+                }
+            }
+            if (altFlag)
+            {
+                if (base == 16)
+                {
+                    write(STDOUT, "0x", 2);
+                    out += 2;
+                }
+                else if (base == 8)
+                {
+                    char z = '0';
+                    write(STDOUT, &z, 1);
+                    out++;
+                }
+            }
+            while (idx--)
+            {
+                write(STDOUT, &buf[idx], 1);
+                out++;
+            }
+            break;
+        }
+        default:
+        {
+            char pct = '%';
+            write(STDOUT, &pct, 1);
+            write(STDOUT, &c, 1);
+            out += 2;
+            break;
+        }
         }
     }
-    va_end(ap); return out;
-}
-
-
-// Re-implement poll/select con interfaz simplificada (int *fds, int count)
-int poll(int *fds, int count)
-{
-    if (fds == 0 || count <= 0)
-        return -1;
-    return asm_poll(fds, count);
-}
-
-int select(int *fds, int count)
-{
-    if (fds == 0 || count <= 0)
-        return -1;
-    return asm_select(fds, count);
+    va_end(ap);
+    return out;
 }

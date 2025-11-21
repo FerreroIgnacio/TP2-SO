@@ -29,7 +29,7 @@ typedef struct fd_info_u
 int fd_list(fd_info_u_t *out, int max);
 
 // Pipes y redirección
-int pipe_create(void);                // crea un pipe y retorna id
+int pipe_create(void);                            // crea un pipe y retorna id
 int fd_bind_std(int pid, int which, int pipe_id); // which: 0=STDIN, 1=STDOUT
 
 // borra todo el file descriptor
@@ -50,11 +50,5 @@ void puthexupper(uint64_t value); // %X %P
 /* Falta agregar soporte para double */
 // void putdouble(double value, int precision); //%f
 uint64_t printf(const char *format, ...);
-
-/* Interfaces simples: arrays de int con los FDs a monitorear */
-// poll: bloquea hasta que alguno esté listo para leer; retorna cantidad listos (>0) o -1 error
-int poll(int *fds, int count);
-// select: misma semántica que poll; puede compactar los listos al inicio del array
-int select(int *fds, int count);
 
 #endif
