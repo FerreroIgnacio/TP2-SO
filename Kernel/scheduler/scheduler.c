@@ -280,10 +280,11 @@ int scheduler_block_current(struct wait_node *wait_token)
     proc->waiting = 1;
     proc->waiting_node = wait_token;
     proc->wait_status = -1;
+    proc->run_tokens = 0; // forzar cambio de contexto
 
     scheduler_save_and_switch();
 
-    int status = proc->wait_status; // ERROR: devuelve -1 siempre
+    int status = proc->wait_status;
     proc->waiting = 0;
     proc->waiting_node = NULL;
     proc->wait_status = 0;
