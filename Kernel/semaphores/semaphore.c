@@ -217,9 +217,8 @@ int sem_wait(int sem_id)
     spinlock_unlock(&sem->lock);
 
     int status = scheduler_block_current(node_to_block);
-    int result = (status == 0) ? 0 : -1;
     mm_free(node_to_block);
-    return result;
+    return status;
 }
 
 int sem_post(int sem_id)

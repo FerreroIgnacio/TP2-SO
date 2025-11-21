@@ -23,6 +23,7 @@ uint64_t my_process_inc(uint64_t argc, char *argv[])
   uint64_t n;
   int64_t inc;
   int8_t use_sem;
+  int64_t aux;
 
   if (argc != 3)
     return -1;
@@ -37,20 +38,24 @@ uint64_t my_process_inc(uint64_t argc, char *argv[])
   printf("my_process_inc called with n = %d , inc = %d , use_sem = %d\n", n, inc, use_sem);
 
   if (use_sem)
-    if (!my_sem_open(SEM_ID, 1))
+    if ((aux = my_sem_open(SEM_ID, 1)) < 0)
     {
-      printf("test_sync: ERROR opening semaphore\n");
+      printf("test_sync: ERROR opening semaphore %d\n", aux);
       return -1;
     }
 
   uint64_t i;
   for (i = 0; i < n; i++)
   {
-    if (use_sem)
-      my_sem_wait(SEM_ID);
+    if (use_sem) {
+      aux = my_sem_wait(SEM_ID);
+      printf("return of wait: %d   iteration: %d\n", aux, i);
+    }
     slowInc(&global, inc);
-    if (use_sem)
-      my_sem_post(SEM_ID);
+    if (use_sem) {
+      aux = my_sem_post(SEM_ID);
+      printf("return of post: %d   iteration: %d\n", aux, i);
+    }
   }
 
   if (use_sem)
