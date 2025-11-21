@@ -54,7 +54,9 @@ int test_mm(int max_memory)
         memset(mm_rqs[i].address, i, mm_rqs[i].size);
     // Check
     for (i = 0; i < rq; i++)
+    {
       if (mm_rqs[i].address)
+      {
         if (!memcheck(mm_rqs[i].address, i, mm_rqs[i].size))
         {
           printf("test_mm: ERROR\n");
@@ -64,6 +66,9 @@ int test_mm(int max_memory)
         {
           printf("test_mm: SUCCESS writing and reading on block %d\n", rq);
         }
+      }
+    }
+
     // Free
     for (i = 0; i < rq; i++)
     {

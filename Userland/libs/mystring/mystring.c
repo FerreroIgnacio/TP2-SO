@@ -1,5 +1,5 @@
 #include "./mystring.h"
-
+#include "../memory/memory.h"
 size_t strlen(const char *str)
 {
     int len = 0;
@@ -194,4 +194,40 @@ char *strtok(char *str, const char *delim)
     }
 
     return start;
+}
+
+char *itoa_malloc(int value)
+{
+    int temp = value;
+    int length = (value <= 0);
+
+    while (temp != 0)
+    {
+        temp /= 10;
+        length++;
+    }
+
+    char *str = malloc(length + 1);
+    if (!str)
+        return NULL;
+
+    str[length] = '\0';
+
+    int negative = 0;
+    if (value < 0)
+    {
+        negative = 1;
+        value = -value;
+    }
+
+    for (int i = length - 1; i >= negative; i--)
+    {
+        str[i] = (value % 10) + '0';
+        value /= 10;
+    }
+
+    if (negative)
+        str[0] = '-';
+
+    return str;
 }

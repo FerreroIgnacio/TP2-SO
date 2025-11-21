@@ -17,83 +17,6 @@
 #define MAX_PROCESS 100
 
 static void *const pongisgolfModuleAddress = (void *)0x8000000;
-static char *dup_args(const char *args);
-static int run_test_sync_cmd(void *argv, int use_sem, const char *usage);
-
-static char *dup_args(const char *args)
-{
-    if (args == NULL)
-    {
-        return NULL;
-    }
-    size_t len = strlen(args) + 1;
-    char *copy = malloc(len);
-    if (copy)
-    {
-        strcpy(copy, args);
-    }
-    return copy;
-}
-
-static int run_test_sync_cmd(void *argv, int use_sem, const char *usage)
-{
-    char *args = (char *)argv;
-    if (!args)
-    {
-        printf("%s\n", usage);
-        goto cleanup;
-    }
-
-    while (*args == ' ')
-    {
-        args++;
-    }
-
-    if (*args == '\0')
-    {
-        printf("%s\n", usage);
-        goto cleanup;
-    }
-
-    char *arg_end = args;
-    while (*arg_end && *arg_end != ' ')
-    {
-        arg_end++;
-    }
-
-    if (*arg_end != '\0')
-    {
-        char *extra = arg_end + 1;
-        while (*extra == ' ')
-        {
-            extra++;
-        }
-        if (*extra != '\0')
-        {
-            printf("%s\n", usage);
-            goto cleanup;
-        }
-    }
-
-    *arg_end = '\0';
-
-    char *test_args[] = {args, use_sem ? "1" : "0"};
-
-    printf("Iniciando test_sync %s con n=%s\n", use_sem ? "con semaforos" : "sin semaforos", args);
-    uint64_t result = test_sync(2, test_args);
-    printf("test_sync finalizado con codigo %x\n", result);
-
-    if (argv)
-        free(argv);
-    exit((int)result);
-
-cleanup:
-    if (argv)
-        free(argv);
-    exit(1);
-    return 1;
-}
-
 // Comandos disponibles
 
 // CMD_HELP DE ARQUITECTURA DE COMPUTADORAS
@@ -325,8 +248,6 @@ int cmd_testSynchro(void *argv) // TODO
     printf("testPriority finalizado con codigo %d\n", result); // modificar
     exit(result);
     return result;
-
-    return run_test_sync_cmd(argv, 1, "Uso: test_synchro <n>");
 }
 
 // ARQUI
@@ -606,12 +527,12 @@ void command_switch(char *cmd_copy, char *args)
     }
     else if (!strcmp(cmd_copy, "test_synchro"))
     {
-        int argv[] = {strtoint(args), 0};
+        int argv[] = {strtoint(args), 1};
         new_proc((task_fn_t)cmd_testSynchro, argv);
     }
     else if (!strcmp(cmd_copy, "test_no_synchro"))
     {
-        int argv[] = {strtoint(args), 1};
+        int argv[] = {strtoint(args), 0};
         new_proc((task_fn_t)cmd_testSynchro, argv);
     }
 

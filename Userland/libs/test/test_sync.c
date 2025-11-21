@@ -3,7 +3,7 @@
 #include "syscall.h"
 #include "test_util.h"
 #include <stdlib.h>
-#include <string.h>
+#include "../mystring/mystring.h"
 
 #define SEM_ID "sem"
 #define TOTAL_PAIR_PROCESSES 2
@@ -21,7 +21,7 @@ void slowInc(int64_t *p, int64_t inc)
 uint64_t my_process_inc(uint64_t argc, char *argv[])
 {
   uint64_t n;
-  int8_t inc;
+  int64_t inc;
   int8_t use_sem;
 
   if (argc != 3)
@@ -33,6 +33,8 @@ uint64_t my_process_inc(uint64_t argc, char *argv[])
     return -1;
   if ((use_sem = satoi(argv[2])) < 0)
     return -1;
+
+  printf("my_process_inc called with n = %d , inc = %d , use_sem = %d\n", n, inc, use_sem);
 
   if (use_sem)
     if (!my_sem_open(SEM_ID, 1))
@@ -62,16 +64,14 @@ int test_sync(int iter, int use_sem)
   uint64_t pids[2 * TOTAL_PAIR_PROCESSES];
 
   // Duplicar argumentos para que los hijos no lean memoria de stack modificada
-  char *n_copy = malloc(strlen(argv[0]) + 1);
-  char *use_sem_copy = malloc(strlen(argv[1]) + 1);
+  char *n_copy = itoa_malloc(iter);          // strlen(argv[0]) + 1);
+  char *use_sem_copy = itoa_malloc(use_sem); // strlen(argv[1]) + 1);
   if (n_copy == NULL || use_sem_copy == NULL)
   {
     free(n_copy);
     free(use_sem_copy);
     return -1;
   }
-  strcpy(n_copy, argv[0]);
-  strcpy(use_sem_copy, argv[1]);
 
   char *argvDec[] = {n_copy, "-1", use_sem_copy, NULL};
   char *argvInc[] = {n_copy, "1", use_sem_copy, NULL};
