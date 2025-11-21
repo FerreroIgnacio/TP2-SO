@@ -304,7 +304,6 @@ int64_t my_sem_open(char *sem_id, uint64_t initialValue)
 int64_t my_sem_wait(char *sem_id)
 {
   int handle = get_sem_handle(sem_id);
-  printf("handle sem_wait: %d\n", handle);
   if (handle < 0)
   {
     return -1;

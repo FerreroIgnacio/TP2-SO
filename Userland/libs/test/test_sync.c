@@ -23,7 +23,8 @@ uint64_t my_process_inc(uint64_t argc, char *argv[])
   uint64_t n;
   int64_t inc;
   int8_t use_sem;
-  int64_t aux;
+  int64_t ret_wait, ret_post;
+  int64_t proc_id;
 
   if (argc != 3)
     return -1;
@@ -35,31 +36,31 @@ uint64_t my_process_inc(uint64_t argc, char *argv[])
   if ((use_sem = satoi(argv[2])) < 0)
     return -1;
 
-  printf("my_process_inc called with n = %d , inc = %d , use_sem = %d\n", n, inc, use_sem);
 
   if (use_sem)
-    if ((aux = my_sem_open(SEM_ID, 1)) < 0)
+    if (my_sem_open(SEM_ID, 1) < 0)
     {
-      printf("test_sync: ERROR opening semaphore %d\n", aux);
+      printf("test_sync: ERROR opening semaphore\n");
       return -1;
     }
 
+  proc_id = my_getpid();
   uint64_t i;
   for (i = 0; i < n; i++)
   {
     if (use_sem) {
-      aux = my_sem_wait(SEM_ID);
-      printf("return of wait: %d   iteration: %d\n", aux, i);
+      ret_wait = my_sem_wait(SEM_ID);
     }
     slowInc(&global, inc);
+    printf("pid: %d | iter: %d | global: %d | inc: %d | wait: %d | ", proc_id, i, global, inc, ret_wait);
     if (use_sem) {
-      aux = my_sem_post(SEM_ID);
-      printf("return of post: %d   iteration: %d\n", aux, i);
+      ret_post = my_sem_post(SEM_ID);
+      printf("post: %d\n", ret_post);
     }
   }
 
   if (use_sem)
-    my_sem_close(SEM_ID);
+    printf("Cierro semaforo con salida: %d\n", my_sem_close(SEM_ID));
 
   return 0;
 }
