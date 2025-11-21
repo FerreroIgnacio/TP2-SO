@@ -15,10 +15,10 @@
 #include "./shell_commands.h"
 
 extern frameBuffer frame;
-extern unsigned char command_buffer[BUFFER_SIZE];
 extern int buffer_pos;
 extern int cursor_x;
 extern int cursor_y;
+extern int shell_cmd_fd; // FD usado como buffer de linea
 static int cursor_visible = 1;
 static int last_cursor_time = 0;
 static int cursor_drawn = 0;
@@ -101,7 +101,9 @@ void shell_print_prompt()
 void clear_buffer()
 {
     buffer_pos = 0;
-    command_buffer[0] = '\0';
+    if(shell_cmd_fd >= 0){
+        flush(shell_cmd_fd); // vaciar contenido del FD 3
+    }
 }
 
 // Limpiar pantalla

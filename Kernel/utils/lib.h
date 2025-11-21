@@ -1,6 +1,10 @@
 #ifndef LIB_H
 #define LIB_H
 
+#ifndef NULL
+#define NULL 0
+#endif
+
 #include <stdint.h>
 
 void * memset(void * destination, int32_t character, uint64_t length);
@@ -14,5 +18,7 @@ void itos_padded(uint64_t value, char* str, int width);
 
 // buffer size >= 19 (respuesta = 0x0123456789ABCDEF\0 )
 void uint64ToHex(uint64_t value, char *buffer) ;
+
+char * strcpy(char *dest, const char *src);
 
 #endif
