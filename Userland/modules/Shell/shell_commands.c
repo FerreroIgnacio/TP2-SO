@@ -732,23 +732,13 @@ void command_switch(char *cmd_copy, char *args)
     }
     else if (!strcmp(cmd_copy, "test_synchro"))
     {
-        char *args_copy = dup_args(args);
-        if (args && args_copy == NULL)
-        {
-            printf("Error: sin memoria para argumentos\n");
-            return;
-        }
-        new_proc(cmd_testSynchro, args_copy);
+        int argv[] = {strtoint(args), 1};
+        new_proc((task_fn_t)cmd_testSynchro, argv);
     }
     else if (!strcmp(cmd_copy, "test_no_synchro"))
     {
-        char *args_copy = dup_args(args);
-        if (args && args_copy == NULL)
-        {
-            printf("Error: sin memoria para argumentos\n");
-            return;
-        }
-        new_proc(cmd_testNoSynchro, args_copy);
+        int argv[] = {strtoint(args), 0};
+        new_proc((task_fn_t)cmd_testSynchro, argv);
     }
 
     // Comandos realizados en Arquitectura de Computadoras (ya no se muestran en "help"):

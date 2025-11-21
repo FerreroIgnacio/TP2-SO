@@ -283,7 +283,7 @@ int scheduler_block_current(struct wait_node *wait_token)
 
     scheduler_save_and_switch();
 
-    int status = proc->wait_status;
+    int status = proc->wait_status; // ERROR: devuelve -1 siempre
     proc->waiting = 0;
     proc->waiting_node = NULL;
     proc->wait_status = 0;
