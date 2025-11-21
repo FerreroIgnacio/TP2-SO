@@ -62,9 +62,9 @@ static inline int idx_from_fd(int fd) {
     return idx;
 }
 
-int fd_bind_std_for_pid(int pid, int which, int pipe_id) {
-    if (!valid_pid(pid) || (which != 0 && which != 1)) return -1;
-    if (which == 0) bound_stdin_pipe[pid] = pipe_id; else bound_stdout_pipe[pid] = pipe_id;
+int fd_bind_std_for_pid(int pid, int whichPipe, int pipeId) {
+    if (!valid_pid(pid) || (whichPipe != 0 && whichPipe != 1)) return -1; // -1 error pid/whichPipe inválidos
+    if (whichPipe == 0) bound_stdin_pipe[pid] = pipeId; else bound_stdout_pipe[pid] = pipeId; // 0 OK
     return 0;
 }
 
@@ -165,4 +165,24 @@ int fd_list(fd_info_t *out, int max) {
         }
     }
     return count;
+}
+
+int fd_get_bound_std_pipe(int pid, int whichPipe){
+    if(!valid_pid(pid) || (whichPipe!=0 && whichPipe!=1)) return -1; // -1 inválido
+    return (whichPipe==0)? bound_stdin_pipe[pid] : bound_stdout_pipe[pid]; // pipeId o -1
+}
+
+int fd_is_read_ready(int fd){
+    int pid = scheduler_current_pid();
+    if(fd==STDIN){
+        int pipeId = fd_get_bound_std_pipe(pid,0);
+        if(pipeId>=0) return pipe_available(pipeId)>0 ? 1 : 0; // 1 listo, 0 vacío
+    } else if(fd==STDOUT){
+        int pipeId = fd_get_bound_std_pipe(pid,1);
+        if(pipeId>=0) return pipe_available(pipeId)>0 ? 1 : 0;
+    }
+    fd_entry_t *table = get_current_table();
+    int idx = idx_from_fd(fd);
+    if(table==NULL || idx<0 || !table[idx].in_use) return -1; // inválido
+    return table[idx].size>0 ? 1 : 0; // 1 datos, 0 vacío
 }

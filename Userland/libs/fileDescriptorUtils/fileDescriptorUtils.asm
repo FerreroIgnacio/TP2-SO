@@ -4,6 +4,8 @@ GLOBAL fd_open
 GLOBAL fd_list
 GLOBAL pipe_create
 GLOBAL fd_bind_std
+GLOBAL asm_poll
+GLOBAL asm_select
 
 SECTION .text
 
@@ -37,5 +39,17 @@ pipe_create:
 ; fd_bind_std: rdi=pid, rsi=which(0 stdin/1 stdout), rdx=pipe_id; returns 0/-1
 fd_bind_std:
     mov     rax, 0x49     ; syscall número 73
+    int     0x80
+    ret
+
+; poll: rdi=fds_array(int*), rsi=count; returns cantidad de fds listos
+asm_poll:
+    mov     rax, 0x4A     ; syscall número 74
+    int     0x80
+    ret
+
+; select: rdi=count, rsi=readfds(fd_set*); devuelve cantidad listos
+asm_select:
+    mov     rax, 0x4B     ; syscall número 75
     int     0x80
     ret

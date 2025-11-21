@@ -44,4 +44,10 @@ int pipe_read(int pipe_id, char *buffer, uint64_t count);
  */
 int pipe_try_kernel_nonblocking_write(int pipe_id, char c);
 
+/*
+ * Retorna la cantidad de bytes disponibles para leer en la pipe indicada.
+ * Retorno: cantidad de bytes disponibles (>=0) o -1 si el pipe_id es inválido.
+ */
+int pipe_available(int pipe_id); // Retorna bytes disponibles (>=0). Retorna -1 si pipe_id inválido.
+
 #endif // PIPES_H

@@ -101,6 +101,10 @@ uint64_t syscallHandler(int syscall_num, uint64_t arg1, uint64_t arg2, uint64_t 
         return sys_pipe_create();
     case SYSCALL_FD_BIND_STD:
         return sys_fd_bind_std((int)arg1, (int)arg2, (int)arg3);
+    case SYSCALL_POLL:
+        return sys_poll((int*)arg1, (int)arg2);
+    case SYSCALL_SELECT:
+        return sys_select((int*)arg1, (int)arg2);
     default:
         return -1;
     }
@@ -352,4 +356,55 @@ int sys_pipe_create(void)
 int sys_fd_bind_std(int pid, int which, int pipe_id)
 {
     return fd_bind_std_for_pid(pid, which, pipe_id);
+}
+
+int sys_poll(int *fds, int count)
+{
+    if (fds == NULL || count <= 0 || count > MAX_PROCESS_FDS)
+        return -1;
+    // Validar todos primero
+    for (int i = 0; i < count; i++) {
+        int fd = fds[i];
+        if (fd < 0 || fd >= MAX_PROCESS_FDS)
+            return -1;
+    }
+    while (1) {
+        int ready = 0;
+        for (int i = 0; i < count; i++) {
+            int fd = fds[i];
+            if (fd_is_read_ready(fd) > 0)
+                ready++;
+        }
+        if (ready > 0)
+            return ready;
+        scheduler_yield();
+    }
+}
+
+int sys_select(int *fds, int count)
+{
+    if (fds == NULL || count <= 0 || count > MAX_PROCESS_FDS)
+        return -1;
+    // validar todos
+    for (int i = 0; i < count; i++) {
+        int fd = fds[i];
+        if (fd < 0 || fd >= MAX_PROCESS_FDS)
+            return -1;
+    }
+    while (1) {
+        int ready = 0;
+        //compactar listos al inicio
+        int write_idx = 0;
+        for (int i = 0; i < count; i++) {
+            int fd = fds[i];
+            if (fd_is_read_ready(fd) > 0) {
+                ready++;
+                fds[write_idx++] = fd; // mover fd listo adelante
+            }
+        }
+        if (ready > 0) {
+            return ready;
+        }
+        scheduler_yield();
+    }
 }

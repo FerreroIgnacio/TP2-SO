@@ -69,9 +69,20 @@ int fd_has_data(int fd);
 // Retorno: cantidad de elementos llenados (>=0).
 int fd_list(fd_info_t *out, int max);
 
-// Enlaza STDIN/STDOUT de 'pid' a una pipe (which: 0=STDIN, 1=STDOUT).
-// A partir del enlace, fd_read/fd_write sobre ese FD usarán la pipe (bloqueante).
-// Retorno: 0 si OK; -1 si error (pid inválido o which inválido).
-int fd_bind_std_for_pid(int pid, int which, int pipe_id);
+// Enlaza (redirige) STDIN/STDOUT del proceso 'pid' hacia la pipe 'pipeId'.
+// whichPipe: 0=STDIN, 1=STDOUT. Tras el enlace:
+//  - fd_read(fd) sobre STDIN usa pipe_read(pipeId) en vez de buffer propio.
+//  - fd_write(fd) sobre STDOUT usa pipe_write(pipeId) (útil para pipelines).
+// Permite construir cadenas procA stdout -> pipe -> procB stdin.
+int fd_bind_std_for_pid(int pid, int whichPipe, int pipeId); // Retorna 0 si OK; -1 si pid/whichPipe inválidos.
+
+// Obtiene la pipe actualmente asociada (redirigida) al STDIN/STDOUT del proceso.
+// whichPipe: 0=STDIN, 1=STDOUT. Retorna id de pipe o -1 si no hay redirección.
+int fd_get_bound_std_pipe(int pid, int whichPipe); // Retorna id de pipe enlazada o -1 si no hay/en inválido.
+
+// Indica si un FD tiene datos listos para lectura inmediata (sin bloquear).
+// Si está redirigido a una pipe, consulta pipe_available(pipeId). Para FDs dinámicos
+// (internos) verifica size > 0 en su buffer circular.
+int fd_is_read_ready(int fd); // Retorna 1 si hay datos listos; 0 si no; -1 si fd inválido
 
 #endif // FD_H

@@ -2,6 +2,10 @@
 #include "../mystring/mystring.h"
 #include <stdarg.h>
 
+// stubs de syscalls implementados en ASM (fileDescriptorUtils.asm)
+extern int asm_poll(int *fds, int count);      // rdi=fds, rsi=count
+extern int asm_select(int *fds, int count);    // rdi=fds, rsi=count
+
 // borra todo el file descriptor
 void flush(int fd)
 {
@@ -349,4 +353,20 @@ uint64_t printf(const char *format, ...)
         }
     }
     return len;
+}
+
+
+// Re-implement poll/select con interfaz simplificada (int *fds, int count)
+int poll(int *fds, int count)
+{
+    if (fds == 0 || count <= 0)
+        return -1;
+    return asm_poll(fds, count);
+}
+
+int select(int *fds, int count)
+{
+    if (fds == 0 || count <= 0)
+        return -1;
+    return asm_select(fds, count);
 }

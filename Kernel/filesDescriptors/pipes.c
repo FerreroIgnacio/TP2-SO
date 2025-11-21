@@ -110,7 +110,7 @@ int pipe_read(int id, char *buffer, uint64_t count){
     return (int)r; // siempre count
 }
 
-int pipe_try_kernel_nonblocking_write(int id, char c){
+    int pipe_try_kernel_nonblocking_write(int id, char c){
     if(!valid(id)) return -1;
     pipe_t *p = &pipes[id];
     spinlock_lock(&p->lock);
@@ -125,4 +125,14 @@ int pipe_try_kernel_nonblocking_write(int id, char c){
     }
     spinlock_unlock(&p->lock);
     return 1;
+}
+
+int pipe_available(int id){
+    if(!valid(id)) return -1;
+    pipe_t *p = &pipes[id];
+    // Lectura concurrente segura: tamaño leído bajo lock
+    spinlock_lock(&p->lock);
+    int sz = (int)p->size;
+    spinlock_unlock(&p->lock);
+    return sz;
 }
