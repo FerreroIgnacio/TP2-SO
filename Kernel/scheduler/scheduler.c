@@ -283,7 +283,7 @@ int scheduler_block_current(struct wait_node *wait_token)
 
     scheduler_save_and_switch();
 
-    int status = proc->wait_status;
+    int status = proc->wait_status; // ERROR: devuelve -1 siempre
     proc->waiting = 0;
     proc->waiting_node = NULL;
     proc->wait_status = 0;
@@ -312,8 +312,6 @@ int scheduler_block_pid(int pid)
 {
     if (pid == 0 || !is_valid_pid(pid))
     {
-
-
         return -1;
     }
 

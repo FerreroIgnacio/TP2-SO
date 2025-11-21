@@ -248,4 +248,3 @@ void drawInt(int num, uint32_t hexColor, uint32_t backColor, uint64_t x, uint64_
     buffer[i] = '\0';
     putText(buffer, hexColor, backColor, x, y, size);
 }
-

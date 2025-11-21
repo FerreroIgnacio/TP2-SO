@@ -1,5 +1,6 @@
 #include "isrHandlers.h"
 #include <stdint.h>
+#include "../filesDescriptors/stdout.h"
 #include "../utils/lib.h"
 #include "../videoDriver/videoDriver.h"
 #include "../scheduler/scheduler.h" // Llamar a switchCurrent cada X ticks

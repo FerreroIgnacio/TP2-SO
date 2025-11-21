@@ -6,6 +6,7 @@
 #include "videoDriver/videoDriver.h"
 #include "keyboardDriver/keyboardDriver.h"
 #include "IDT/idtInit.h"
+#include "filesDescriptors/stdout.h"
 #include "memoryManagement/mm.h"
 #include "scheduler/scheduler.h"
 #include "scheduler/cpu.h"

@@ -26,4 +26,6 @@ uint64_t strtoint_complete(const char *str);
 char *find_args(char *cmd);
 char *strtok(char *str, const char *delim);
 
+char *itoa_malloc(int value);
+
 #endif

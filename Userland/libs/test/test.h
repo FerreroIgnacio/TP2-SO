@@ -7,6 +7,6 @@
 int test_mm(int max_memory);
 int test_processes(int max_processes);
 int test_prio(int max_val);
-int test_sync(uint64_t argc, char *argv[]);
+int test_sync(int iter, int sem);
 
 #endif
