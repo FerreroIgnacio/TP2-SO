@@ -2,7 +2,7 @@
 #define PIPES_H
 #include <stdint.h>
 
-// Número máximo de pipes de kernel disponibles simultáneamente
+// Numero maximo de pipes de kernel disponibles simultaneamente
 #define MAX_PIPES 64
 // Capacidad del buffer interno de cada pipe (en bytes, ring buffer)
 #define PIPE_BUFFER_CAPACITY 4096
@@ -10,37 +10,39 @@
 #define KEYBOARD_PIPE_ID 0
 
 /*
- * - pipe_write y pipe_read son BLOQUEANTES: operan hasta transferir 'count' bytes.
- * - Si el buffer está lleno (en write) o vacío (en read), la llamada cede CPU y
- *   reintenta hasta poder continuar (scheduler_yield).
- * - En caso de parámetros inválidos (pipe_id fuera de rango/no en uso, punteros nulos,
- *   count == 0) retornan -1 y no realizan ninguna transferencia.
+ * Semantica (PARCIAL):
+ * - pipe_write y pipe_read intentan transferir hasta 'count' bytes.
+ * - Retornan inmediatamente la cantidad efectivamente transferida (puede ser < count).
+ * - BLOQUEAN solo si no pueden transferir ni un solo byte al inicio (buffer lleno en write, vacio en read).
+ * - Una vez que al menos 1 byte fue transferido, si el buffer se llena (write) o se vacia (read) antes de completar, retornan parcial.
+ * - En caso de parametros invalidos (pipe_id fuera de rango / no en uso, punteros nulos,
+ *   count == 0) retornan -1 y no realizan transferencia.
  */
 
 /*
  * Crea una nueva pipe de kernel.
- * Retorno: id de pipe en [0..MAX_PIPES-1] si tuvo éxito, o -1 si no hay lugares libres.
+ * Retorno: id de pipe en [0..MAX_PIPES-1] si ok, o -1 si no hay lugares libres.
  */
 int pipe_create(void);
 
 /*
- * Escribe exactamente 'count' bytes en la pipe indicada.
- * Comportamiento: BLOQUEANTE. Si no hay espacio, espera hasta que lo haya.
- * Retorno: 'count' si fue exitoso; -1 si parámetros inválidos.
+ * Escribe hasta 'count' bytes en la pipe indicada (transferencia parcial permitida).
+ * Bloquea solo si no puede escribir ni 1 byte porque el buffer esta lleno.
+ * Retorno: cantidad escrita (>0 y <= count), o -1 si parametros invalidos.
  */
 int pipe_write(int pipe_id, const char *buffer, uint64_t count);
 
 /*
- * Lee exactamente 'count' bytes desde la pipe indicada hacia 'buffer'.
- * Comportamiento: BLOQUEANTE. Si no hay datos, espera hasta que lleguen.
- * Retorno: 'count' si fue exitoso; -1 si parámetros inválidos.
+ * Lee hasta 'count' bytes desde la pipe indicada hacia 'buffer' (transferencia parcial permitida).
+ * Bloquea solo si no puede leer ni 1 byte porque el buffer esta vacio.
+ * Retorno: cantidad leida (>0 y <= count), o -1 si parametros invalidos.
  */
 int pipe_read(int pipe_id, char *buffer, uint64_t count);
 
 /*
  * Escribe 1 char en la pipe indicada si hay espacio.
- * Comportamiento: NO BLOQUEANTE. Retorna inmediatamente.
- * Retorno: 1 si se escribió el char; 0 si no hay espacio; -1 si parámetros inválidos.
+ * Comportamiento: NO BLOQUEANTE.
+ * Retorno: 1 si se escribio, 0 si no hay espacio, -1 si parametros invalidos.
  */
 int pipe_try_kernel_nonblocking_write(int pipe_id, char c);
 

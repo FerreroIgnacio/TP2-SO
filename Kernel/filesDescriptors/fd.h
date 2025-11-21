@@ -2,7 +2,7 @@
 #define FD_H
 #include <stdint.h>
 
-// Macros de FDs estándar por convención POSIX-like
+// Macros de FDs estandar por convencion POSIX like
 #ifndef STDIN
 #define STDIN 0
 #endif
@@ -13,7 +13,7 @@
 #define STDERR 2
 #endif
 
-// File descriptors per process start at 0 (0=STDIN,1=STDOUT,2=STDERR)
+// File descriptors por proceso empiezan en 0 (0=STDIN,1=STDOUT,2=STDERR)
 #define FIRST_DYNAMIC_FD 0
 #define MAX_PROCESS_FDS 32
 #define FD_NAME_MAX 32
@@ -21,6 +21,7 @@
 
 /*
 
+ * Semantica (PARCIAL):
  * - Cada proceso tiene su propia tabla de FDs, numerados desde 0.
  * - Los FDs 0,1,2 corresponden a stdin, stdout, stderr del proceso.
  * - fd_read y fd_write son BLOQUEANTES: intentan transferir exactamente 'count' bytes.
@@ -55,13 +56,9 @@ void fd_reset_pid(int pid);
 // Crea un nuevo FD con 'name' en el proceso actual.
 // Retorno: número de FD (>= FIRST_DYNAMIC_FD) si OK; -1 si error/sin espacio/args inválidos.
 int fd_create(const char *name);
-// Escribe exactamente 'count' bytes en el FD del proceso actual.
-// Comportamiento: BLOQUEANTE (cede CPU si el buffer propio está lleno o si la pipe está llena).
-// Retorno: 'count' si OK; -1 si error/args inválidos.
+// Escribe hasta 'count' bytes (parcial). Bloquea solo si no puede escribir ni 1 byte inicialmente.
 int fd_write(int fd, const char *buffer, uint64_t count);
-// Lee exactamente 'count' bytes del FD del proceso actual hacia 'buffer'.
-// Comportamiento: BLOQUEANTE (cede CPU si no hay datos disponibles o si la pipe está vacía).
-// Retorno: 'count' si OK; -1 si error/args inválidos.
+// Lee hasta 'count' bytes (parcial). Bloquea solo si no puede leer ni 1 byte inicialmente.
 int fd_read(int fd, char *buffer, uint64_t count);
 // Helper: devuelve 1 si el FD tiene datos (>0 bytes), 0 si no, -1 si FD inválido.
 int fd_has_data(int fd);
