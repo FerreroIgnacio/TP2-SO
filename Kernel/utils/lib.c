@@ -118,13 +118,3 @@ void uint64ToHex(uint64_t value, char *buffer)
     buffer[1] = 'x';
     buffer[18] = '\0';
 }
-
-char *strcpy(char *dest, const char *src) {
-    if (dest == 0 || src == 0) return dest; // comportamiento simple
-    char *d = dest;
-    while (*src) {
-        *d++ = *src++;
-    }
-    *d = '\0';
-    return dest;
-}
