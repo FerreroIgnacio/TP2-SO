@@ -13,6 +13,28 @@
 #include "../../libs/semaphores/semaphores.h"
 #include "./shell_defs.h"
 #include "./shell_render.h"
+#include <stdarg.h>
+
+// Forward declarations of shell print helpers to avoid implicit declaration warnings
+static void sp_print(const char *s);
+static void sp_uint(uint64_t v);
+static void sp_dec(int64_t v);
+static void sp_hex(uint64_t v);
+static void shell_printf(const char *fmt, ...); // nueva función de formato
+// Synchronous execution helper: crea proceso y espera a que termine
+static void run_sync(task_fn_t fn, void *arg, int free_after)
+{
+    pid_t pid = new_proc(fn, arg);
+    if (pid >= 0)
+    {
+        int st;
+        waitpid(pid, &st, WHANG);
+    }
+    if (free_after && arg)
+    {
+        free(arg);
+    }
+}
 
 #define MAX_PROCESS 100
 
@@ -42,35 +64,35 @@ void cmd_help()
 
 int cmd_help()
 {
-    printf("Comandos disponibles:\n");
-    printf("  help             - Mostrar comandos disponibles\n");                                          // OK
-    printf("  clear            - Limpiar pantalla\n");                                                      // OK
-    printf("  mem              - Imprime el estado de la memoria\n");                                       // OK
-    printf("  ps               - Imprime la lista de todos los procesos\n");                                // OK
-    printf("  loop <segundos>  - Imprime su ID con un saludo cada una determinada cantidad de segundos\n"); // OK
-    printf("  kill <pid>       - Mata un proceso dado su ID.\n");                                           // OK
-    printf("  nice <pid> <pri> - Cambia la prioridad de un proceso dado su ID y la nueva prioridad\n");     // OK
-    printf("  block <pid>      - Switch entre ready y blocked de un proceso dado su ID.\n");                // OK
-    printf("  cat              - Imprime el stdin tal como lo recibe.\n");                                  // TODO
-    printf("  wc               - Cuenta la cantidad de líneas del input\n");                                // TODO
-    printf("  filter           - Filtra las vocales del input.\n");                                         // TODO
-    printf("  mvar             - Implementa el problema de múltiples lectores\n");                          // TODO
+    sp_print("Comandos disponibles:\n");
+    sp_print("  help             - Mostrar comandos disponibles\n");                                          // OK
+    sp_print("  clear            - Limpiar pantalla\n");                                                      // OK
+    sp_print("  mem              - Imprime el estado de la memoria\n");                                       // OK
+    sp_print("  ps               - Imprime la lista de todos los procesos\n");                                // OK
+    sp_print("  loop <segundos>  - Imprime su ID con un saludo cada una determinada cantidad de segundos\n"); // OK
+    sp_print("  kill <pid>       - Mata un proceso dado su ID.\n");                                           // OK
+    sp_print("  nice <pid> <pri> - Cambia la prioridad de un proceso dado su ID y la nueva prioridad\n");     // OK
+    sp_print("  block <pid>      - Switch entre ready y blocked de un proceso dado su ID.\n");                // OK
+    sp_print("  cat              - Imprime el stdin tal como lo recibe.\n");                                  // TODO
+    sp_print("  wc               - Cuenta la cantidad de líneas del input\n");                                // TODO
+    sp_print("  filter           - Filtra las vocales del input.\n");                                         // TODO
+    sp_print("  mvar             - Implementa el problema de múltiples lectores\n");                          // TODO
     // Nuevos comandos de FDs dinamicos (por proceso)
-    printf("  createfd <name>  - Crea un FD dinamico en este proceso (desde 3 en adelante)\n");
-    printf("  writefd <fd> <texto> - Escribe texto en un FD dinamico de este proceso\n");
-    printf("  readfd <fd>      - Lee y muestra el contenido de un FD dinamico de este proceso\n");
-    printf("  fdlist           - Lista los FDs dinamicos del proceso actual\n");
+    sp_print("  createfd <name>  - Crea un FD dinamico en este proceso (desde 3 en adelante)\n");
+    sp_print("  writefd <fd> <texto> - Escribe texto en un FD dinamico de este proceso\n");
+    sp_print("  readfd <fd>      - Lee y muestra el contenido de un FD dinamico de este proceso\n");
+    sp_print("  fdlist           - Lista los FDs dinamicos del proceso actual\n");
 
-    printf("\nTests disponibles:\n");
-    printf("  test_mm <max-bytes>                     - Ejecuta stress test del manejador de memoria\n");                    // OK
-    printf("  test_processes <max-processes>          - Crea, bloquea, desbloquea y mata procesos aleatoriamente.\n");       // OK
-    printf("  test_priority <end-val-for-process>     - 3 procesos se ejecutan con misma prioridad y luego con distinta\n"); // OK
-    printf("  test_synchro <processes> <inc-dec>      - Varios procesos modifican 1 variable usando semaforos\n");           // TODO
-    printf("  test_no_synchro <processes> <inc-dec>   - Varios procesos modifican una variable sin semaforos\n");            // TODO
+    sp_print("\nTests disponibles:\n");
+    sp_print("  test_mm <max-bytes>                     - Ejecuta stress test del manejador de memoria\n");                    // OK
+    sp_print("  test_processes <max-processes>          - Crea, bloquea, desbloquea y mata procesos aleatoriamente.\n");       // OK
+    sp_print("  test_priority <end-val-for-process>     - 3 procesos se ejecutan con misma prioridad y luego con distinta\n"); // OK
+    sp_print("  test_synchro <processes> <inc-dec>      - Varios procesos modifican 1 variable usando semaforos\n");           // TODO
+    sp_print("  test_no_synchro <processes> <inc-dec>   - Varios procesos modifican una variable sin semaforos\n");            // TODO
 
-    printf("\nControles:\n");
-    printf("  Enter - Ejecutar comando\n");
-    printf("  Backspace - Borrar caracter\n");
+    sp_print("\nControles:\n");
+    sp_print("  Enter - Ejecutar comando\n");
+    sp_print("  Backspace - Borrar caracter\n");
 
     exit(0);
     return 0;
@@ -83,10 +105,15 @@ void cmd_clear()
 
 int cmd_mem()
 {
-    size_t total, used, free;
-    getMemInfo(&total, &used, &free);
-    printf("Estado de la memoria:\n");
-    printf("TOTAL: %d   USADO: %d   LIBRE: %d\n", total, used, free);
+    size_t total, used, freeMem;
+    getMemInfo(&total, &used, &freeMem);
+    sp_print("Estado de la memoria:\nTOTAL: ");
+    sp_dec((int)total);
+    sp_print("   USADO: ");
+    sp_dec((int)used);
+    sp_print("   LIBRE: ");
+    sp_dec((int)freeMem);
+    sp_print("\n");
     exit(0);
     return 0;
 }
@@ -118,15 +145,21 @@ int cmd_ps()
     for (int i = 0; i < count; i++)
     {
         proc_info_t *p = &proc_list[i];
-        printf(
-            "PID:%d | Father:%d | Pri:%d | Ready:%d | Wait:%d | Zombie:%d | Status:%d\n",
-            p->pid,
-            p->father_pid,
-            p->priority,
-            p->ready,
-            p->waiting,
-            p->is_zombie,
-            p->status);
+        sp_print("PID:");
+        sp_dec(p->pid);
+        sp_print(" | Father:");
+        sp_dec(p->father_pid);
+        sp_print(" | Pri:");
+        sp_dec(p->priority);
+        sp_print(" | Ready:");
+        sp_dec(p->ready);
+        sp_print(" | Wait:");
+        sp_dec(p->waiting);
+        sp_print(" | Zombie:");
+        sp_dec(p->is_zombie);
+        sp_print(" | Status:");
+        sp_dec(p->status);
+        sp_print("\n");
     }
     exit(0);
     return 0;
@@ -141,7 +174,7 @@ void cmd_kill(void *argv)
     int *args = (int *)argv;
     pid_t pid = args[0];
     int status = kill(pid);
-    printf("Kill a proceso: %d termino con estado: %d \n", pid, status);
+    shell_printf("Kill a proceso: %d termino con estado: %d \n", pid, status);
     exit(status);
 }
 
@@ -156,10 +189,10 @@ void cmd_nice(void *argv)
     process_priority_t prio = args[1];
     if (prio < PRIORITY_LOW || prio > PRIORITY_HIGH)
     {
-        printf("Error, prioridades disponibles:\nLOW : %d\nNORMAL : %d\nHIGH: %d\n", PRIORITY_LOW, PRIORITY_NORMAL, PRIORITY_HIGH);
+        shell_printf("Error, prioridades disponibles:\nLOW : %d\nNORMAL : %d\nHIGH: %d\n", PRIORITY_LOW, PRIORITY_NORMAL, PRIORITY_HIGH);
         exit(-1);
     }
-    printf("cambiando la prioridad del proceso: %d a %d\n", pid, prio);
+    shell_printf("cambiando la prioridad del proceso: %d a %d\n", pid, prio);
     int status = set_priority(pid, prio);
     exit(status);
 }
@@ -252,11 +285,27 @@ int cmd_testSynchro(void *argv) // TODO
 
 // ARQUI
 
+// Proceso echo para uso en pipeline: escribe argv a STDOUT (pipe) y retorna
+int echo_proc(void *argv)
+{
+    char *arg = (char *)argv;
+    if (arg && *arg)
+    {
+        write(STDOUT, arg, strlen(arg));
+    }
+    write(STDOUT, "\n", 1);
+    if (arg)
+        free(arg);
+    return 0;
+}
+
 void cmd_echo(char *args)
 {
-    if (*args)
+    if (args && *args)
     {
-        printf("%s\n", args);
+        // Standalone builtin: imprimir directo al framebuffer
+        shell_print(args);
+        shell_print("\n");
     }
     else
     {
@@ -266,52 +315,65 @@ void cmd_echo(char *args)
 
 void cmd_dateTime()
 {
-    uint8_t year = 0, month = 0, day = 0, hours = 0, minutes = 0, seconds = 0;
-    getLocalTime(&hours, &minutes, &seconds);
+    uint8_t year = 0, month = 0, day = 0, h = 0, m = 0, s = 0;
+    getLocalTime(&h, &m, &s);
     getLocalDate(&year, &month, &day);
-    printf("Fecha y hora en UTC-0: %d/%d/20%d %d:%d:%d\n", day, month, year, hours, minutes, seconds);
+    sp_print("Fecha y hora en UTC-0: ");
+    sp_dec(day);
+    sp_print("/");
+    sp_dec(month);
+    sp_print("/20");
+    sp_dec(year);
+    sp_print(" ");
+    sp_dec(h);
+    sp_print(":");
+    sp_dec(m);
+    sp_print(":");
+    sp_dec(s);
+    sp_print("\n");
 }
 
 void cmd_registers()
 {
     registers_t regs;
     getRegisters(&regs);
-    printf("RIP:    %#P\n"
-           "RFLAGS: %#P\n"
-           "RSP:    %#P\n"
-           "RBP:    %#P\n"
-           "RAX:    %#P\n"
-           "RBX:    %#P\n"
-           "RCX:    %#P\n"
-           "RDX:    %#P\n"
-           "RSI:    %#P\n"
-           "RDI:    %#P\n"
-           "R8 :    %#P\n"
-           "R9 :    %#P\n"
-           "R10:    %#P\n"
-           "R11:    %#P\n"
-           "R12:    %#P\n"
-           "R13:    %#P\n"
-           "R14:    %#P\n"
-           "R15:    %#P\n",
-           regs.rip,
-           regs.rflags,
-           regs.rsp,
-           regs.rbp,
-           regs.rax,
-           regs.rbx,
-           regs.rcx,
-           regs.rdx,
-           regs.rsi,
-           regs.rdi,
-           regs.r8,
-           regs.r9,
-           regs.r10,
-           regs.r11,
-           regs.r12,
-           regs.r13,
-           regs.r14,
-           regs.r15);
+    sp_print("RIP:    0x");
+    sp_hex(regs.rip);
+    sp_print("\nRFLAGS: 0x");
+    sp_hex(regs.rflags);
+    sp_print("\nRSP:    0x");
+    sp_hex(regs.rsp);
+    sp_print("\nRBP:    0x");
+    sp_hex(regs.rbp);
+    sp_print("\nRAX:    0x");
+    sp_hex(regs.rax);
+    sp_print("\nRBX:    0x");
+    sp_hex(regs.rbx);
+    sp_print("\nRCX:    0x");
+    sp_hex(regs.rcx);
+    sp_print("\nRDX:    0x");
+    sp_hex(regs.rdx);
+    sp_print("\nRSI:    0x");
+    sp_hex(regs.rsi);
+    sp_print("\nRDI:    0x");
+    sp_hex(regs.rdi);
+    sp_print("\nR8 :    0x");
+    sp_hex(regs.r8);
+    sp_print("\nR9 :    0x");
+    sp_hex(regs.r9);
+    sp_print("\nR10:    0x");
+    sp_hex(regs.r10);
+    sp_print("\nR11:    0x");
+    sp_hex(regs.r11);
+    sp_print("\nR12:    0x");
+    sp_hex(regs.r12);
+    sp_print("\nR13:    0x");
+    sp_hex(regs.r13);
+    sp_print("\nR14:    0x");
+    sp_hex(regs.r14);
+    sp_print("\nR15:    0x");
+    sp_hex(regs.r15);
+    sp_print("\n");
 }
 
 void cmd_test0Div()
@@ -326,70 +388,89 @@ void cmd_createfd(char *args)
 {
     if (!args || *args == '\0')
     {
-        printf("Uso: createfd <name>\n");
+        sp_print("Uso: createfd <name>\n");
         return;
     }
     int fd = fd_open(args);
     if (fd < 0)
     {
-        printf("Error: no se pudo crear FD '%s'\n", args);
+        sp_print("Error: no se pudo crear FD '");
+        sp_print(args);
+        sp_print("'\n");
         return;
     }
-    printf("FD creado: %d\n", fd);
+    sp_print("FD creado: ");
+    sp_dec(fd);
+    sp_print("\n");
 }
-
 void cmd_writefd(char *args)
 {
     if (!args || *args == '\0')
     {
-        printf("Uso: writefd <fd> <texto>\n");
+        sp_print("Uso: writefd <fd> <texto>\n");
         return;
     }
-    // split fd and message
     char *fd_str = args;
-    char *msg = find_args(args); // mutates: places \0 after fd
+    char *msg = find_args(args);
     if (!msg || *msg == '\0')
     {
-        printf("Uso: writefd <fd> <texto>\n");
+        sp_print("Uso: writefd <fd> <texto>\n");
         return;
     }
     int fd = strtoint(fd_str);
     int wrote = write(fd, msg, strlen(msg));
     if (wrote < 0)
     {
-        printf("Error: write a fd %d\n", fd);
+        sp_print("Error: write a fd ");
+        sp_dec(fd);
+        sp_print("\n");
         return;
     }
-    printf("Escritos %d bytes en fd %d\n", wrote, fd);
+    sp_print("Escritos ");
+    sp_dec(wrote);
+    sp_print(" bytes en fd ");
+    sp_dec(fd);
+    sp_print("\n");
 }
-
 void cmd_readfd(char *args)
 {
     if (!args || *args == '\0')
     {
-        printf("Uso: readfd <fd>\n");
+        sp_print("Uso: readfd <fd>\n");
         return;
     }
     int fd = strtoint(args);
     unsigned char buf[256];
     int total = 0;
+    int chunk;
+    // Leer al menos una vez; continuar sólo si buffer se llenó completamente (indica posible más datos disponibles inmediatamente)
     while (1)
     {
-        int n = read(fd, buf, sizeof(buf) - 1);
-        if (n <= 0)
+        chunk = read(fd, buf, sizeof(buf) - 1);
+        if (chunk < 0)
+        {
+            sp_print("Error de lectura\n");
             break;
-        buf[n] = '\0';
-        // print raw without formatting issues
+        }
+        if (chunk == 0)
+        {
+            break;
+        }
+        buf[chunk] = '\0';
         shell_print((char *)buf);
-        total += n;
+        total += chunk;
+        if (chunk < (int)(sizeof(buf) - 1))
+        { // lectura parcial, no volver a bloquear esperando más
+            break;
+        }
     }
     if (total == 0)
     {
-        printf("(sin datos)\n");
+        sp_print("(sin datos)\n");
     }
     else
     {
-        printf("\nLeidos %d bytes de fd %d\n", total, fd);
+        shell_printf("\nLeidos %d bytes de fd %d\n", total, fd);
     }
 }
 
@@ -404,35 +485,45 @@ void shell_set_font(font_type_t font_index)
     cmd_clear();
     fontmanager_set_font(font_index);
     shell_print_colored("Fuente cambiada a: ", PROMPT_COLOR);
-    printf("%s\n", fontmanager_get_font_name(font_index));
+    sp_print(fontmanager_get_font_name(font_index));
+    sp_print("\n");
     shell_newline();
 }
-
 void shell_list_fonts()
 {
     int count = fontmanager_get_font_count();
-    printf("Fuentes disponibles:\n");
+    sp_print("Fuentes disponibles:\n");
     for (int i = 0; i < count; i++)
     {
         const char *name = fontmanager_get_font_name(i);
-        printf("  Id: %d  -  ", i);
-        printf("%s\n", name);
+        sp_print("  Id: ");
+        sp_dec(i);
+        sp_print("  -  ");
+        sp_print(name);
+        sp_print("\n");
     }
 }
-
 void cmd_fdlist()
 {
     fd_info_u_t infos[32];
     int n = fd_list(infos, 32);
     if (n <= 0)
     {
-        printf("(sin FDs dinamicos en este proceso)\n");
+        sp_print("(sin FDs dinamicos en este proceso)\n");
         return;
     }
-    printf("FDs dinamicos del proceso actual (%d):\n", n);
+    sp_print("FDs dinamicos del proceso actual (");
+    sp_dec(n);
+    sp_print("):\n");
     for (int i = 0; i < n; i++)
     {
-        printf("  id=%d name=%s bytes=%u\n", infos[i].fd, infos[i].name, (unsigned)infos[i].size);
+        sp_print("  id=");
+        sp_dec(infos[i].fd);
+        sp_print(" name=");
+        sp_print(infos[i].name);
+        sp_print(" bytes=");
+        sp_dec(infos[i].size);
+        sp_print("\n");
     }
 }
 
@@ -462,7 +553,7 @@ void command_switch(char *cmd_copy, char *args)
 {
     if (!strcmp(cmd_copy, "help"))
     {
-        new_proc((task_fn_t)cmd_help, NULL);
+        run_sync((task_fn_t)cmd_help, NULL, 0);
     }
     else if (!strcmp(cmd_copy, "clear"))
     {
@@ -470,11 +561,11 @@ void command_switch(char *cmd_copy, char *args)
     }
     else if (!strcmp(cmd_copy, "mem"))
     {
-        new_proc((task_fn_t)cmd_mem, NULL);
+        run_sync(cmd_mem, NULL, 0);
     }
     else if (!strcmp(cmd_copy, "ps"))
     {
-        new_proc((task_fn_t)cmd_ps, NULL);
+        run_sync(cmd_ps, NULL, 0);
     }
     else if (!strcmp(cmd_copy, "loop"))
     {
@@ -486,7 +577,6 @@ void command_switch(char *cmd_copy, char *args)
         int argv[] = {strtoint(args)};
         new_proc((task_fn_t)cmd_kill, argv);
     }
-
     else if (!strcmp(cmd_copy, "nice"))
     {
         char *p1 = strtok(args, " ");
@@ -609,8 +699,61 @@ void command_switch(char *cmd_copy, char *args)
         if (pid < 0)
         {
             shell_print_colored("Error: ", ERROR_COLOR);
-            printf("Comando desconocido '%s'\n", cmd_copy);
-            printf("Escribe 'help' para ver comandos disponibles.\n");
+            shell_print("Comando desconocido '");
+            shell_print(cmd_copy);
+            shell_print("'\n");
+            shell_print("Escribe 'help' para ver comandos disponibles.\n");
         }
     }
+}
+
+// Helper print functions for shell (framebuffer based)
+static void sp_print(const char *s)
+{
+    if (s)
+        shell_print(s);
+}
+static void sp_uint(uint64_t v)
+{
+    char buf[32];
+    int i = 0;
+    if (v == 0)
+    {
+        shell_putchar('0');
+        return;
+    }
+    while (v)
+    {
+        buf[i++] = '0' + (v % 10);
+        v /= 10;
+    }
+    while (i--)
+        shell_putchar(buf[i]);
+}
+static void sp_dec(int64_t v)
+{
+    if (v < 0)
+    {
+        shell_putchar('-');
+        v = -v;
+    }
+    sp_uint((uint64_t)v);
+}
+static void sp_hex(uint64_t v)
+{
+    char buf[32];
+    int i = 0;
+    if (v == 0)
+    {
+        shell_putchar('0');
+        return;
+    }
+    const char *d = "0123456789abcdef";
+    while (v)
+    {
+        buf[i++] = d[v & 0xF];
+        v >>= 4;
+    }
+    while (i--)
+        shell_putchar(buf[i]);
 }

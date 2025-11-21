@@ -9,6 +9,9 @@
 #define STDERR 2
 #define STD_BUFF_SIZE 4096
 
+#define SYSCALL_POLL 74
+#define SYSCALL_SELECT 75
+
 /* UTILIDADES FILE DESCRIPTORS */
 // Escribir (count) caracteres de (buf) en el file descriptor (fd).
 int write(int fd, const char *buff, unsigned long count);
@@ -47,5 +50,11 @@ void puthexupper(uint64_t value); // %X %P
 /* Falta agregar soporte para double */
 // void putdouble(double value, int precision); //%f
 uint64_t printf(const char *format, ...);
+
+/* Interfaces simples: arrays de int con los FDs a monitorear */
+// poll: bloquea hasta que alguno esté listo para leer; retorna cantidad listos (>0) o -1 error
+int poll(int *fds, int count);
+// select: misma semántica que poll; puede compactar los listos al inicio del array
+int select(int *fds, int count);
 
 #endif

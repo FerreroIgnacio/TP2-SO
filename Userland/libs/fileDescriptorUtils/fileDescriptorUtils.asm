@@ -4,6 +4,8 @@ GLOBAL fd_open
 GLOBAL fd_list
 GLOBAL pipe_create
 GLOBAL fd_bind_std
+GLOBAL pipe_sys_write
+GLOBAL pipe_sys_read
 
 SECTION .text
 
@@ -37,5 +39,14 @@ pipe_create:
 ; fd_bind_std: rdi=pid, rsi=which(0 stdin/1 stdout), rdx=pipe_id; returns 0/-1
 fd_bind_std:
     mov     rax, 0x49     ; syscall número 73
+    int     0x80
+    ret
+
+pipe_sys_write:
+    mov     rax, 0x4A    ; syscall numero 74
+    int     0x80
+    ret
+pipe_sys_read:
+    mov     rax, 0x4B    ; syscall numero 75
     int     0x80
     ret
