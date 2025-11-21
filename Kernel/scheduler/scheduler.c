@@ -312,8 +312,6 @@ int scheduler_block_pid(int pid)
 {
     if (pid == 0 || !is_valid_pid(pid))
     {
-
-
         return -1;
     }
 

@@ -1,10 +1,9 @@
 #include "keyboardDriver.h"
 #include <stdint.h>
 #include "../IDT/idtInit.h"
+#include "../filesDescriptors/stdin.h"
 #include "../videoDriver/videoDriver.h"
 #include "../syscalls/syscalls.h"
-#include "../filesDescriptors/fd.h"
-#include "../filesDescriptors/pipes.h"
 
 #define KEYCODE_BUFFER_SIZE 128
 
@@ -444,15 +443,8 @@ void keyPressedAction(uint8_t makecode, registers_t *regs)
                 capsLockOn = !capsLockOn;
             }
             char c = getAscii(makecode);
-            if (c != 0) {
-                // NO usar pipe_write (bloqueante) dentro de la IRQ: causa bloqueo y no despierta la shell.
-                // Insertar non-blocking; read() seguirá siendo bloqueante y despertará al tener datos.
-                int r = pipe_try_kernel_nonblocking_write(0, c);
-                if (r != 1) {
-                    // opcional: drop si lleno; nunca bloquear aquí.
-                    // printf("[DBG] teclado: pipe llena, char descartado\n");
-                }
-            }
+            if (c != 0)
+                queueKeyStdin(c); // cargar en stdin solo si es un ascii imprimible
         }
     }
 }

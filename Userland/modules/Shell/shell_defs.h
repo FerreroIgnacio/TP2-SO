@@ -14,6 +14,7 @@
 #define PROMPT_COLOR 0x44AAA4
 #define CURSOR_BLINK_INTERVAL 150 // en ticks
 
+#define KEYS_PER_LOOP 8
 
 #define LSHIFT_MAKECODE 0x2A
 #define RSHIFT_MAKECODE 0x36
