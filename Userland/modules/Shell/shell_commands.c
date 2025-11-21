@@ -627,3 +627,6 @@ static void sp_print(const char *s){ if(s) shell_print(s); }
 static void sp_uint(uint64_t v){ char buf[32]; int i=0; if(v==0){ shell_putchar('0'); return; } while(v){ buf[i++]='0'+(v%10); v/=10; } while(i--) shell_putchar(buf[i]); }
 static void sp_dec(int64_t v){ if(v<0){ shell_putchar('-'); v=-v; } sp_uint((uint64_t)v); }
 static void sp_hex(uint64_t v){ char buf[32]; int i=0; if(v==0){ shell_putchar('0'); return; } const char *d="0123456789abcdef"; while(v){ buf[i++]=d[v&0xF]; v>>=4; } while(i--) shell_putchar(buf[i]); }
+
+
+

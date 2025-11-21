@@ -101,6 +101,10 @@ uint64_t syscallHandler(int syscall_num, uint64_t arg1, uint64_t arg2, uint64_t 
         return sys_pipe_create();
     case SYSCALL_FD_BIND_STD:
         return sys_fd_bind_std((int)arg1, (int)arg2, (int)arg3);
+    case SYSCALL_PIPE_WRITE:
+        return sys_pipe_write((int)arg1, (const char*)arg2, (uint64_t)arg3);
+    case SYSCALL_PIPE_READ:
+        return sys_pipe_read((int)arg1, (char*)arg2, (uint64_t)arg3);
     default:
         return -1;
     }
@@ -353,3 +357,12 @@ int sys_fd_bind_std(int pid, int which, int pipe_id)
 {
     return fd_bind_std_for_pid(pid, which, pipe_id);
 }
+int sys_pipe_write(int pipe_id, const char *buffer, uint64_t count){
+    if(buffer==0 || count==0) return 0;
+    return pipe_write(pipe_id, buffer, count);
+}
+int sys_pipe_read(int pipe_id, char *buffer, uint64_t count){
+    if(buffer==0 || count==0) return 0;
+    return pipe_read(pipe_id, buffer, count);
+}
+

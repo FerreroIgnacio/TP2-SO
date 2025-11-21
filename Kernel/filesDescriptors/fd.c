@@ -95,8 +95,9 @@ int fd_write(int fd, const char *buffer, uint64_t count) {
     if (buffer == NULL || count == 0) return -1;
 
     int pid = scheduler_current_pid();
+    // Si está redirigido a pipe, usar semántica parcial de pipe_write.
     if (fd == STDOUT && valid_pid(pid) && bound_stdout_pipe[pid] >= 0) {
-        return pipe_write(bound_stdout_pipe[pid], buffer, count); // blocking via pipe
+        return pipe_write(bound_stdout_pipe[pid], buffer, count);
     }
     if (fd == STDIN && valid_pid(pid) && bound_stdin_pipe[pid] >= 0) {
         return pipe_write(bound_stdin_pipe[pid], buffer, count);
@@ -104,15 +105,29 @@ int fd_write(int fd, const char *buffer, uint64_t count) {
     if (table == NULL || idx < 0 || !table[idx].in_use) return -1;
     uint64_t written = 0;
     while (written < count) {
-        while (table[idx].size == FD_BUFFER_CAPACITY) {
-            scheduler_yield();
+        if (table[idx].size == FD_BUFFER_CAPACITY) {
+            // Buffer lleno. Si ya escribimos algo, devolver parcial.
+            if (written > 0) break;
+            // Nada escrito: bloquear/yield hasta que haya espacio.
+            while (table[idx].size == FD_BUFFER_CAPACITY) {
+                scheduler_yield();
+            }
+            // continuar para escribir
         }
-        table[idx].buffer[table[idx].write_pos] = (uint8_t)buffer[written];
-        table[idx].write_pos = (table[idx].write_pos + 1) % FD_BUFFER_CAPACITY;
-        table[idx].size++;
-        written++;
+        // Hay al menos 1 byte de espacio: escribir chunk.
+        uint64_t remaining = count - written;
+        uint32_t free_space = FD_BUFFER_CAPACITY - table[idx].size;
+        uint64_t chunk = (remaining < free_space) ? remaining : free_space;
+        for (uint64_t i = 0; i < chunk; i++) {
+            table[idx].buffer[table[idx].write_pos] = (uint8_t)buffer[written + i];
+            table[idx].write_pos = (table[idx].write_pos + 1) % FD_BUFFER_CAPACITY;
+        }
+        table[idx].size += (uint32_t)chunk;
+        written += chunk;
+        // Si se llenó y quedan datos, salimos con parcial.
+        if (written < count && table[idx].size == FD_BUFFER_CAPACITY) break;
     }
-    return (int)written;
+    return (int)written; // parcial o completo
 }
 
 int fd_read(int fd, char *buffer, uint64_t count) {
@@ -120,7 +135,7 @@ int fd_read(int fd, char *buffer, uint64_t count) {
     int idx = idx_from_fd(fd);
     if (buffer == NULL || count == 0) return -1;
     int pid = scheduler_current_pid();
-    // STDIN/STDOUT via pipes keep original blocking semantics (full count)
+    // Pipes ya manejan parcial.
     if (fd == STDIN && valid_pid(pid) && bound_stdin_pipe[pid] >= 0) {
         return pipe_read(bound_stdin_pipe[pid], buffer, count);
     }
@@ -128,18 +143,29 @@ int fd_read(int fd, char *buffer, uint64_t count) {
         return pipe_read(bound_stdout_pipe[pid], buffer, count);
     }
     if (table == NULL || idx < 0 || !table[idx].in_use) return -1;
-    // Dynamic FD: if no data, block until at least 1 byte; then return up to available (partial ok)
-    while (table[idx].size == 0) {
-        scheduler_yield();
+    uint64_t read = 0;
+    while (read < count) {
+        if (table[idx].size == 0) {
+            // Si ya leímos algo, devolver parcial.
+            if (read > 0) break;
+            // Bloquear/yield hasta que haya al menos 1 byte.
+            while (table[idx].size == 0) {
+                scheduler_yield();
+            }
+        }
+        // Hay datos: leer chunk.
+        uint64_t remaining = count - read;
+        uint32_t available = table[idx].size;
+        uint64_t chunk = (remaining < available) ? remaining : available;
+        for (uint64_t i = 0; i < chunk; i++) {
+            buffer[read + i] = (char)table[idx].buffer[table[idx].read_pos];
+            table[idx].read_pos = (table[idx].read_pos + 1) % FD_BUFFER_CAPACITY;
+        }
+        table[idx].size -= (uint32_t)chunk;
+        read += chunk;
+        if (read < count && table[idx].size == 0) break; // parcial: sin más datos
     }
-    uint64_t available = table[idx].size;
-    uint64_t to_read = (count < available) ? count : available;
-    for (uint64_t i = 0; i < to_read; i++) {
-        buffer[i] = (char)table[idx].buffer[table[idx].read_pos];
-        table[idx].read_pos = (table[idx].read_pos + 1) % FD_BUFFER_CAPACITY;
-        table[idx].size--;
-    }
-    return (int)to_read;
+    return (int)read;
 }
 
 int fd_has_data(int fd) {

@@ -67,6 +67,8 @@
 #define SYSCALL_FD_LIST 71
 #define SYSCALL_PIPE_CREATE 72
 #define SYSCALL_FD_BIND_STD 73
+#define SYSCALL_PIPE_WRITE 74
+#define SYSCALL_PIPE_READ 75
 
 int sys_read(int fd, char *buffer, uint64_t count);
 
@@ -122,5 +124,7 @@ int sys_fd_open(const char *name);
 int sys_fd_list(fd_info_t *out, int max);
 int sys_pipe_create(void);
 int sys_fd_bind_std(int pid, int which, int pipe_id);
+int sys_pipe_write(int pipe_id, const char *buffer, uint64_t count);
+int sys_pipe_read(int pipe_id, char *buffer, uint64_t count);
 
 #endif

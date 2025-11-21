@@ -48,33 +48,39 @@ int pipe_write(int id, const char *buffer, uint64_t count){
     uint64_t w = 0;
     while(w < count){
         spinlock_lock(&p->lock);
-        while(p->size == PIPE_BUFFER_CAPACITY){
-            // Bloquear escritor actual
+        if(p->size == PIPE_BUFFER_CAPACITY){
+            // Buffer lleno. Si ya escribimos algo, devolvemos parcial sin bloquear.
+            if(w > 0){ spinlock_unlock(&p->lock); break; }
+            // Nada escrito aún: bloquear hasta que haya espacio.
             wait_node_t *wn = (wait_node_t*)mm_malloc(sizeof(wait_node_t));
             if(!wn){ spinlock_unlock(&p->lock); return -1; }
             wn->pid = scheduler_current_pid(); wn->status = 0; wn->next = NULL;
             enqueue_waiter(&p->writers_head, &p->writers_tail, wn);
             spinlock_unlock(&p->lock);
-            int st = scheduler_block_current(wn); // bloquea hasta wake
+            int st = scheduler_block_current(wn);
             mm_free(wn);
-            // Reintentar: tomar lock nuevamente
-            spinlock_lock(&p->lock);
+            // Reintentar
+            continue;
         }
-        // hay espacio
-        p->buf[p->wpos] = buffer[w];
-        p->wpos = (p->wpos + 1) % PIPE_BUFFER_CAPACITY;
-        int was_empty = (p->size == 0);
-        p->size++;
-        // Si había lectores esperando y la pipe estaba vacía, despertar uno
-        if(was_empty && p->readers_head){
+        // Hay espacio para al menos 1 byte: escribir un bloque.
+        unsigned int free_space = PIPE_BUFFER_CAPACITY - p->size;
+        uint64_t remaining = count - w;
+        uint64_t chunk = (remaining < free_space) ? remaining : free_space;
+        int was_empty_before = (p->size == 0);
+        for(uint64_t i=0;i<chunk;i++){
+            p->buf[p->wpos] = buffer[w + i];
+            p->wpos = (p->wpos + 1) % PIPE_BUFFER_CAPACITY;
+        }
+        p->size += (unsigned int)chunk;
+        if(was_empty_before && p->readers_head){
             wait_node_t *rd = dequeue_waiter(&p->readers_head, &p->readers_tail);
-            // Desbloquear lector
             scheduler_unblock(rd->pid, rd, 0);
         }
         spinlock_unlock(&p->lock);
-        w++;
+        w += chunk;
+        // Si se llenó y aún quedan datos, salimos (parcial).
     }
-    return (int)w; // siempre count
+    return (int)w; // parcial o completo
 }
 
 int pipe_read(int id, char *buffer, uint64_t count){
@@ -83,8 +89,9 @@ int pipe_read(int id, char *buffer, uint64_t count){
     uint64_t r = 0;
     while(r < count){
         spinlock_lock(&p->lock);
-        while(p->size == 0){
-            // Bloquear lector actual
+        if(p->size == 0){
+            // Vacío. Si ya leímos algo, devolver parcial; si no, bloquear.
+            if(r > 0){ spinlock_unlock(&p->lock); break; }
             wait_node_t *wn = (wait_node_t*)mm_malloc(sizeof(wait_node_t));
             if(!wn){ spinlock_unlock(&p->lock); return -1; }
             wn->pid = scheduler_current_pid(); wn->status = 0; wn->next = NULL;
@@ -92,22 +99,26 @@ int pipe_read(int id, char *buffer, uint64_t count){
             spinlock_unlock(&p->lock);
             int st = scheduler_block_current(wn);
             mm_free(wn);
-            spinlock_lock(&p->lock);
+            continue; // reintentar
         }
-        // hay datos
-        buffer[r] = p->buf[p->rpos];
-        p->rpos = (p->rpos + 1) % PIPE_BUFFER_CAPACITY;
-        int was_full = (p->size == PIPE_BUFFER_CAPACITY);
-        p->size--;
-        // Si había escritores esperando y estaba llena, despertar uno
-        if(was_full && p->writers_head){
+        // Hay datos: leer bloque.
+        uint64_t remaining = count - r;
+        uint64_t available = p->size;
+        uint64_t chunk = (remaining < available) ? remaining : available;
+        int was_full_before = (p->size == PIPE_BUFFER_CAPACITY);
+        for(uint64_t i=0;i<chunk;i++){
+            buffer[r + i] = p->buf[p->rpos];
+            p->rpos = (p->rpos + 1) % PIPE_BUFFER_CAPACITY;
+        }
+        p->size -= (unsigned int)chunk;
+        if(was_full_before && p->writers_head){
             wait_node_t *wr = dequeue_waiter(&p->writers_head, &p->writers_tail);
             scheduler_unblock(wr->pid, wr, 0);
         }
         spinlock_unlock(&p->lock);
-        r++;
+        r += chunk;
     }
-    return (int)r; // siempre count
+    return (int)r; // parcial o completo
 }
 
 int pipe_try_kernel_nonblocking_write(int id, char c){
