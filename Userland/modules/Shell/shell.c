@@ -172,10 +172,11 @@ static void rebuild_line_visual()
 static void handle_stdin_chunk()
 {
     update_cursor();
-    unsigned char inbuf[64];
+    unsigned char inbuf[STD_BUFF_SIZE];
     int n = read(STDIN, inbuf, sizeof(inbuf));
     if (n <= 0)
         return;
+
     for (int i = 0; i < n; i++)
     {
         unsigned char c = inbuf[i];
@@ -193,8 +194,12 @@ static void handle_stdin_chunk()
             }
             buffer_pos = 0; // FD quedo vacio
             shell_newline();
-            execute_command_line((char *)linebuf);
-            shell_print_prompt();
+
+            if (get_foreground_proc() == getpid()) // si shell es el proc en fg
+            {
+                execute_command_line((char *)linebuf);
+            }
+
             reset_cursor();
             continue;
         }
@@ -226,6 +231,19 @@ static void handle_stdin_chunk()
             reset_cursor();
         }
     }
+
+    pid_t fg_proc = get_foreground_proc();
+    if (!(fg_proc == getpid())) // si shell es el proc en fg
+    {
+        int status;
+        if (waitpid(fg_proc, &status, WNOHANG) > 0)
+        {
+            fd_bind_std(getpid(), STDIN, STDIN); // shell toma nuevamente el control de la shell
+            set_foreground_proc(getpid());
+            printf("\nProceso %d finalizado con estado %d\n", fg_proc, status);
+            shell_print_prompt();
+        }
+    }
 }
 
 static void shell_welcome()
@@ -247,7 +265,7 @@ int main()
         fontmanager_set_font(1);
         shell_welcome();
         shell_print_prompt();
-        set_priority(getpid(), 0);
+
         shell_cmd_fd = fd_open("shellcmd");
         if (shell_cmd_fd < 0)
         {

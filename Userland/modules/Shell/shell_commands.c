@@ -15,22 +15,36 @@
 #include "./shell_render.h"
 #include <stdarg.h>
 
-// Synchronous execution helper: crea proceso y espera a que termine
-static void run_sync(task_fn_t fn, void *arg, int free_after)
+#define MAX_PROCESS 100
+
+pid_t foreground_proc_running = 1;
+
+static void run_in_foreground(task_fn_t fn, void *arg)
 {
     pid_t pid = new_proc(fn, arg);
-    if (pid >= 0)
+    block_proc(pid);
+    int pipe_id = pipe_create();
+    if (pid <= 0 || pipe_id == -1)
     {
-        int st;
-        waitpid(pid, &st, WHANG);
+        return;
     }
-    if (free_after && arg)
-    {
-        free(arg);
-    }
+    fd_bind_std(pid, STDIN, STDIN);        // stdin del proceso
+    fd_bind_std(pid, STDOUT, pipe_id);     // stdout del proceso
+    fd_bind_std(getpid(), STDIN, pipe_id); // stdin de la shell
+    unblock_proc(pid);
+    set_foreground_proc(pid);
+    // waitpid(pid, NULL, WHANG);
 }
 
-#define MAX_PROCESS 100
+pid_t get_foreground_proc()
+{
+    return foreground_proc_running;
+}
+
+void set_foreground_proc(pid_t pid)
+{
+    foreground_proc_running = pid;
+}
 
 static void *const pongisgolfModuleAddress = (void *)0x11000000;
 
@@ -204,8 +218,9 @@ void cmd_cat()
     while (1)
     {
         unsigned char c = getchar();
-        if (c == EOF)
+        if (c == 'A')
         {
+            printf("\n");
             break;
         }
         putchar(c);
@@ -309,6 +324,7 @@ void cmd_mvar()
             }
         }
     }
+    exit(0);
 }
 
 static void mvar_proc(void *argv)
@@ -632,7 +648,7 @@ void command_switch(char *cmd_copy, char *args)
 {
     if (!strcmp(cmd_copy, "help"))
     {
-        run_sync((task_fn_t)cmd_help, NULL, 0);
+        run_in_foreground((task_fn_t)cmd_help, NULL);
     }
     else if (!strcmp(cmd_copy, "clear"))
     {
@@ -640,74 +656,74 @@ void command_switch(char *cmd_copy, char *args)
     }
     else if (!strcmp(cmd_copy, "mem"))
     {
-        run_sync(cmd_mem, NULL, 0);
+        run_in_foreground((task_fn_t)cmd_mem, NULL);
     }
     else if (!strcmp(cmd_copy, "ps"))
     {
-        run_sync(cmd_ps, NULL, 0);
+        run_in_foreground((task_fn_t)cmd_ps, NULL);
     }
     else if (!strcmp(cmd_copy, "loop"))
     {
         int argv[] = {strtoint(args)};
-        new_proc((task_fn_t)cmd_loop, argv);
+        run_in_foreground((task_fn_t)cmd_loop, argv);
     }
     else if (!strcmp(cmd_copy, "kill"))
     {
         int argv[] = {strtoint(args)};
-        new_proc((task_fn_t)cmd_kill, argv);
+        run_in_foreground((task_fn_t)cmd_kill, argv);
     }
     else if (!strcmp(cmd_copy, "nice"))
     {
         char *p1 = strtok(args, " ");
         char *p2 = strtok(NULL, " ");
         int argv[] = {strtoint(p1), strtoint(p2)};
-        new_proc((task_fn_t)cmd_nice, argv);
+        run_in_foreground((task_fn_t)cmd_nice, argv);
     }
     else if (!strcmp(cmd_copy, "block"))
     {
         int argv[] = {strtoint(args)};
-        new_proc((task_fn_t)cmd_block, argv);
+        run_in_foreground((task_fn_t)cmd_block, argv);
     }
     else if (!strcmp(cmd_copy, "cat"))
     {
-        new_proc((task_fn_t)cmd_cat, NULL);
+        run_in_foreground((task_fn_t)cmd_cat, NULL);
     }
     else if (!strcmp(cmd_copy, "wc"))
     {
-        new_proc((task_fn_t)cmd_wc, NULL);
+        run_in_foreground((task_fn_t)cmd_wc, NULL);
     }
     else if (!strcmp(cmd_copy, "filter"))
     {
-        new_proc((task_fn_t)cmd_filter, NULL);
+        run_in_foreground((task_fn_t)cmd_filter, NULL);
     }
     else if (!strcmp(cmd_copy, "mvar"))
     {
-        new_proc((task_fn_t)cmd_mvar, NULL);
+        run_in_foreground((task_fn_t)cmd_mvar, NULL);
     }
     else if (!strcmp(cmd_copy, "test_mm"))
     {
         int argv[] = {strtoint(args)};
-        new_proc((task_fn_t)cmd_testMM, argv);
+        run_in_foreground((task_fn_t)cmd_testMM, argv);
     }
     else if (!strcmp(cmd_copy, "test_processes"))
     {
         int argv[] = {strtoint(args)};
-        new_proc((task_fn_t)cmd_testProcesses, argv);
+        run_in_foreground((task_fn_t)cmd_testProcesses, argv);
     }
     else if (!strcmp(cmd_copy, "test_priority"))
     {
         int argv[] = {strtoint(args)};
-        new_proc((task_fn_t)cmd_testPriority, argv);
+        run_in_foreground((task_fn_t)cmd_testPriority, argv);
     }
     else if (!strcmp(cmd_copy, "test_synchro"))
     {
         int argv[] = {strtoint(args), 1};
-        new_proc((task_fn_t)cmd_testSynchro, argv);
+        run_in_foreground((task_fn_t)cmd_testSynchro, argv);
     }
     else if (!strcmp(cmd_copy, "test_no_synchro"))
     {
         int argv[] = {strtoint(args), 0};
-        new_proc((task_fn_t)cmd_testSynchro, argv);
+        run_in_foreground((task_fn_t)cmd_testSynchro, argv);
     }
 
     // Comandos realizados en Arquitectura de Computadoras (ya no se muestran en "help"):
