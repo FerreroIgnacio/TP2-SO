@@ -7,7 +7,7 @@
 #define STDIN 0
 #define STDOUT 1
 #define STDERR 2
-#define STD_BUFF_SIZE 4096
+#define FD_SIZE 4096
 
 #define SYSCALL_POLL 74
 #define SYSCALL_SELECT 75
@@ -55,5 +55,6 @@ void puthexupper(uint64_t value); // %X %P
 /* Falta agregar soporte para double */
 // void putdouble(double value, int precision); //%f
 uint64_t printf(const char *format, ...);
+uint64_t fprintf(int fd, const char *format, ...);
 
 #endif

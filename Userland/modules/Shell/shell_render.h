@@ -6,11 +6,14 @@ void shell_putchar(unsigned char c);
 void shell_print(const char *str);
 void shell_print_colored(const char *str, uint32_t color);
 void shell_newline();
-void shell_print_prompt();
 void clear_buffer();
 void clear_screen();
 void hide_cursor();
 void reset_cursor();
 void update_cursor();
+
+//lee RENDER_FD y escribe los caracteres leidos en la pantalla de la shell
+//devuelve cuanto consumio
+int consume_render_fd();
 
 #endif

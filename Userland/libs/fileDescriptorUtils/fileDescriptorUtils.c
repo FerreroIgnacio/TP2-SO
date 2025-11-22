@@ -9,8 +9,8 @@ extern int asm_select(int *fds, int count); // rdi=fds, rsi=count
 // borra todo el file descriptor
 void flush(int fd)
 {
-    unsigned char buff[STD_BUFF_SIZE];
-    read(fd, buff, STD_BUFF_SIZE);
+    unsigned char buff[FD_SIZE];
+    read(fd, buff, FD_SIZE);
 }
 
 /* UTILIDADES STDIN */
@@ -38,7 +38,7 @@ int scanf(const char *format, ...)
         if (*format == '%')
         {
             format++;
-            char buffer[STD_BUFF_SIZE];
+            char buffer[FD_SIZE];
             int bufIndex = 0;
             unsigned char c;
 
@@ -48,7 +48,7 @@ int scanf(const char *format, ...)
                 c = getchar();
             } while (c == ' ' || c == '\n' || c == '\r' || c == '\t' || c == '\v' || c == '\b');
             // Leer token hasta separador
-            while (c != ' ' && c != '\n' && c != '\r' && c != '\t' && c != '\v' && c != '\b' && bufIndex < STD_BUFF_SIZE - 1)
+            while (c != ' ' && c != '\n' && c != '\r' && c != '\t' && c != '\v' && c != '\b' && bufIndex < FD_SIZE - 1)
             {
                 buffer[bufIndex++] = c;
                 c = getchar();

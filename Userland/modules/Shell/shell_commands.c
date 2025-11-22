@@ -1,801 +1,128 @@
 #include "./shell_commands.h"
 #include "../../libs/standard/standard.h"
-#include "../../libs/video/video.h"
-#include "../../libs/fontManager/fontManager.h"
-#include "../../libs/invalidOpCode/invalidOpCode.h"
-#include "../../libs/test/test.h"
-#include "../../libs/mystring/mystring.h"
 #include "../../libs/fileDescriptorUtils/fileDescriptorUtils.h"
-#include "../../libs/memory/memory.h"
-#include "../../libs/keyboard/keyboard.h"
-#include "../../libs/time/time.h"
 #include "../../libs/process/process.h"
-#include "../../libs/semaphores/semaphores.h"
+#include "../../libs/memory/memory.h"
+#include "../../libs/mystring/mystring.h"
 #include "./shell_defs.h"
 #include "./shell_render.h"
-#include <stdarg.h>
+#include "./commands/commands.h"
 
 #define MAX_PROCESS 100
+#define ARGV_MAX 64 // máximo 64 argumentos por comando
 
+// Estado del proceso foreground
 pid_t foreground_proc_running = 1;
+static int foreground_pipe_fd = -1;
 
-static void run_in_foreground(task_fn_t fn, void *arg)
-{
+// Implementación para ejecutar una función como proceso en foreground
+void run_in_foreground(task_fn_t fn, void *arg){
     pid_t pid = new_proc(fn, arg);
     block_proc(pid);
     int pipe_id = pipe_create();
-    if (pid <= 0 || pipe_id == -1)
-    {
-        return;
-    }
-    fd_bind_std(pid, STDIN, STDIN);        // stdin del proceso
-    fd_bind_std(pid, STDOUT, pipe_id);     // stdout del proceso
-    fd_bind_std(getpid(), STDIN, pipe_id); // stdin de la shell
+    if (pid <= 0 || pipe_id == -1){return;}
+    foreground_pipe_fd = pipe_id;
+    fd_bind_std(pid, STDIN, STDIN);
+    fd_bind_std(pid, STDOUT, pipe_id);
+    fd_bind_std(getpid(), STDIN, STDIN); // mantener stdin shell
     unblock_proc(pid);
     set_foreground_proc(pid);
-    // waitpid(pid, NULL, WHANG);
 }
-
-pid_t get_foreground_proc()
-{
-    return foreground_proc_running;
-}
-
-void set_foreground_proc(pid_t pid)
-{
-    foreground_proc_running = pid;
-}
-
-static void *const pongisgolfModuleAddress = (void *)0x11000000;
-
-// Comandos disponibles
-
-// CMD_HELP DE ARQUITECTURA DE COMPUTADORAS
-/*
-void cmd_help()
-{
-    printf("Comandos disponibles:\n");
-    printf("  help             - Mostrar comandos disponibles\n");
-    printf("  clear            - Limpiar pantalla\n");
-    printf("  echo <message>    - Mostrar texto en pantalla\n");
-    printf("  datetime         - Mostrar fecha y hora UTC-0 \n");
-    printf("  registers        - Imprimir registros guardados (F1)\n");
-    printf("  listfonts        - Listar las fuentes disponibles\n");
-    printf("  setfont <id>     - Cambiar la fuente\n");
-    printf("  testzerodiv      - Testea la excepcion 00 \n");
-    printf("  testinvalidcode  - Testea la excepcion 06 \n");
-    printf("\nProgramas disponibles:\n");
-    printf("  pongisgolf\n");
-    printf("\nControles:\n");
-    printf("  Enter - Ejecutar comando\n");
-    printf("  Backspace - Borrar caracter\n");
-}*/
-
-int cmd_help()
-{
-    printf("Comandos disponibles:\n");
-    printf("  help             - Mostrar comandos disponibles\n");                                          // OK
-    printf("  clear            - Limpiar pantalla\n");                                                      // OK
-    printf("  mem              - Imprime el estado de la memoria\n");                                       // OK
-    printf("  ps               - Imprime la lista de todos los procesos\n");                                // OK
-    printf("  loop <segundos>  - Imprime su ID con un saludo cada una determinada cantidad de segundos\n"); // OK
-    printf("  kill <pid>       - Mata un proceso dado su ID.\n");                                           // OK
-    printf("  nice <pid> <pri> - Cambia la prioridad de un proceso dado su ID y la nueva prioridad\n");     // OK
-    printf("  block <pid>      - Switch entre ready y blocked de un proceso dado su ID.\n");                // OK
-    printf("  cat              - Imprime el stdin tal como lo recibe.\n");                                  // OK: falta testear
-    printf("  wc               - Cuenta la cantidad de líneas del input\n");                                // OK: falta testear
-    printf("  filter           - Filtra las vocales del input.\n");                                         // OK: falta testear
-    printf("  mvar             - Implementa el problema de múltiples lectores\n");                          // OK: falta testear
-    // Nuevos comandos de FDs dinamicos (por proceso)
-    printf("  createfd <name>  - Crea un FD dinamico en este proceso (desde 3 en adelante)\n");
-    printf("  writefd <fd> <texto> - Escribe texto en un FD dinamico de este proceso\n");
-    printf("  readfd <fd>      - Lee y muestra el contenido de un FD dinamico de este proceso\n");
-    printf("  fdlist           - Lista los FDs dinamicos del proceso actual\n");
-
-    printf("\nTests disponibles:\n");
-    printf("  test_mm <max-bytes>                     - Ejecuta stress test del manejador de memoria\n");                    // OK
-    printf("  test_processes <max-processes>          - Crea, bloquea, desbloquea y mata procesos aleatoriamente.\n");       // OK
-    printf("  test_priority <end-val-for-process>     - 3 procesos se ejecutan con misma prioridad y luego con distinta\n"); // OK
-    printf("  test_synchro <processes> <inc-dec>      - Varios procesos modifican 1 variable usando semaforos\n");           // TODO
-    printf("  test_no_synchro <processes> <inc-dec>   - Varios procesos modifican una variable sin semaforos\n");            // TODO
-
-    printf("\nControles:\n");
-    printf("  Enter - Ejecutar comando\n");
-    printf("  Backspace - Borrar caracter\n");
-
-    exit(0);
-    return 0;
-}
-
-void cmd_clear()
-{
-    clear_screen();
-}
-
-int cmd_mem()
-{
-    size_t total, used, free;
-    getMemInfo(&total, &used, &free);
-    printf("Estado de la memoria:\n");
-    printf("TOTAL: %d   USADO: %d   LIBRE: %d\n", total, used, free);
-    exit(0);
-    return 0;
-}
-
-int cmd_loop(void *argv)
-{
-    if (argv == NULL)
-        return -1;
-    int *args = (int *)argv;
-    int segs = args[0];
-    if (segs <= 0)
-    {
-        printf("Uso: loop <segundos>\n");
-        exit(0);
-    }
-    while (1)
-    {
-        printf("Hola! soy el proceso: %d. Este mensaje aparecera cada %d segundos \n", (int)getpid(), segs);
-        sleep(segs);
-    }
-    exit(0);
-    return 0;
-}
-
-int cmd_ps()
-{
-    proc_info_t proc_list[MAX_PROCESS];
-    int count = get_proc_list(proc_list, MAX_PROCESS);
-    for (int i = 0; i < count; i++)
-    {
-        proc_info_t *p = &proc_list[i];
-        printf(
-            "PID:%d | Father:%d | Pri:%d | Ready:%d | Wait:%d | Zombie:%d | Status:%d\n",
-            p->pid,
-            p->father_pid,
-            p->priority,
-            p->ready,
-            p->waiting,
-            p->is_zombie,
-            p->status);
-    }
-    exit(0);
-    return 0;
-}
-
-void cmd_kill(void *argv)
-{
-    if (argv == NULL)
-    {
-        exit(-1);
-    }
-    int *args = (int *)argv;
-    pid_t pid = args[0];
-    int status = kill(pid);
-    printf("Kill a proceso: %d termino con estado: %d \n", pid, status);
-    exit(status);
-}
-
-void cmd_nice(void *argv)
-{
-    if (argv == NULL)
-    {
-        exit(-1);
-    }
-    int *args = (int *)argv;
-    pid_t pid = args[0];
-    process_priority_t prio = args[1];
-    if (prio < PRIORITY_LOW || prio > PRIORITY_HIGH)
-    {
-        printf("Error, prioridades disponibles:\nLOW : %d\nNORMAL : %d\nHIGH: %d\n", PRIORITY_LOW, PRIORITY_NORMAL, PRIORITY_HIGH);
-        exit(-1);
-    }
-    printf("cambiando la prioridad del proceso: %d a %d\n", pid, prio);
-    int status = set_priority(pid, prio);
-    exit(status);
-}
-
-void cmd_block(void *argv)
-{
-    if (argv == NULL)
-    {
-        exit(-1);
-    }
-    int *args = (int *)argv;
-    pid_t pid = args[0];
-
-    if (block_proc(pid) == 0)
-    {
-        printf("bloqueando el proceso: %d", pid);
-        exit(0);
-    }
-    printf("desbloqueando el proceso: %d", pid);
-    exit(unblock_proc(pid));
-}
-
-void cmd_cat()
-{
-    while (1)
-    {
-        unsigned char c = getchar();
-        if (c == 'A')
-        {
-            printf("\n");
-            break;
-        }
-        putchar(c);
-    }
-    exit(0);
-}
-
-void cmd_wc()
-{
-    int count = 0;
-    while (1)
-    {
-        unsigned char c = getchar();
-        if (c == EOF)
-        {
-            break;
-        }
-        if (c == '\n')
-        {
-            count++;
-        }
-    }
-    printf("Lineas: %d\n", count);
-    exit(count);
-}
-
-void cmd_filter()
-{
-    while (1)
-    {
-        unsigned char c = getchar();
-        if (c == EOF)
-        {
-            break;
-        }
-        if (c == 'a' || c == 'e' || c == 'i' || c == 'o' || c == 'u' ||
-            c == 'A' || c == 'E' || c == 'I' || c == 'O' || c == 'U')
-        {
-            putchar(c);
-        }
-    }
-    exit(0);
-}
-
-static void mvar_proc(void *argv);
-void cmd_mvar()
-{
-    char *shared_mm = (char *)calloc(1000, sizeof(char));
-    char *mutex_sem_name = "mvar_mutex";
-    char *print_sem_name = "mvar_print";
-    int print_sem_id;
-    int proc_pipes[3];
-    pid_t proc_pids[3];
-
-    if (shared_mm == NULL)
-    {
-        printf("Error al reservar memoria compartida\n");
-        exit(-1);
-    }
-    if ((print_sem_id = sem_open(print_sem_name, 0)) == -1)
-    {
-        printf("Error al crear semáforo en mvar\n");
-        exit(-1);
-    }
-
-    char *argv[] = {shared_mm, mutex_sem_name, print_sem_name};
-    for (int i = 0; i < 3; i++)
-    {
-        proc_pipes[i] = pipe_create();
-        if (proc_pipes[i] == -1)
-        {
-            printf("Error al crear pipe para el proceso %d\n", i);
-            exit(-1);
-        }
-        proc_pids[i] = new_proc((task_fn_t)mvar_proc, (void *)argv);
-        fd_bind_std(proc_pids[i], 1, proc_pipes[i]);
-    }
-
-    int next = 0;
-    while (1)
-    {
-        sem_wait(print_sem_id);
-        unsigned char buffer[STD_BUFF_SIZE];
-        for (int i = 1; i <= 3; i++)
-        {
-            if (!fd_has_data(proc_pipes[next]))
-            {
-                next = (i + 1) % 3;
-                continue;
-            }
-            else
-            {
-                int n = read(proc_pipes[next], buffer, STD_BUFF_SIZE - 1);
-                if (n > 0)
-                {
-                    buffer[n] = '\0';
-                    printf("%s", buffer);
-                }
-                next = (i + 1) % 3;
-                break;
-            }
-        }
-    }
-    exit(0);
-}
-
-static void mvar_proc(void *argv)
-{
-    if (argv == NULL)
-    {
-        exit(-1);
-    }
-    char **args = (char **)argv;
-    char *shared_mm = args[0];
-    char *mutex_sem_name = args[1];
-    char *print_sem_name = args[2];
-    if (shared_mm == NULL || mutex_sem_name == NULL || print_sem_name == NULL)
-    {
-        exit(-1);
-    }
-
-    int mutex_sem_id = sem_open(mutex_sem_name, 1);
-    int print_sem_id = sem_open(print_sem_name, 0);
-
-    if (mutex_sem_id == -1 || print_sem_id == -1)
-    {
-        exit(-1);
-    }
-
-    while (1)
-    {
-        sem_wait(mutex_sem_id);
-        printf("Proceso %d accediendo a la memoria compartida\n", (int)getpid());
-        sleep(1); // simula tiempo de procesamiento para evitar la ejecución en un quantum.
-        printf("Proceso %d leyendo del contenido de la memoria compartida: %s\n", (int)getpid(), shared_mm);
-        sleep(1);
-        printf("Proceso %d escribiendo en la memoria compartida\n", (int)getpid());
-
-        strcpy(shared_mm, "El proceso: ");
-        char *pid_str = itoa_malloc((int)getpid());
-        if (pid_str != NULL)
-        {
-            strcpy(shared_mm + strlen(shared_mm), pid_str);
-            free(pid_str);
-        }
-        else
-        {
-            strcpy(shared_mm + strlen(shared_mm), "unknown PID ");
-        }
-        strcpy(shared_mm + strlen(shared_mm), "Estuvo aqui.\n");
-        sem_post(print_sem_id); // notificar cambios en stdout
-        sem_post(mutex_sem_id);
-    }
-    exit(0);
-}
-
-int cmd_testMM(void *argv)
-{
-    int *args = (int *)argv;
-    const char *usage = "Uso: testMM <bytes>";
-    if (argv == NULL || args[0] <= 1)
-    {
-        printf("%s\n", usage);
-        exit(-1);
-    }
-    printf("Iniciando testMM con %d bytes\n", args[0]);
-    int result = test_mm(args[0]);
-    printf("testMM finalizado con codigo %d\n", result);
-    exit(result);
-    return result;
-}
-
-int cmd_testProcesses(void *argv)
-{
-    int *args = (int *)argv;
-    const char *usage = "Uso: test_processes <max-processes>";
-    if (argv == NULL || args[0] <= 1)
-    {
-        printf("%s\n", usage);
-        exit(-1);
-    }
-
-    printf("Iniciando testProcesses con max %d procesos...\n", args[0]);
-    int result = test_processes(args[0]);
-    printf("testProcesses finalizado con codigo %d\n", result);
-    exit(result);
-    return result;
-}
-
-int cmd_testPriority(void *argv)
-{
-    int *args = (int *)argv;
-    const char *usage = "Uso: test_priority <end-val-for-process>";
-    if (argv == NULL || args[0] <= 1)
-    {
-        printf("%s\n", usage);
-        exit(-1);
-    }
-    printf("Iniciando testPriority con max_val %d ...\n", args[0]);
-    int result = test_prio(args[0]);
-    printf("testPriority finalizado con codigo %d\n", result);
-    exit(result);
-    return result;
-}
-
-int cmd_testSynchro(void *argv) // TODO
-{
-    int *args = (int *)argv;
-    // args[0] = iter
-    // args[1] = use_sem
-
-    const char *usage = "Uso: test_sync <end-val-for-process>"; // modificar
-    if (argv == NULL || args[0] <= 1)                           // validar parámetros
-    {
-        printf("%s\n", usage);
-        exit(-1);
-    }
-    printf("Iniciando testPriority con max_val %d ...\n", args[0]); // modificar
-    int result = test_sync(args[0], args[1]);
-    printf("testPriority finalizado con codigo %d\n", result); // modificar
-    exit(result);
-    return result;
-}
-// ARQUI
-
-// Proceso echo para uso en pipeline: escribe argv a STDOUT (pipe) y retorna
-int echo_proc(void *argv)
-{
-    char *arg = (char *)argv;
-    if (arg && *arg)
-    {
-        write(STDOUT, arg, strlen(arg));
-    }
-    write(STDOUT, "\n", 1);
-    if (arg)
-        free(arg);
-    return 0;
-}
-
-void cmd_echo(char *args)
-{
-    if (*args)
-    {
-        printf("%s\n", args);
-    }
-    else
-    {
-        shell_newline();
-    }
-}
-
-void cmd_dateTime()
-{
-    uint8_t year = 0, month = 0, day = 0, hours = 0, minutes = 0, seconds = 0;
-    getLocalTime(&hours, &minutes, &seconds);
-    getLocalDate(&year, &month, &day);
-    printf("Fecha y hora en UTC-0: %d/%d/20%d %d:%d:%d\n", day, month, year, hours, minutes, seconds);
-}
-
-void cmd_registers()
-{
-    registers_t regs;
-    getRegisters(&regs);
-    printf("RIP:    %#P\n"
-           "RFLAGS: %#P\n"
-           "RSP:    %#P\n"
-           "RBP:    %#P\n"
-           "RAX:    %#P\n"
-           "RBX:    %#P\n"
-           "RCX:    %#P\n"
-           "RDX:    %#P\n"
-           "RSI:    %#P\n"
-           "RDI:    %#P\n"
-           "R8 :    %#P\n"
-           "R9 :    %#P\n"
-           "R10:    %#P\n"
-           "R11:    %#P\n"
-           "R12:    %#P\n"
-           "R13:    %#P\n"
-           "R14:    %#P\n"
-           "R15:    %#P\n",
-           regs.rip,
-           regs.rflags,
-           regs.rsp,
-           regs.rbp,
-           regs.rax,
-           regs.rbx,
-           regs.rcx,
-           regs.rdx,
-           regs.rsi,
-           regs.rdi,
-           regs.r8,
-           regs.r9,
-           regs.r10,
-           regs.r11,
-           regs.r12,
-           regs.r13,
-           regs.r14,
-           regs.r15);
-}
-
-void cmd_test0Div()
-{
-    int x = 1;
-    int y = 0;
-    int z = x / y;
-    z++;
-}
-
-void cmd_createfd(char *args)
-{
-    if (!args || *args == '\0')
-    {
-        printf("Uso: createfd <name>\n");
-        return;
-    }
-    int fd = fd_open(args);
-    if (fd < 0)
-    {
-        printf("Error: no se pudo crear FD '%s'\n", args);
-        return;
-    }
-    printf("FD creado: %d\n", fd);
-}
-
-void cmd_writefd(char *args)
-{
-    if (!args || *args == '\0')
-    {
-        printf("Uso: writefd <fd> <texto>\n");
-        return;
-    }
-    // split fd and message
-    char *fd_str = args;
-    char *msg = find_args(args); // mutates: places \0 after fd
-    if (!msg || *msg == '\0')
-    {
-        printf("Uso: writefd <fd> <texto>\n");
-        return;
-    }
-    int fd = strtoint(fd_str);
-    int wrote = write(fd, msg, strlen(msg));
-    if (wrote < 0)
-    {
-        printf("Error: write a fd %d\n", fd);
-        return;
-    }
-    printf("Escritos %d bytes en fd %d\n", wrote, fd);
-}
-
-void cmd_readfd(char *args)
-{
-    if (!args || *args == '\0')
-    {
-        printf("Uso: readfd <fd>\n");
-        return;
-    }
-    int fd = strtoint(args);
+int get_foreground_pipe_fd(){ return foreground_pipe_fd; }
+void flush_foreground_output(){
+    if (foreground_pipe_fd < 0) return;
     unsigned char buf[256];
-    int total = 0;
-    while (1)
-    {
-        int n = read(fd, buf, sizeof(buf) - 1);
-        if (n <= 0)
-            break;
+    while (fd_has_data(foreground_pipe_fd)){
+        int n = read(foreground_pipe_fd, buf, sizeof(buf)-1);
+        if (n <= 0) break;
         buf[n] = '\0';
-        // print raw without formatting issues
-        shell_print((char *)buf);
-        total += n;
-    }
-    if (total == 0)
-    {
-        printf("(sin datos)\n");
-    }
-    else
-    {
-        printf("\nLeidos %d bytes de fd %d\n", total, fd);
+        // Escribir al buffer renderizado (FD 3)
+        fprintf(3, "%s", (char*)buf);
+        consume_render_fd();
     }
 }
 
-void shell_set_font(font_type_t font_index)
-{
-    int count = fontmanager_get_font_count();
-    if (font_index < 0 || font_index >= count)
-    {
-        shell_print_colored("Error: indice de fuente inválido\n", ERROR_COLOR);
-        return;
+pid_t get_foreground_proc(){ return foreground_proc_running; }
+void set_foreground_proc(pid_t pid){ foreground_proc_running = pid; }
+
+// Tabla de comandos centralizada
+shell_cmd_t shell_commands[] = {
+    {"help", 0, 0, "Mostrar comandos disponibles", "help", 0, cmd_help_run},
+    {"clear", 0, 0, "Limpiar pantalla", "clear", 1, cmd_clear_run},
+    {"mem", 0, 0, "Imprime el estado de la memoria", "mem", 0, cmd_mem_run},
+    {"ps", 0, 0, "Imprime la lista de todos los procesos", "ps", 0, cmd_ps_run},
+    {"loop", 1, 1, "Imprime su ID cada N segundos", "loop <segundos>", 0, cmd_loop_run},
+    {"kill", 1, 1, "Mata un proceso dado su ID", "kill <pid>", 0, cmd_kill_run},
+    {"nice", 2, 2, "Cambia la prioridad de un proceso", "nice <pid> <pri>", 0, cmd_nice_run},
+    {"block", 1, 1, "Alterna ready/blocked de un proceso", "block <pid>", 0, cmd_block_run},
+    {"cat", 0, 0, "Imprime stdin tal como lo recibe", "cat", 0, cmd_cat_run},
+    {"wc", 0, 0, "Cuenta cantidad de lineas del input", "wc", 0, cmd_wc_run},
+    {"filter", 0, 0, "Filtra las vocales del input", "filter", 0, cmd_filter_run},
+    {"mvar", 0, 0, "Problema múltiples lectores (demo)", "mvar", 0, cmd_mvar_run},
+    {"createfd", 1, 1, "Crea un FD dinamico", "createfd <name>", 0, cmd_createfd_run},
+    {"writefd", 2, -1, "Escribe texto en FD dinamico", "writefd <fd> <texto>", 0, cmd_writefd_run},
+    {"readfd", 1, 1, "Lee contenido de un FD dinamico", "readfd <fd>", 0, cmd_readfd_run},
+    {"fdlist", 0, 0, "Lista FDs dinamicos del proceso", "fdlist", 0, cmd_fdlist_run},
+    {"test_mm", 1, 1, "Stress test manejador memoria", "test_mm <max-bytes>", 0, cmd_test_mm_run},
+    {"test_processes", 1, 1, "Test de creación/bloqueo procesos", "test_processes <max-processes>", 0, cmd_test_processes_run},
+    {"test_priority", 1, 1, "Test prioridades de procesos", "test_priority <end-val>", 0, cmd_test_priority_run},
+    {"test_synchro", 2, 2, "Test concurrencia con semáforos", "test_synchro <val> <inc-dec>", 0, cmd_test_synchro_run},
+    {"test_no_synchro", 2, 2, "Test concurrencia sin semáforos", "test_no_synchro <val> <inc-dec>", 0, cmd_test_no_synchro_run},
+    {"echo", 0, -1, "Echo simple", "echo <texto>", 0, cmd_echo_run},
+    {"datetime", 0, 0, "Fecha y hora UTC-0", "datetime", 0, cmd_datetime_run},
+    {"registers", 0, 0, "Mostrar registros guardados", "registers", 0, cmd_registers_run},
+    {"testzerodiv", 0, 0, "Forzar excepcion 00", "testzerodiv", 0, cmd_testzerodiv_run},
+    {"testinvalidcode", 0, 0, "Forzar excepcion 06", "testinvalidcode", 0, cmd_testinvalidcode_run},
+    {"listfonts", 0, 0, "Listar fuentes disponibles", "listfonts", 1, cmd_listfonts_run},
+    {"setfont", 1, 1, "Cambiar fuente", "setfont <id>", 1, cmd_setfont_run},
+    {"pongisgolf", 0, 0, "Ejecutar juego pongisgolf", "pongisgolf", 0, cmd_pong_run},
+};
+int shell_commands_count = sizeof(shell_commands)/sizeof(shell_commands[0]);
+
+// Parser simple de argumentos (split por espacios consecutivos)
+static int parse_args(char *args, char **out){
+    int count = 0;
+    if (!args) return 0;
+    while (*args == ' ') args++;
+    while (*args){
+        if (count >= ARGV_MAX) break;
+        out[count++] = args;
+        while (*args && *args != ' ') args++;
+        if (!*args) break;
+        *args = '\0';
+        args++;
+        while (*args == ' ') args++;
     }
-    cmd_clear();
-    fontmanager_set_font(font_index);
-    shell_print_colored("Fuente cambiada a: ", PROMPT_COLOR);
-    printf("%s\n", fontmanager_get_font_name(font_index));
-    shell_newline();
+    return count;
 }
 
-void shell_list_fonts()
-{
-    int count = fontmanager_get_font_count();
-    printf("Fuentes disponibles:\n");
-    for (int i = 0; i < count; i++)
-    {
-        const char *name = fontmanager_get_font_name(i);
-        printf("  Id: %d  -  ", i);
-        printf("%s\n", name);
-    }
-}
+int command_switch(char *cmd_copy, char *args) {
 
-void cmd_fdlist()
-{
-    fd_info_u_t infos[32];
-    int n = fd_list(infos, 32);
-    if (n <= 0)
-    {
-        printf("(sin FDs dinamicos en este proceso)\n");
-        return;
-    }
-    printf("FDs dinamicos del proceso actual (%d):\n", n);
-    for (int i = 0; i < n; i++)
-    {
-        printf("  id=%d name=%s bytes=%u\n", infos[i].fd, infos[i].name, (unsigned)infos[i].size);
-    }
-}
+        for (int i = 0; i < shell_commands_count; i++) {
+            shell_cmd_t *c = &shell_commands[i];
+            if (!strcmp(cmd_copy, c->name)) {
+                char *argv_raw = args;
+                char *argv_array[ARGV_MAX];
+                int argc = parse_args(argv_raw, argv_array);
+                if ((argc < c->minArgsCount) || (c->maxArgsCount != -1 && argc > c->maxArgsCount)) {
+                    shell_print_colored("Uso: ", ERROR_COLOR);
+                    fprintf(3, "%s\n", c->usage);
+                    consume_render_fd();
+                    shell_newline();
+                    return 0;
+                }
+                run_in_foreground((task_fn_t)cmd_help_run, NULL);
 
-void command_switch(char *cmd_copy, char *args)
-{
-    if (!strcmp(cmd_copy, "help"))
-    {
-        run_in_foreground((task_fn_t)cmd_help, NULL);
-    }
-    else if (!strcmp(cmd_copy, "clear"))
-    {
-        cmd_clear();
-    }
-    else if (!strcmp(cmd_copy, "mem"))
-    {
-        run_in_foreground((task_fn_t)cmd_mem, NULL);
-    }
-    else if (!strcmp(cmd_copy, "ps"))
-    {
-        run_in_foreground((task_fn_t)cmd_ps, NULL);
-    }
-    else if (!strcmp(cmd_copy, "loop"))
-    {
-        int argv[] = {strtoint(args)};
-        run_in_foreground((task_fn_t)cmd_loop, argv);
-    }
-    else if (!strcmp(cmd_copy, "kill"))
-    {
-        int argv[] = {strtoint(args)};
-        run_in_foreground((task_fn_t)cmd_kill, argv);
-    }
-    else if (!strcmp(cmd_copy, "nice"))
-    {
-        char *p1 = strtok(args, " ");
-        char *p2 = strtok(NULL, " ");
-        int argv[] = {strtoint(p1), strtoint(p2)};
-        run_in_foreground((task_fn_t)cmd_nice, argv);
-    }
-    else if (!strcmp(cmd_copy, "block"))
-    {
-        int argv[] = {strtoint(args)};
-        run_in_foreground((task_fn_t)cmd_block, argv);
-    }
-    else if (!strcmp(cmd_copy, "cat"))
-    {
-        run_in_foreground((task_fn_t)cmd_cat, NULL);
-    }
-    else if (!strcmp(cmd_copy, "wc"))
-    {
-        run_in_foreground((task_fn_t)cmd_wc, NULL);
-    }
-    else if (!strcmp(cmd_copy, "filter"))
-    {
-        run_in_foreground((task_fn_t)cmd_filter, NULL);
-    }
-    else if (!strcmp(cmd_copy, "mvar"))
-    {
-        run_in_foreground((task_fn_t)cmd_mvar, NULL);
-    }
-    else if (!strcmp(cmd_copy, "test_mm"))
-    {
-        int argv[] = {strtoint(args)};
-        run_in_foreground((task_fn_t)cmd_testMM, argv);
-    }
-    else if (!strcmp(cmd_copy, "test_processes"))
-    {
-        int argv[] = {strtoint(args)};
-        run_in_foreground((task_fn_t)cmd_testProcesses, argv);
-    }
-    else if (!strcmp(cmd_copy, "test_priority"))
-    {
-        int argv[] = {strtoint(args)};
-        run_in_foreground((task_fn_t)cmd_testPriority, argv);
-    }
-    else if (!strcmp(cmd_copy, "test_synchro"))
-    {
-        int argv[] = {strtoint(args), 1};
-        run_in_foreground((task_fn_t)cmd_testSynchro, argv);
-    }
-    else if (!strcmp(cmd_copy, "test_no_synchro"))
-    {
-        int argv[] = {strtoint(args), 0};
-        run_in_foreground((task_fn_t)cmd_testSynchro, argv);
-    }
+            //    int code = c->run(argc, argv_array);
 
-    // Comandos realizados en Arquitectura de Computadoras (ya no se muestran en "help"):
-    else if (!strcmp(cmd_copy, "echo"))
-    {
-        cmd_echo(args);
-    }
-    else if (!strcmp(cmd_copy, "datetime"))
-    {
-        cmd_dateTime();
-    }
-    else if (!strcmp(cmd_copy, "registers"))
-    {
-        cmd_registers();
-    }
-    else if (!strcmp(cmd_copy, "testzerodiv"))
-    {
-        cmd_test0Div();
-    }
-    else if (!strcmp(cmd_copy, "testinvalidcode"))
-    {
-        testInvalidCode();
-    }
-    else if (!strcmp(cmd_copy, "listfonts"))
-    {
-        shell_list_fonts();
-    }
-    else if (!strcmp(cmd_copy, "setfont"))
-    {
-        if (*args)
-        {
-            int font_index = strtoint(args);
-            shell_set_font(font_index);
+                fprintf(3, "Comando desconocido '%s'\nEscribe 'help' para ver comandos disponibles.\n", cmd_copy);
+                shell_newline();
+                return 0;
+
+            }
         }
-        else
-        {
-            shell_print_colored("Uso: setfont <indice>\n", ERROR_COLOR);
-        }
-    }
-    else if (!strcmp(cmd_copy, "createfd"))
-    {
-        cmd_createfd(args);
-    }
-    else if (!strcmp(cmd_copy, "writefd"))
-    {
-        cmd_writefd(args);
-    }
-    else if (!strcmp(cmd_copy, "readfd"))
-    {
-        cmd_readfd(args);
-    }
-    else if (!strcmp(cmd_copy, "fdlist"))
-    {
-        cmd_fdlist();
-    }
-    else if (!strcmp(cmd_copy, "pongisgolf"))
-    {
-        int current_font = fontmanager_get_current_font_index();
-        EntryPoint run = (EntryPoint)pongisgolfModuleAddress;
-        // Ejecuta módulo independiente (retorna al salir del juego)
-        if (run)
-        {
-            run();
-        }
-        fontmanager_set_font(current_font);
-        cmd_clear();
-        shell_print_prompt();
-    }
-    else if (cmd_copy[0] != '\0')
-    {
-        shell_print_colored("Error: ", ERROR_COLOR);
-        printf("Comando desconocido '%s'\n", cmd_copy);
-        printf("Escribe 'help' para ver comandos disponibles.\n");
-    }
+        return -1;
 }
+
+
+

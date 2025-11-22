@@ -13,6 +13,7 @@
 #include "./shell_defs.h"
 #include "./shell_render.h"
 #include "./shell_commands.h"
+#include "./commands/commands.h"
 
 // Variables globales (buffer de linea ahora reside en FD dinamico shell_cmd_fd)
 frameBuffer frame;
@@ -26,8 +27,6 @@ int shell_cmd_fd = -1; // FD dinamico usado como buffer de linea (>=3), expuesto
 static void execute_command_line(const char *line);
 static void handle_stdin_chunk();
 static void rebuild_line_visual();
-static int read_fd_size(int fd);
-static int read_fd_snapshot(int fd, unsigned char *buf, int max);
 
 // Ejecutar comando dado un string completo
 static void execute_command_line(const char *line)
@@ -133,6 +132,7 @@ static void execute_command_line(const char *line)
     cmd_copy[BUFFER_SIZE - 1] = '\0';
     char *args = find_args(cmd_copy);
     command_switch(cmd_copy, args);
+    rebuild_line_visual();
 }
 
 // Reconstruye visualmente la linea actual leyendo FD 3
@@ -149,7 +149,7 @@ static void rebuild_line_visual()
     cursor_y = saved_y;
     shell_print_colored("> ", PROMPT_COLOR);
     unsigned char temp[BUFFER_SIZE];
-    int total = read_fd_snapshot(shell_cmd_fd, temp, BUFFER_SIZE - 1);
+    int total = read(shell_cmd_fd, temp, BUFFER_SIZE - 1);
     if (total > 0)
     {
         // Restaurar contenido porque snapshot consumió los bytes
@@ -167,12 +167,12 @@ static void rebuild_line_visual()
     }
     reset_cursor();
 }
-
+/*
 // Maneja lectura parcial desde STDIN y actualiza FD 3
 static void handle_stdin_chunk()
 {
     update_cursor();
-    unsigned char inbuf[STD_BUFF_SIZE];
+    unsigned char inbuf[FD_SIZE];
     int n = read(STDIN, inbuf, sizeof(inbuf));
     if (n <= 0)
         return;
@@ -183,7 +183,7 @@ static void handle_stdin_chunk()
         if (c == '\n')
         {
             unsigned char linebuf[BUFFER_SIZE];
-            int total = read_fd_snapshot(shell_cmd_fd, linebuf, BUFFER_SIZE - 1);
+            int total = read(shell_cmd_fd, linebuf, BUFFER_SIZE - 1);
             if (total > 0)
             {
                 linebuf[total] = '\0';
@@ -208,7 +208,7 @@ static void handle_stdin_chunk()
             if (buffer_pos > 0)
             {
                 unsigned char temp[BUFFER_SIZE];
-                int total = read_fd_snapshot(shell_cmd_fd, temp, BUFFER_SIZE - 1);
+                int total = read(shell_cmd_fd, temp, BUFFER_SIZE - 1);
                 if (total > 0)
                 {
                     total--;
@@ -238,20 +238,130 @@ static void handle_stdin_chunk()
         int status;
         if (waitpid(fg_proc, &status, WNOHANG) > 0)
         {
-            fd_bind_std(getpid(), STDIN, STDIN); // shell toma nuevamente el control de la shell
+            // volcar salida pendiente del proceso foreground
+            flush_foreground_output();
+            fd_bind_std(getpid(), STDIN, STDIN);
             set_foreground_proc(getpid());
             printf("\nProceso %d finalizado con estado %d\n", fg_proc, status);
-            shell_print_prompt();
+         //   shell_print_prompt();
+        }
+        else {
+            // Si sigue vivo, intentar mostrar salida parcial (streaming)
+            flush_foreground_output();
         }
     }
+    else {
+        // Shell en foreground: limpiar cualquier residuo del pipe previo
+        flush_foreground_output();
+    }
 }
-
+*/
 static void shell_welcome()
 {
     shell_print_colored("=================================================\n", PROMPT_COLOR);
     shell_print_colored("             SHELL\n", PROMPT_COLOR);
     shell_print_colored("=================================================\n", PROMPT_COLOR);
     shell_print("Escribe 'help' para ver comandos disponibles.\n\n");
+}
+
+
+char lineBuffer[LINE_BUFFER_SIZE];
+int lineBufferDim = 0;
+
+// '\b' y '\n' los manejas nativamente el main principal
+char metaChars[] = {'|', '>', '&'};
+char metaChartsDim = 3;
+
+int execute(char * cmd_line) {
+ //   run_in_foreground((task_fn_t)cmd_help_run, NULL);
+ //   return 1;
+    if (cmd_line == NULL || *cmd_line == '\0')
+        return -2;
+
+    // Copiar línea para parseo
+    char cmd_copy[BUFFER_SIZE];
+    strncpy(cmd_copy, cmd_line, BUFFER_SIZE - 1);
+    cmd_copy[BUFFER_SIZE - 1] = '\0';
+
+    // Parsear palabras
+    char *arr[100];  // Array de punteros, no matriz
+    int i = 0;
+
+    char *word = strtok(cmd_copy, " ");  // strtok, no strok
+    while (word != NULL && i < 100) {
+        int isMeta = 0;
+        for (int j = 0; j < metaChartsDim; j++) {
+            // Comparar carácter (asumiendo metaChars es char[])
+            if (word[0] == metaChars[j] && word[1] == '\0') {
+                isMeta = 1;
+                break;
+            }
+        }
+
+        arr[i] = word;  // Guardar puntero
+        word = strtok(NULL, " ");
+        i++;
+    }
+
+    // Debug
+    for (int j = 0; j < i; j++) {
+        fprintf(3, "Arg %d: %s\n", j, arr[j]);
+    }
+    flush_foreground_output();
+
+    // Ejecutar (pero cmd_copy ya fue modificado por strtok)
+    return command_switch(arr[0], arr[1]);  // Ajustar según necesites
+}
+int splitByMetaChars(char *cmd_line, char **commands,int maxCommands, int maxCommandLength)
+{
+    int cmd_count = 0;
+    char *start = cmd_line;
+    char *current = cmd_line;
+    while (*current != '\0') {
+        int isMeta = 0;
+        for (int j = 0; j < metaChartsDim; j++) {
+            if (*current == metaChars[j]) {
+                isMeta = 1;
+                break;
+            }
+        }
+        if (isMeta) {
+            int segLen = (int)(current - start);
+            if (segLen > maxCommandLength)
+                return -2; // segment too long
+            if (cmd_count >= maxCommands)
+                return -1; // too many commands
+            *current = '\0';
+            commands[cmd_count++] = start;
+            start = current + 1;
+        }
+        current++;
+    }
+    if (start < current) {
+        int segLen = (int)(current - start);
+        if (segLen > maxCommandLength)
+            return -2;
+        if (cmd_count >= maxCommands)
+            return -1;
+        commands[cmd_count++] = start;
+    }
+    return cmd_count;
+}
+
+int removeBackspaceAndPrevious(unsigned char *buf, int n) {
+    int write_pos = 0;
+
+    for (int i = 0; i < n; i++) {
+        if (buf[i] == '\b') {
+            if (write_pos > 0) {
+                write_pos--;  // Retroceder (borra el anterior)
+            }
+        } else {
+            buf[write_pos++] = buf[i];  // Copiar carácter
+        }
+    }
+
+    return write_pos;  // Retorna nuevo tamaño
 }
 
 int main()
@@ -264,7 +374,7 @@ int main()
         clear_screen();
         fontmanager_set_font(1);
         shell_welcome();
-        shell_print_prompt();
+//        shell_print_prompt();
 
         shell_cmd_fd = fd_open("shellcmd");
         if (shell_cmd_fd < 0)
@@ -274,36 +384,69 @@ int main()
         firstEntry = 0;
         buffer_pos = 0;
     }
-    while (1)
-    {
-        setFB(frame);
-        handle_stdin_chunk();
-    }
-    return 0;
-}
 
-static int read_fd_size(int fd)
-{
-    fd_info_u_t infos[32];
-    int n = fd_list(infos, 32);
-    if (n <= 0)
-        return 0;
-    for (int i = 0; i < n; i++)
-    {
-        if (infos[i].fd == fd)
-            return infos[i].size;
+
+
+    while (1) {
+        setFB(frame);
+        unsigned char buf[FD_SIZE];
+        int n = read(STDIN, buf, FD_SIZE); // bloqueante hasta nuevo input
+
+        for(int i = 0; i < n; i++ ){
+            switch (buf[i]) {
+                case '\b':
+                    if (lineBufferDim > 0) {
+                        lineBufferDim--;
+                        lineBuffer[lineBufferDim] = '\0';
+
+                        frameDrawChar(frame, ' ', SHELL_COLOR, SHELL_COLOR, cursor_x - FONT_SIZE * fontmanager_get_current_font().width, cursor_y);
+                        cursor_x -= FONT_SIZE * fontmanager_get_current_font().width;
+
+                        if (cursor_x < PROMPT_LEN + 1 * FONT_SIZE * fontmanager_get_current_font().width) {
+                            cursor_y -= FONT_SIZE * fontmanager_get_current_font().height + LINE_Y_PADDING;
+                            cursor_x = frameGetWidth(frame) - FONT_SIZE * fontmanager_get_current_font().width;
+                        }
+
+                    }
+                    break;
+                case '\n':
+                    //Consumo si quedo algun stray char en el render fd para no bloquear accidentalmente (ya que lineBufferDim puede ser hasta LINE_BUFFER_SIZE = FD_SIZE)
+                //    consume_render_fd();
+                  //  write(RENDER_FD, lineBuffer, lineBufferDim);
+                    //Ahora si consumo y renderizo mi comando
+                 //   consume_render_fd();
+                    int newLineOnly = lineBufferDim == 0;
+
+                    if (lineBufferDim < LINE_BUFFER_SIZE - 1) {
+                        //lineBuffer[lineBufferDim] = buf[i];
+                        //lineBufferDim++;
+                        //lineBuffer[lineBufferDim] = '\0';
+                        shell_putchar(buf[i]);
+                    }
+                    if(!newLineOnly) {
+                        int code = execute(lineBuffer);
+                        if (code)
+                        {
+                            fprintf(RENDER_FD, "Error %d ejecutando comando\n", code);
+                            consume_render_fd();
+                        }
+                    }
+                    lineBufferDim = 0;
+                    lineBuffer[0] = '\0';
+
+                    break;
+                default:
+                    if (lineBufferDim < LINE_BUFFER_SIZE - 1) {
+                        lineBuffer[lineBufferDim] = buf[i];
+                        lineBufferDim++;
+                        lineBuffer[lineBufferDim] = '\0';
+                        shell_putchar(buf[i]);
+                    }
+            }
+
+
+        }
+
     }
     return 0;
-}
-static int read_fd_snapshot(int fd, unsigned char *buf, int max)
-{
-    int sz = read_fd_size(fd);
-    if (sz <= 0)
-        return 0;
-    if (sz > max)
-        sz = max;
-    int r = read(fd, buf, sz);
-    if (r < 0)
-        return 0;
-    return r;
 }

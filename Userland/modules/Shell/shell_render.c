@@ -23,6 +23,15 @@ static int cursor_visible = 1;
 static int last_cursor_time = 0;
 static int cursor_drawn = 0;
 
+// Mostrar prompt
+static void shell_print_prompt()
+{
+    if (cursor_x != 0)
+    {
+        shell_newline();
+    }
+    shell_print_colored("> ", PROMPT_COLOR);
+}
 // Función para imprimir un carácter
 void shell_putchar(unsigned char c)
 {
@@ -85,17 +94,9 @@ void shell_newline()
         cursor_y = 0;
         shell_print_colored("--- Se limpio la pantalla (scroll) ---\n", PROMPT_COLOR);
     }
+    shell_print_prompt();
 }
 
-// Mostrar prompt
-void shell_print_prompt()
-{
-    if (cursor_x != 0)
-    {
-        shell_newline();
-    }
-    shell_print_colored("> ", PROMPT_COLOR);
-}
 
 // Limpiar buffer de comandos
 void clear_buffer()
@@ -154,4 +155,13 @@ void hide_cursor()
         frameDrawChar(frame, ' ', SHELL_COLOR, SHELL_COLOR, cursor_x, cursor_y);
         cursor_drawn = 0;
     }
+}
+
+int consume_render_fd()
+{
+    unsigned char buf[FD_SIZE];
+    int n = read(RENDER_FD, buf, FD_SIZE);
+    shell_print((char *)buf);
+
+    return n;
 }

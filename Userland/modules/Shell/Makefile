@@ -3,7 +3,7 @@ include ../../Makefile.inc
 MODULE = 0000-Shell.bin
 
 
-SOURCES := $(wildcard *.c)
+SOURCES := $(wildcard *.c) $(wildcard commands/*.c)
 OBJS := $(SOURCES:.c=.o)
 
 # Carpeta de librerías externas
@@ -19,7 +19,10 @@ $(MODULE): $(OBJS)
 %.o: %.c
 	$(GCC) $(GCCFLAGS) -I../include -c $< -o $@
 
+commands/%.o: commands/%.c
+	$(GCC) $(GCCFLAGS) -I../include -c $< -o $@
+
 clean:
-	rm -f *.o ../$(MODULE)
+	rm -f *.o commands/*.o ../$(MODULE)
 
 .PHONY: all clean
