@@ -372,7 +372,7 @@ int sys_pipe_read(int pipe_id, char *buffer, uint64_t count)
     return pipe_read(pipe_id, buffer, count);
 }
 
-int sys_fd_hasdata(int fd)
+int sys_fd_has_data(int fd)
 {
     return fd_has_data(fd);
 }

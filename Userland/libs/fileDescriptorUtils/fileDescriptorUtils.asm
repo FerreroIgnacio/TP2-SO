@@ -6,6 +6,7 @@ GLOBAL pipe_create
 GLOBAL fd_bind_std
 GLOBAL pipe_sys_write
 GLOBAL pipe_sys_read
+GLOBAL fd_has_data
 
 SECTION .text
 

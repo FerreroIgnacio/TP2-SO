@@ -68,10 +68,10 @@ int cmd_help()
     printf("  kill <pid>       - Mata un proceso dado su ID.\n");                                           // OK
     printf("  nice <pid> <pri> - Cambia la prioridad de un proceso dado su ID y la nueva prioridad\n");     // OK
     printf("  block <pid>      - Switch entre ready y blocked de un proceso dado su ID.\n");                // OK
-    printf("  cat              - Imprime el stdin tal como lo recibe.\n");                                  // TODO
-    printf("  wc               - Cuenta la cantidad de líneas del input\n");                                // TODO
-    printf("  filter           - Filtra las vocales del input.\n");                                         // TODO
-    printf("  mvar             - Implementa el problema de múltiples lectores\n");                          // TODO
+    printf("  cat              - Imprime el stdin tal como lo recibe.\n");                                  // OK: falta testear
+    printf("  wc               - Cuenta la cantidad de líneas del input\n");                                // OK: falta testear
+    printf("  filter           - Filtra las vocales del input.\n");                                         // OK: falta testear
+    printf("  mvar             - Implementa el problema de múltiples lectores\n");                          // OK: falta testear
     // Nuevos comandos de FDs dinamicos (por proceso)
     printf("  createfd <name>  - Crea un FD dinamico en este proceso (desde 3 en adelante)\n");
     printf("  writefd <fd> <texto> - Escribe texto en un FD dinamico de este proceso\n");
@@ -250,11 +250,13 @@ void cmd_filter()
     exit(0);
 }
 
+static void mvar_proc(void *argv);
 void cmd_mvar()
 {
-    char *shared_mm = calloc(1000, sizeof(char));
+    char *shared_mm = (char *)calloc(1000, sizeof(char));
     char *mutex_sem_name = "mvar_mutex";
     char *print_sem_name = "mvar_print";
+    int print_sem_id;
     int proc_pipes[3];
     pid_t proc_pids[3];
 
@@ -263,13 +265,13 @@ void cmd_mvar()
         printf("Error al reservar memoria compartida\n");
         exit(-1);
     }
-    if (sem_open(mutex_sem_name, 1) == -1 || sem_open(print_sem_name, 0) == -1)
+    if ((print_sem_id = sem_open(print_sem_name, 0)) == -1)
     {
-        printf("Error al crear los semaforos\n");
+        printf("Error al crear semáforo en mvar\n");
         exit(-1);
     }
 
-    int argv[] = {shared_mm, mutex_sem_name, print_sem_name};
+    char *argv[] = {shared_mm, mutex_sem_name, print_sem_name};
     for (int i = 0; i < 3; i++)
     {
         proc_pipes[i] = pipe_create();
@@ -278,15 +280,15 @@ void cmd_mvar()
             printf("Error al crear pipe para el proceso %d\n", i);
             exit(-1);
         }
-        proc_pids[i] = new_proc((task_fn_t)mvar_proc, argv);
+        proc_pids[i] = new_proc((task_fn_t)mvar_proc, (void *)argv);
         fd_bind_std(proc_pids[i], 1, proc_pipes[i]);
     }
 
     int next = 0;
     while (1)
     {
-        sem_wait(print_sem_name);
-        char buffer[STD_BUFF_SIZE];
+        sem_wait(print_sem_id);
+        unsigned char buffer[STD_BUFF_SIZE];
         for (int i = 1; i <= 3; i++)
         {
             if (!fd_has_data(proc_pipes[next]))
@@ -296,7 +298,7 @@ void cmd_mvar()
             }
             else
             {
-                int n = read(proc_pipes[next], (char *)buffer, STD_BUFF_SIZE - 1);
+                int n = read(proc_pipes[next], buffer, STD_BUFF_SIZE - 1);
                 if (n > 0)
                 {
                     buffer[n] = '\0';
@@ -309,7 +311,7 @@ void cmd_mvar()
     }
 }
 
-void mvar_proc(void *argv)
+static void mvar_proc(void *argv)
 {
     if (argv == NULL)
     {
