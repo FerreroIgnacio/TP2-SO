@@ -14,5 +14,6 @@ int cmd_ps_run(int argc, char **argv)
         proc_info_t *p = &infos[i];
         printf("PID:%d Father:%d Pri:%d Ready:%d Wait:%d Zombie:%d Status:%d\n", p->pid, p->father_pid, p->priority, p->ready, p->waiting, p->is_zombie, p->status);
     }
+    exit(0);
     return 0;
 }

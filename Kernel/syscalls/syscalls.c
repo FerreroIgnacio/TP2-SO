@@ -107,6 +107,8 @@ uint64_t syscallHandler(int syscall_num, uint64_t arg1, uint64_t arg2, uint64_t 
         return sys_pipe_read((int)arg1, (char *)arg2, (uint64_t)arg3);
     case SYSCALL_FD_HAS_DATA:
         return sys_fd_has_data((int)arg1);
+    case SYSCALL_PIPE_LIST:
+        return sys_pipe_list((pipe_info_t*)arg1, (int)arg2);
     default:
         return -1;
     }
@@ -375,4 +377,8 @@ int sys_pipe_read(int pipe_id, char *buffer, uint64_t count)
 int sys_fd_has_data(int fd)
 {
     return fd_has_data(fd);
+}
+
+int sys_pipe_list(pipe_info_t *out, int max){
+    return pipe_list(out, max);
 }

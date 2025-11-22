@@ -12,6 +12,7 @@ int echo_proc(void *argv)
     write(STDOUT, "\n", 1);
     if (arg)
         free(arg);
+    exit(0);
     return 0;
 }
 

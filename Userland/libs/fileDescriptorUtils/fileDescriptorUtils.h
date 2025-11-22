@@ -57,4 +57,15 @@ void puthexupper(uint64_t value); // %X %P
 uint64_t printf(const char *format, ...);
 uint64_t fprintf(int fd, const char *format, ...);
 
+/* Estructura y API de userland para listar pipes del kernel */
+typedef struct pipe_info_u {
+    int id;
+    int in_use;
+    unsigned int size;
+    unsigned int capacity;
+    unsigned int readers_waiting;
+    unsigned int writers_waiting;
+} pipe_info_u_t;
+int pipe_list_u(pipe_info_u_t *out, int max);
+
 #endif

@@ -10,5 +10,6 @@ int cmd_kill_run(int argc, char **argv)
     pid_t pid = strtoint(argv[0]);
     int status = kill(pid);
     printf("Kill a proceso: %d termino con estado: %d \n", pid, status);
+    exit(0);
     return 0;
 }

@@ -36,6 +36,7 @@ int cmd_createfd_run(int argc, char **argv);
 int cmd_writefd_run(int argc, char **argv);
 int cmd_readfd_run(int argc, char **argv);
 int cmd_fdlist_run(int argc, char **argv);
+int cmd_pipelist_run(int argc, char **argv);
 int cmd_pong_run(int argc, char **argv);
 
 // Funciones auxiliares reutilizadas por comandos (expuestas para otros módulos)

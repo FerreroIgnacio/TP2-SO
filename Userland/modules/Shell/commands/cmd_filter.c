@@ -3,7 +3,7 @@
 #include "../../../libs/standard/standard.h"
 #include "../../../libs/mystring/mystring.h"
 
-static int filter_proc(void *unused)
+int cmd_filter_run(int argc, char **argv)
 {
     while (1)
     {
@@ -13,11 +13,6 @@ static int filter_proc(void *unused)
         if (strchr("aeiouAEIOU", c))
             putchar(c);
     }
-    return 0;
-}
-
-int cmd_filter_run(int argc, char **argv)
-{
-    run_in_foreground((task_fn_t)filter_proc, NULL);
+    exit(0);
     return 0;
 }

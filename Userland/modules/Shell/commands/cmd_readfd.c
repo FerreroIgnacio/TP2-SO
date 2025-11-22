@@ -19,6 +19,7 @@ int cmd_readfd_run(int argc, char **argv)
         shell_print((char *)buf);
         total += n;
     }
-    printf(total == 0 ? "(sin datos)\n" : "\nLeidos %d bytes de fd %d\n", total, fd);
+    printf("\nLeidos %d bytes de fd %d\n", total, fd);
+    exit(0);
     return 0;
 }

@@ -18,15 +18,26 @@ static int foreground_pipe_fd = -1;
 // Implementación para ejecutar una función como proceso en foreground
 void run_in_foreground(task_fn_t fn, void *arg){
     pid_t pid = new_proc(fn, arg);
-    block_proc(pid);
+    fprintf(3, "creado proc con id %d\n", pid);
+  //  block_proc(pid);
     int pipe_id = pipe_create();
     if (pid <= 0 || pipe_id == -1){return;}
     foreground_pipe_fd = pipe_id;
-    fd_bind_std(pid, STDIN, STDIN);
-    fd_bind_std(pid, STDOUT, pipe_id);
-    fd_bind_std(getpid(), STDIN, STDIN); // mantener stdin shell
-    unblock_proc(pid);
+    fd_bind_std(pid, STDIN, 5);
+    fd_bind_std(pid, STDOUT, 6);
+    fd_bind_std(getpid(), 3, 6); // mantener stdin shell
+
+    //unblock_proc(pid);
+
+   // waitpid(pid);
+  // flush_foreground_output();
+    cmd_pipelist_run(0, 0);
     set_foreground_proc(pid);
+    shell_print_colored("Proceso foreground finalizado.\n", 0x00FF00);
+    fprintf(3, "pipe3HasData:%d ; pipe6hasData:%d",fd_has_data(3), fd_has_data(6));
+
+    fprintf(3, "hello");
+    consume_render_fd();
 }
 int get_foreground_pipe_fd(){ return foreground_pipe_fd; }
 void flush_foreground_output(){
@@ -62,7 +73,8 @@ shell_cmd_t shell_commands[] = {
     {"createfd", 1, 1, "Crea un FD dinamico", "createfd <name>", 0, cmd_createfd_run},
     {"writefd", 2, -1, "Escribe texto en FD dinamico", "writefd <fd> <texto>", 0, cmd_writefd_run},
     {"readfd", 1, 1, "Lee contenido de un FD dinamico", "readfd <fd>", 0, cmd_readfd_run},
-    {"fdlist", 0, 0, "Lista FDs dinamicos del proceso", "fdlist", 0, cmd_fdlist_run},
+    {"fdlist", 0, 0, "Lista FDs dinamicos del proceso", "fdlist", 1, cmd_fdlist_run},
+    {"pipelist", 0, 0, "Lista pipes de kernel (id, uso, size, colas)", "pipelist", 1, cmd_pipelist_run},
     {"test_mm", 1, 1, "Stress test manejador memoria", "test_mm <max-bytes>", 0, cmd_test_mm_run},
     {"test_processes", 1, 1, "Test de creación/bloqueo procesos", "test_processes <max-processes>", 0, cmd_test_processes_run},
     {"test_priority", 1, 1, "Test prioridades de procesos", "test_priority <end-val>", 0, cmd_test_priority_run},
@@ -71,8 +83,8 @@ shell_cmd_t shell_commands[] = {
     {"echo", 0, -1, "Echo simple", "echo <texto>", 0, cmd_echo_run},
     {"datetime", 0, 0, "Fecha y hora UTC-0", "datetime", 0, cmd_datetime_run},
     {"registers", 0, 0, "Mostrar registros guardados", "registers", 0, cmd_registers_run},
-    {"testzerodiv", 0, 0, "Forzar excepcion 00", "testzerodiv", 0, cmd_testzerodiv_run},
-    {"testinvalidcode", 0, 0, "Forzar excepcion 06", "testinvalidcode", 0, cmd_testinvalidcode_run},
+    {"testzerodiv", 0, 0, "Forzar excepcion 00", "testzerodiv", 1, cmd_testzerodiv_run},
+    {"testinvalidcode", 0, 0, "Forzar excepcion 06", "testinvalidcode", 1, cmd_testinvalidcode_run},
     {"listfonts", 0, 0, "Listar fuentes disponibles", "listfonts", 1, cmd_listfonts_run},
     {"setfont", 1, 1, "Cambiar fuente", "setfont <id>", 1, cmd_setfont_run},
     {"pongisgolf", 0, 0, "Ejecutar juego pongisgolf", "pongisgolf", 0, cmd_pong_run},
@@ -111,11 +123,16 @@ int command_switch(char *cmd_copy, char *args) {
                     shell_newline();
                     return 0;
                 }
-                run_in_foreground((task_fn_t)cmd_help_run, NULL);
-
-            //    int code = c->run(argc, argv_array);
-
-                fprintf(3, "Comando desconocido '%s'\nEscribe 'help' para ver comandos disponibles.\n", cmd_copy);
+                if (!c->inbuilt) {
+                    run_in_foreground((task_fn_t) cmd_help_run, NULL);
+                } else {
+                    int code = c->run(argc, argv_array);
+                    if (code) {
+                        fprintf(3, "Comando desconocido '%s'\nEscribe 'help' para ver comandos disponibles.\n",
+                                cmd_copy);
+                        consume_render_fd();
+                    }
+                }
                 shell_newline();
                 return 0;
 
@@ -123,6 +140,3 @@ int command_switch(char *cmd_copy, char *args) {
         }
         return -1;
 }
-
-
-

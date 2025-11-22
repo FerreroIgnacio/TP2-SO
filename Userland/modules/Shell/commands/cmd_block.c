@@ -17,5 +17,6 @@ int cmd_block_run(int argc, char **argv)
         printf("desbloqueando el proceso: %d\n", pid);
         unblock_proc(pid);
     }
+    exit(0);
     return 0;
 }

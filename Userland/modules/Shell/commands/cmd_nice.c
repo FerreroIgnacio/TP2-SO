@@ -16,5 +16,6 @@ int cmd_nice_run(int argc, char **argv)
     }
     printf("cambiando la prioridad del proceso: %d a %d\n", pid, prio);
     set_priority(pid, prio);
+    exit(0);
     return 0;
 }

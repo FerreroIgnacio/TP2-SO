@@ -9,5 +9,6 @@ int cmd_datetime_run(int argc, char **argv)
     getLocalTime(&h, &m, &s);
     getLocalDate(&year, &month, &day);
     printf("Fecha y hora en UTC-0: %d/%d/20%d %d:%d:%d\n", day, month, year, h, m, s);
+    exit(0);
     return 0;
 }

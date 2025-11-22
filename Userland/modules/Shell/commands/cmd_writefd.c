@@ -31,5 +31,6 @@ int cmd_writefd_run(int argc, char **argv)
     }
     printf("Escritos %d bytes en fd %d\n", wrote, fd);
     free(msg);
+    exit(0);
     return 0;
 }

@@ -307,7 +307,8 @@ int execute(char * cmd_line) {
     for (int j = 0; j < i; j++) {
         fprintf(3, "Arg %d: %s\n", j, arr[j]);
     }
-    flush_foreground_output();
+    consume_render_fd();
+ //   flush_foreground_output();
 
     // Ejecutar (pero cmd_copy ya fue modificado por strtok)
     return command_switch(arr[0], arr[1]);  // Ajustar según necesites

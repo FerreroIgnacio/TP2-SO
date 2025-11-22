@@ -14,5 +14,6 @@ int cmd_createfd_run(int argc, char **argv)
         return -1;
     }
     printf("FD creado: %d\n", fd);
+    exit(0);
     return 0;
 }

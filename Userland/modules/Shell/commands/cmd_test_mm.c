@@ -23,5 +23,6 @@ int cmd_test_mm_run(int argc, char **argv)
         return -1;
     }
     run_in_foreground(mm_proc, &max);
+    exit(0);
     return 0;
 }

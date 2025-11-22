@@ -30,5 +30,6 @@ int cmd_loop_run(int argc, char **argv)
         return -1;
     *a = segs;
     run_in_foreground(loop_proc, a);
+    exit(0);
     return 0;
 }

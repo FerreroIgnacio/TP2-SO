@@ -52,4 +52,17 @@ int pipe_try_kernel_nonblocking_write(int pipe_id, char c);
  */
 int pipe_available(int pipe_id); // Retorna bytes disponibles (>=0). Retorna -1 si pipe_id inválido.
 
+// Estructura exportada para listar estados de pipes via syscall
+typedef struct pipe_info_s {
+    int id;
+    int in_use;
+    uint32_t size;       // bytes actualmente en buffer
+    uint32_t capacity;   // capacidad total del buffer
+    uint32_t readers_waiting; // procesos esperando leer
+    uint32_t writers_waiting; // procesos esperando escribir
+} pipe_info_t;
+
+// Lista hasta 'max' pipes en 'out'. Retorna cantidad copiada.
+int pipe_list(pipe_info_t *out, int max);
+
 #endif // PIPES_H

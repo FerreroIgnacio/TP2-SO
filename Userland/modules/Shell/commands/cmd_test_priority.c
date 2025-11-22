@@ -2,6 +2,7 @@
 #include "../shell_commands.h"
 #include "../../../libs/test/test.h"
 #include "../../../libs/standard/standard.h"
+#include "../../../libs/process/process.h"
 
 static int priority_proc(void *arg)
 {
@@ -9,6 +10,8 @@ static int priority_proc(void *arg)
     printf("Iniciando testPriority con max_val %d ...\n", end);
     int result = test_prio(end);
     printf("testPriority finalizado con codigo %d\n", result);
+
+    exit(result);
     return result;
 }
 

@@ -10,6 +10,7 @@ static int no_synchro_proc(void *arg)
     printf("Iniciando test_no_synchro val=%d ...\n", val);
     int result = test_sync(val, 0);
     printf("test_no_synchro finalizado con codigo %d\n", result);
+    exit(result);
     return result;
 }
 

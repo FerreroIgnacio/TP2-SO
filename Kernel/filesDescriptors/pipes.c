@@ -20,6 +20,10 @@ static pipe_t pipes[MAX_PIPES];
 
 static inline int valid(int id) { return id >= 0 && id < MAX_PIPES && pipes[id].in_use; }
 
+static unsigned int queue_length(wait_node_t *head){
+    unsigned int c = 0; while(head){ c++; head = head->next; } return c;
+}
+
 int pipe_create(void)
 {
     for (int i = 0; i < MAX_PIPES; i++)
@@ -208,4 +212,27 @@ int pipe_available(int id)
     int sz = (int)p->size;
     spinlock_unlock(&p->lock);
     return sz;
+}
+
+int pipe_list(pipe_info_t *out, int max){
+    if (!out || max <= 0) return -1;
+    int copied = 0;
+    for (int i = 0; i < MAX_PIPES && copied < max; i++){
+        pipe_t *p = &pipes[i];
+        // podemos leer in_use sin lock, pero para size y colas tomamos lock
+        int in_use = p->in_use;
+        if (!in_use){
+            // igualmente reportar no en uso si se desea listar todos
+        }
+        spinlock_lock(&p->lock);
+        out[copied].id = i;
+        out[copied].in_use = in_use;
+        out[copied].size = p->size;
+        out[copied].capacity = PIPE_BUFFER_CAPACITY;
+        out[copied].readers_waiting = queue_length(p->readers_head);
+        out[copied].writers_waiting = queue_length(p->writers_head);
+        spinlock_unlock(&p->lock);
+        copied++;
+    }
+    return copied;
 }

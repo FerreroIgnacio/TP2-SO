@@ -1,6 +1,7 @@
 #include "commands.h"
 #include "../shell_commands.h"
 #include "../../../libs/standard/standard.h"
+#include "../../../libs/process/process.h"
 
 static int cat_proc(void *unused)
 {
@@ -20,5 +21,6 @@ static int cat_proc(void *unused)
 int cmd_cat_run(int argc, char **argv)
 {
     run_in_foreground((task_fn_t)cat_proc, NULL);
+    exit(0);
     return 0;
 }

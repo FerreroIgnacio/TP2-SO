@@ -23,5 +23,6 @@ int cmd_test_processes_run(int argc, char **argv)
         return -1;
     }
     run_in_foreground(processes_proc, &max);
+    exit(0);
     return 0;
 }

@@ -7,6 +7,7 @@ GLOBAL fd_bind_std
 GLOBAL pipe_sys_write
 GLOBAL pipe_sys_read
 GLOBAL fd_has_data
+GLOBAL pipe_list_u
 
 SECTION .text
 
@@ -54,5 +55,11 @@ pipe_sys_read:
 
 fd_has_data:
     mov     rax, 0x4C    ; syscall numero 76
+    int     0x80
+    ret
+
+; pipe_list_u: rdi=out, rsi=max -> returns count
+pipe_list_u:
+    mov     rax, 0x4D    ; syscall numero 77
     int     0x80
     ret

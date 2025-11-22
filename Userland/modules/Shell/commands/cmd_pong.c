@@ -13,5 +13,6 @@ int cmd_pong_run(int argc, char **argv)
         run();
     fontmanager_set_font(current_font);
     clear_screen();
+    exit(0);
     return 0;
 }
