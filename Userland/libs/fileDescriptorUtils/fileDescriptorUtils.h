@@ -12,6 +12,10 @@
 #define SYSCALL_POLL 74
 #define SYSCALL_SELECT 75
 
+#ifndef EOF
+#define EOF (-1)
+#endif
+
 /* UTILIDADES FILE DESCRIPTORS */
 // Escribir (count) caracteres de (buf) en el file descriptor (fd).
 int write(int fd, const char *buff, unsigned long count);
@@ -31,6 +35,7 @@ int fd_list(fd_info_u_t *out, int max);
 // Pipes y redirección
 int pipe_create(void);                            // crea un pipe y retorna id
 int fd_bind_std(int pid, int which, int pipe_id); // which: 0=STDIN, 1=STDOUT
+int fd_has_data(int fd);                          // retorna 1 si hay datos para leer, 0 si no
 
 // borra todo el file descriptor
 void flush(int fd);

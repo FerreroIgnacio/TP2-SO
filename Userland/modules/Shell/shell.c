@@ -88,7 +88,7 @@ static void execute_command_line(const char *line)
             shell_print_colored("No se pudo crear pipe\n", ERROR_COLOR);
             return;
         }
-        int pid_right = shell_launch_program(right_copy, right_args);
+        int pid_right = -1; // shell_launch_program(right_copy, right_args);
         if (pid_right < 0)
         {
             shell_print_colored("Programa der. desconocido\n", ERROR_COLOR);
@@ -118,7 +118,7 @@ static void execute_command_line(const char *line)
         }
         else
         {
-            int pid_left = shell_launch_program(left_copy, left_args);
+            int pid_left = -1; // shell_launch_program(left_copy, left_args);
             if (pid_left < 0)
             {
                 shell_print_colored("Programa izq. desconocido\n", ERROR_COLOR);

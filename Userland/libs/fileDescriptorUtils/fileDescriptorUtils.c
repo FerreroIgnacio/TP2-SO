@@ -361,7 +361,7 @@ uint64_t fprintf(int fd, const char *format, ...)
             {
                 if (base == 16)
                 {
-                    write(fd, (digits == "0123456789ABCDEF") ? "0x" : "0x", 2);
+                    write(fd, (strcmp(digits, "0123456789ABCDEF")) ? "0x" : "0x", 2);
                     count_out += 2;
                 }
                 else if (base == 8)

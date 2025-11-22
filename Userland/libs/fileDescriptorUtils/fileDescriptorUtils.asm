@@ -50,3 +50,8 @@ pipe_sys_read:
     mov     rax, 0x4B    ; syscall numero 75
     int     0x80
     ret
+
+fd_has_data:
+    mov     rax, 0x4C    ; syscall numero 76
+    int     0x80
+    ret

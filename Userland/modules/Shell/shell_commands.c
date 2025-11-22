@@ -32,7 +32,7 @@ static void run_sync(task_fn_t fn, void *arg, int free_after)
 
 #define MAX_PROCESS 100
 
-static void *const pongisgolfModuleAddress = (void *)0x8000000;
+static void *const pongisgolfModuleAddress = (void *)0x11000000;
 
 // Comandos disponibles
 
@@ -197,6 +197,166 @@ void cmd_block(void *argv)
     }
     printf("desbloqueando el proceso: %d", pid);
     exit(unblock_proc(pid));
+}
+
+void cmd_cat()
+{
+    while (1)
+    {
+        unsigned char c = getchar();
+        if (c == EOF)
+        {
+            break;
+        }
+        putchar(c);
+    }
+    exit(0);
+}
+
+void cmd_wc()
+{
+    int count = 0;
+    while (1)
+    {
+        unsigned char c = getchar();
+        if (c == EOF)
+        {
+            break;
+        }
+        if (c == '\n')
+        {
+            count++;
+        }
+    }
+    printf("Lineas: %d\n", count);
+    exit(count);
+}
+
+void cmd_filter()
+{
+    while (1)
+    {
+        unsigned char c = getchar();
+        if (c == EOF)
+        {
+            break;
+        }
+        if (c == 'a' || c == 'e' || c == 'i' || c == 'o' || c == 'u' ||
+            c == 'A' || c == 'E' || c == 'I' || c == 'O' || c == 'U')
+        {
+            putchar(c);
+        }
+    }
+    exit(0);
+}
+
+void cmd_mvar()
+{
+    char *shared_mm = calloc(1000, sizeof(char));
+    char *mutex_sem_name = "mvar_mutex";
+    char *print_sem_name = "mvar_print";
+    int proc_pipes[3];
+    pid_t proc_pids[3];
+
+    if (shared_mm == NULL)
+    {
+        printf("Error al reservar memoria compartida\n");
+        exit(-1);
+    }
+    if (sem_open(mutex_sem_name, 1) == -1 || sem_open(print_sem_name, 0) == -1)
+    {
+        printf("Error al crear los semaforos\n");
+        exit(-1);
+    }
+
+    int argv[] = {shared_mm, mutex_sem_name, print_sem_name};
+    for (int i = 0; i < 3; i++)
+    {
+        proc_pipes[i] = pipe_create();
+        if (proc_pipes[i] == -1)
+        {
+            printf("Error al crear pipe para el proceso %d\n", i);
+            exit(-1);
+        }
+        proc_pids[i] = new_proc((task_fn_t)mvar_proc, argv);
+        fd_bind_std(proc_pids[i], 1, proc_pipes[i]);
+    }
+
+    int next = 0;
+    while (1)
+    {
+        sem_wait(print_sem_name);
+        char buffer[STD_BUFF_SIZE];
+        for (int i = 1; i <= 3; i++)
+        {
+            if (!fd_has_data(proc_pipes[next]))
+            {
+                next = (i + 1) % 3;
+                continue;
+            }
+            else
+            {
+                int n = read(proc_pipes[next], (char *)buffer, STD_BUFF_SIZE - 1);
+                if (n > 0)
+                {
+                    buffer[n] = '\0';
+                    printf("%s", buffer);
+                }
+                next = (i + 1) % 3;
+                break;
+            }
+        }
+    }
+}
+
+void mvar_proc(void *argv)
+{
+    if (argv == NULL)
+    {
+        exit(-1);
+    }
+    char **args = (char **)argv;
+    char *shared_mm = args[0];
+    char *mutex_sem_name = args[1];
+    char *print_sem_name = args[2];
+    if (shared_mm == NULL || mutex_sem_name == NULL || print_sem_name == NULL)
+    {
+        exit(-1);
+    }
+
+    int mutex_sem_id = sem_open(mutex_sem_name, 1);
+    int print_sem_id = sem_open(print_sem_name, 0);
+
+    if (mutex_sem_id == -1 || print_sem_id == -1)
+    {
+        exit(-1);
+    }
+
+    while (1)
+    {
+        sem_wait(mutex_sem_id);
+        printf("Proceso %d accediendo a la memoria compartida\n", (int)getpid());
+        sleep(1); // simula tiempo de procesamiento para evitar la ejecución en un quantum.
+        printf("Proceso %d leyendo del contenido de la memoria compartida: %s\n", (int)getpid(), shared_mm);
+        sleep(1);
+        printf("Proceso %d escribiendo en la memoria compartida\n", (int)getpid());
+
+        strcpy(shared_mm, "El proceso: ");
+        char *pid_str = itoa_malloc((int)getpid());
+        if (pid_str != NULL)
+        {
+            strcpy(shared_mm + strlen(shared_mm), pid_str);
+            free(pid_str);
+        }
+        else
+        {
+            strcpy(shared_mm + strlen(shared_mm), "unknown PID ");
+        }
+        strcpy(shared_mm + strlen(shared_mm), "Estuvo aqui.\n");
+        sem_post(print_sem_id); // notificar cambios en stdout
+        sem_post(mutex_sem_id);
+    }
+    exit(0);
 }
 
 int cmd_testMM(void *argv)
@@ -466,27 +626,6 @@ void cmd_fdlist()
     }
 }
 
-static int launch_cat(char *args);
-
-int shell_launch_program(const char *name, char *args)
-{
-    if (name == NULL || *name == '\0')
-        return -1;
-    if (!strcmp(name, "cat"))
-    {
-        return launch_cat(args);
-    }
-    // otros programas externos en el futuro
-    return -1;
-}
-
-extern int cat_proc(void *argv);
-
-static int launch_cat(char *args)
-{
-    (void)args;
-    return new_proc(cat_proc, NULL);
-}
 void command_switch(char *cmd_copy, char *args)
 {
     if (!strcmp(cmd_copy, "help"))
@@ -527,17 +666,22 @@ void command_switch(char *cmd_copy, char *args)
         int argv[] = {strtoint(args)};
         new_proc((task_fn_t)cmd_block, argv);
     }
-    /*
     else if (!strcmp(cmd_copy, "cat"))
     {
+        new_proc((task_fn_t)cmd_cat, NULL);
     }
     else if (!strcmp(cmd_copy, "wc"))
     {
+        new_proc((task_fn_t)cmd_wc, NULL);
     }
     else if (!strcmp(cmd_copy, "filter"))
     {
+        new_proc((task_fn_t)cmd_filter, NULL);
     }
-    */
+    else if (!strcmp(cmd_copy, "mvar"))
+    {
+        new_proc((task_fn_t)cmd_mvar, NULL);
+    }
     else if (!strcmp(cmd_copy, "test_mm"))
     {
         int argv[] = {strtoint(args)};
@@ -632,13 +776,8 @@ void command_switch(char *cmd_copy, char *args)
     }
     else if (cmd_copy[0] != '\0')
     {
-        // Intentar programa externo (no builtin)
-        int pid = shell_launch_program(cmd_copy, args);
-        if (pid < 0)
-        {
-            shell_print_colored("Error: ", ERROR_COLOR);
-            printf("Comando desconocido '%s'\n", cmd_copy);
-            printf("Escribe 'help' para ver comandos disponibles.\n");
-        }
+        shell_print_colored("Error: ", ERROR_COLOR);
+        printf("Comando desconocido '%s'\n", cmd_copy);
+        printf("Escribe 'help' para ver comandos disponibles.\n");
     }
 }
