@@ -281,12 +281,6 @@ int64_t my_sem_open(char *sem_id, uint64_t initialValue)
     return -1;
   }
 
-  int existing_idx = find_sem_index(sem_id);
-  if (existing_idx >= 0)
-  {
-    return sem_table[existing_idx].sem_handle;
-  }
-
   int handle = sem_open(sem_id, (int)initialValue);
   if (handle < 0)
   {

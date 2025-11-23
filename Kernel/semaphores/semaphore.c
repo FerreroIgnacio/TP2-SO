@@ -42,28 +42,6 @@ static int semaphore_index(semaphore_t *sem)
     return (int)(sem - semaphores);
 }
 
-static bool name_matches(const char *lhs, const char *rhs)
-{
-    if (lhs == NULL || rhs == NULL)
-    {
-        return false;
-    }
-    for (int i = 0; i < SEM_NAME_MAX; i++)
-    {
-        char a = lhs[i];
-        char b = rhs[i];
-        if (a != b)
-        {
-            return false;
-        }
-        if (a == '\0')
-        {
-            return true;
-        }
-    }
-    return true;
-}
-
 static void copy_name(char dest[SEM_NAME_MAX], const char *src)
 {
     if (dest == NULL)
@@ -87,7 +65,7 @@ static semaphore_t *find_by_name(const char *name)
 {
     for (int i = 0; i < MAX_SEMAPHORES; i++)
     {
-        if (semaphores[i].in_use && name_matches(semaphores[i].name, name))
+        if (semaphores[i].in_use && semaphores[i].name[0] != '\0' && (strcmp(semaphores[i].name, name) == 0))
         {
             return &semaphores[i];
         }
@@ -103,11 +81,11 @@ static semaphore_t *reserve_slot(const char *name, int64_t initial_value)
         {
             semaphore_t *sem = &semaphores[i];
             memset(sem, 0, sizeof(*sem));
-            sem->in_use = true;
             sem->value = initial_value;
             sem->ref_count = 1;
             copy_name(sem->name, name);
             spinlock_init(&sem->lock);
+            sem->in_use = true;
             return sem;
         }
     }
