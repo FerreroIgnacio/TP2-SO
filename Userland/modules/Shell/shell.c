@@ -38,101 +38,45 @@ static void execute_command_line(const char *line)
     // Borro cursor visual
     frameDrawChar(frame, ' ', PROMPT_COLOR, SHELL_COLOR, cursor_x, cursor_y);
     // Copiar linea local para parseo (pipeline etc.)
-    char work[BUFFER_SIZE];
-    work[0] = '\0';
+    char work[BUFFER_SIZE] = {0};
     strncpy(work, line, BUFFER_SIZE - 1);
-    work[BUFFER_SIZE - 1] = '\0';
-    // Detectar pipeline
-    char *bar = NULL;
-    for (char *p = work; *p; ++p)
+    char *tokens[100] = {0};
+
+    // Separar el string por espacios
+    int token_count = 0;
+    char *token = strtok(work, " ");
+
+    int foreground_mode = 1; // por defecto en foreground
+    while (token != NULL && token_count < 100)
     {
-        if (*p == '|')
-        {
-            bar = p;
-            break;
-        }
+        tokens[token_count] = token;
+        token_count++;
+        token = strtok(NULL, " ");
     }
-    if (bar)
-    {
-        *bar = '\0';
-        char *left = work;
-        char *right = bar + 1;
-        while (*left == ' ')
-            left++;
-        while (*right == ' ')
-            right++;
-        char *lend = left + strlen(left);
-        while (lend > left && lend[-1] == ' ')
-            lend--;
-        *lend = '\0';
-        char *rend = right + strlen(right);
-        while (rend > right && rend[-1] == ' ')
-            rend--;
-        *rend = '\0';
-        if (*left == '\0' || *right == '\0')
-        {
-            shell_print_colored("Error de sintaxis en pipeline\n", ERROR_COLOR);
-            return;
-        }
-        char left_copy[BUFFER_SIZE];
-        strncpy(left_copy, left, BUFFER_SIZE - 1);
-        left_copy[BUFFER_SIZE - 1] = '\0';
-        char right_copy[BUFFER_SIZE];
-        strncpy(right_copy, right, BUFFER_SIZE - 1);
-        right_copy[BUFFER_SIZE - 1] = '\0';
-        char *left_args = find_args(left_copy);
-        char *right_args = find_args(right_copy);
-        int pipe_id = pipe_create();
-        if (pipe_id < 0)
-        {
-            shell_print_colored("No se pudo crear pipe\n", ERROR_COLOR);
-            return;
-        }
-        int pid_right = -1; // shell_launch_program(right_copy, right_args);
-        if (pid_right < 0)
-        {
-            shell_print_colored("Programa der. desconocido\n", ERROR_COLOR);
-            return;
-        }
-        fd_bind_std(pid_right, 0, pipe_id);
-        if (!strcmp(left_copy, "echo"))
-        {
-            extern int echo_proc(void *);
-            char *dup = NULL;
-            if (left_args && *left_args)
-            {
-                size_t len = strlen(left_args);
-                dup = malloc(len + 1);
-                if (dup)
-                    memcpy(dup, left_args, len + 1);
-            }
-            int pid_echo = new_proc((task_fn_t)echo_proc, dup);
-            if (pid_echo < 0)
-            {
-                shell_print_colored("No se pudo lanzar echo\n", ERROR_COLOR);
-                if (dup)
-                    free(dup);
-                return;
-            }
-            fd_bind_std(pid_echo, 1, pipe_id);
-        }
-        else
-        {
-            int pid_left = -1; // shell_launch_program(left_copy, left_args);
-            if (pid_left < 0)
-            {
-                shell_print_colored("Programa izq. desconocido\n", ERROR_COLOR);
-                return;
-            }
-            fd_bind_std(pid_left, 1, pipe_id);
-        }
+
+    if (token_count == 0)
         return;
+
+    if (strcmp(tokens[token_count - 1], "&") == 0)
+    {
+        foreground_mode = 0; // modo background
+        tokens[token_count - 1] = NULL;
+        token_count--;
     }
-    char cmd_copy[BUFFER_SIZE];
-    strncpy(cmd_copy, line, BUFFER_SIZE - 1);
-    cmd_copy[BUFFER_SIZE - 1] = '\0';
-    char *args = find_args(cmd_copy);
-    command_switch(cmd_copy, args);
+
+    // Detectar pipes
+    int left_pipe_args = 0;
+    int right_pipe_args = -1;
+    for (int i = 0; i < token_count; i++)
+    {
+        if (strcmp(tokens[i], "|") == 0)
+        {
+            right_pipe_args = i + 1; // comando derecho
+            tokens[i] = NULL;        // separar comandos
+        }
+    }
+    // Ejecutar comando tokenizado
+    execute_tokenized_command(tokens, token_count, foreground_mode, left_pipe_args, right_pipe_args);
 }
 
 // Reconstruye visualmente la linea actual leyendo FD 3
@@ -195,7 +139,7 @@ static void handle_stdin_chunk()
             buffer_pos = 0; // FD quedo vacio
             shell_newline();
 
-            if (get_foreground_proc() == getpid()) // si shell es el proc en fg
+            if (get_left_fg_proc() == getpid()) // si shell es el proc en fg
             {
                 execute_command_line((char *)linebuf);
             }
@@ -232,16 +176,60 @@ static void handle_stdin_chunk()
         }
     }
 
-    pid_t fg_proc = get_foreground_proc();
-    if (!(fg_proc == getpid())) // si shell es el proc en fg
+    pid_t left_fg_proc = get_left_fg_proc();
+    pid_t right_fg_proc = get_right_fg_proc();
+    if (!(left_fg_proc == getpid()))
     {
-        int status;
-        if (waitpid(fg_proc, &status, WNOHANG) > 0)
+        if (right_fg_proc == -1)
         {
-            fd_bind_std(getpid(), STDIN, STDIN); // shell toma nuevamente el control de la shell
-            set_foreground_proc(getpid());
-            printf("\nProceso %d finalizado con estado %d\n", fg_proc, status);
-            shell_print_prompt();
+            if (!(left_fg_proc == getpid())) // si shell es el proc en fg
+            {
+                int status;
+                if (waitpid(left_fg_proc, &status, WNOHANG) > 0)
+                {
+                    fd_bind_std(getpid(), STDIN, STDIN); // shell toma nuevamente el control de la shell
+                    set_left_fg_proc(getpid());
+                    printf("\nProceso %d finalizado con estado %d\n", left_fg_proc, status);
+                    shell_print_prompt();
+                    rebuild_line_visual();
+                }
+            }
+        }
+        else if (left_fg_proc > 1)
+        {
+
+            int status_left, status_right;
+            int left_done = waitpid(left_fg_proc, &status_left, WNOHANG) > 0;
+            int right_done = waitpid(right_fg_proc, &status_right, WNOHANG) > 0;
+            if (get_left_fg_proc() == -1)
+            {
+                left_done = 1;
+            }
+
+            if (right_done && !(left_done))
+            {
+                fd_bind_std(getpid(), STDIN, STDIN);
+                kill(left_fg_proc);
+                waitpid(left_fg_proc, NULL, WNOHANG);
+                set_left_fg_proc(getpid());
+                set_right_fg_proc(-1);
+                printf("\nProceso %d finalizado con estado %d\n", right_fg_proc, status_right);
+                shell_print_prompt();
+                rebuild_line_visual();
+            }
+            else if (left_done && !(right_done))
+            {
+                set_left_fg_proc(-1);
+            }
+            else if (right_done && left_done)
+            {
+                fd_bind_std(getpid(), STDIN, STDIN);
+                set_left_fg_proc(getpid());
+                set_right_fg_proc(-1);
+                printf("\nProceso %d finalizado con estado %d\n", right_fg_proc, status_right);
+                shell_print_prompt();
+                rebuild_line_visual();
+            }
         }
     }
 }

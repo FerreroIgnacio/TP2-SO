@@ -92,7 +92,7 @@ int pipe_write(int id, const char *buffer, uint64_t count)
             wn->next = NULL;
             enqueue_waiter(&p->writers_head, &p->writers_tail, wn);
             spinlock_unlock(&p->lock);
-            int st = scheduler_block_current(wn);
+            scheduler_block_current(wn);
             mm_free(wn);
             // Reintentar
             continue;
@@ -148,7 +148,7 @@ int pipe_read(int id, char *buffer, uint64_t count)
             wn->next = NULL;
             enqueue_waiter(&p->readers_head, &p->readers_tail, wn);
             spinlock_unlock(&p->lock);
-            int st = scheduler_block_current(wn);
+            scheduler_block_current(wn);
             mm_free(wn);
             continue; // reintentar
         }
