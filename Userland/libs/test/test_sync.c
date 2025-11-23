@@ -25,6 +25,7 @@ uint64_t my_process_inc(uint64_t argc, char *argv[])
   int8_t use_sem;
   int64_t ret_wait, ret_post;
   int64_t proc_id;
+  int64_t sem_open;
 
   if (argc != 3)
     return -1;
@@ -38,13 +39,14 @@ uint64_t my_process_inc(uint64_t argc, char *argv[])
 
 
   if (use_sem)
-    if (my_sem_open(SEM_ID, 1) < 0)
+    if ((sem_open = my_sem_open(SEM_ID, 1)) < 0)
     {
       printf("test_sync: ERROR opening semaphore\n");
       return -1;
     }
 
   proc_id = my_getpid();
+  printf("pid: %d | Open: %d\n", proc_id, sem_open);
   uint64_t i;
   for (i = 0; i < n; i++)
   {
@@ -60,7 +62,7 @@ uint64_t my_process_inc(uint64_t argc, char *argv[])
   }
 
   if (use_sem)
-    printf("Cierro semaforo con salida: %d\n", my_sem_close(SEM_ID));
+    printf("pid: %d | Close: %d\n", proc_id, my_sem_close(SEM_ID));
 
   return 0;
 }

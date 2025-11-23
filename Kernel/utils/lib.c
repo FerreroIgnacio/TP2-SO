@@ -1,4 +1,5 @@
 #include <stdint.h>
+#include <stddef.h>
 #include "./lib.h"
 
 void *memset(void *destination, int32_t c, uint64_t length)
@@ -117,4 +118,33 @@ void uint64ToHex(uint64_t value, char *buffer)
     buffer[0] = '0';
     buffer[1] = 'x';
     buffer[18] = '\0';
+}
+
+int strcmp(const char *str1, const char *str2)
+{
+    if (str1 == NULL && str2 == NULL)
+    {
+        return 0;
+    }
+    if (str1 == NULL)
+    {
+        return -1;
+    }
+    if (str2 == NULL)
+    {
+        return 1;
+    }
+
+    while (*str1 != '\0' && *str2 != '\0')
+    {
+        if (*str1 != *str2)
+        {
+            return (int)((unsigned char)*str1 - (unsigned char)*str2);
+        }
+        str1++;
+        str2++;
+    }
+
+    // At least one string reached null terminator
+    return (int)((unsigned char)*str1 - (unsigned char)*str2);
 }

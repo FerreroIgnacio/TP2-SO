@@ -87,7 +87,7 @@ static semaphore_t *find_by_name(const char *name)
 {
     for (int i = 0; i < MAX_SEMAPHORES; i++)
     {
-        if (semaphores[i].in_use && name_matches(semaphores[i].name, name))
+        if (semaphores[i].in_use && (strcmp(semaphores[i].name, name) == 0))
         {
             return &semaphores[i];
         }
@@ -103,10 +103,10 @@ static semaphore_t *reserve_slot(const char *name, int64_t initial_value)
         {
             semaphore_t *sem = &semaphores[i];
             memset(sem, 0, sizeof(*sem));
-            sem->in_use = true;
             sem->value = initial_value;
             sem->ref_count = 1;
             copy_name(sem->name, name);
+            sem->in_use = true;
             spinlock_init(&sem->lock);
             return sem;
         }
@@ -140,8 +140,8 @@ int sem_open(const char *name, int initial_value)
     ensure_allocator_lock();
     spinlock_lock(&allocator_lock);
 
-    semaphore_t *existing = find_by_name(name);
-    if (existing != NULL)
+    semaphore_t *existing = find_by_name(name); //Always returns NULL
+    if (existing != NULL) //Never enters condition
     {
         spinlock_lock(&existing->lock);
         existing->ref_count++;
