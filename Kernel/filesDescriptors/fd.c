@@ -5,8 +5,11 @@
 
 // Tabla de FDs por proceso
 static fd_entry_t proc_fds[MAX_TASKS][MAX_PROCESS_FDS];
+// Compat para STDIN/STDOUT históricos
 static int bound_stdin_pipe[MAX_TASKS];
 static int bound_stdout_pipe[MAX_TASKS];
+// Nuevo: mapa general FD->pipe por proceso (-1 si no enlazado)
+static int bound_fd_pipe[MAX_TASKS][MAX_PROCESS_FDS];
 
 static inline int valid_pid(int pid) {
     return (pid >= 0 && pid < MAX_TASKS);
@@ -15,6 +18,7 @@ static inline int valid_pid(int pid) {
 void fd_init(void) {
     // Crear pipe 0 para stdin global
     int _p0 = pipe_create();
+    (void)_p0;
     for (int p = 0; p < MAX_TASKS; p++) {
         for (int i = 0; i < MAX_PROCESS_FDS; i++) {
             proc_fds[p][i].in_use = 0;
@@ -23,13 +27,15 @@ void fd_init(void) {
             proc_fds[p][i].write_pos = 0;
             proc_fds[p][i].size = 0;
         }
-        // Initialize standard FDs 0,1,2
+        // Activar FDs estándar
         proc_fds[p][0].in_use = 1; strcpy(proc_fds[p][0].name, "stdin");
         proc_fds[p][1].in_use = 1; strcpy(proc_fds[p][1].name, "stdout");
         proc_fds[p][2].in_use = 1; strcpy(proc_fds[p][2].name, "stderr");
-        // Enlazar SOLO stdin a pipe 0;
+        // Enlazar pipe por defecto para STDIN solo
         bound_stdin_pipe[p] = 0;
         bound_stdout_pipe[p] = -1;
+        for (int i = 0; i < MAX_PROCESS_FDS; i++) { bound_fd_pipe[p][i] = -1; }
+        bound_fd_pipe[p][STDIN] = 0;
     }
 }
 
@@ -45,9 +51,11 @@ void fd_reset_pid(int pid) {
     proc_fds[pid][0].in_use = 1; strcpy(proc_fds[pid][0].name, "stdin");
     proc_fds[pid][1].in_use = 1; strcpy(proc_fds[pid][1].name, "stdout");
     proc_fds[pid][2].in_use = 1; strcpy(proc_fds[pid][2].name, "stderr");
-    // Reenlazar SOLO stdin del nuevo proceso a pipe 0;
+    // Reenlazar SOLO stdin del nuevo proceso a pipe 0 y resetear bindings
     bound_stdin_pipe[pid] = 0;
     bound_stdout_pipe[pid] = -1;
+    for (int i = 0; i < MAX_PROCESS_FDS; i++) { bound_fd_pipe[pid][i] = -1; }
+    bound_fd_pipe[pid][STDIN] = 0;
 }
 
 static inline fd_entry_t *get_current_table(void) {
@@ -62,9 +70,13 @@ static inline int idx_from_fd(int fd) {
     return idx;
 }
 
-int fd_bind_std_for_pid(int pid, int whichPipe, int pipeId) {
-    if (!valid_pid(pid)) return -1; // -1 error pid/whichPipe inválidos
-    if (whichPipe == 0) bound_stdin_pipe[pid] = pipeId; else bound_stdout_pipe[pid] = pipeId; // 0 OK
+int fd_bind_std_for_pid(int pid, int whichFd, int pipeId) {
+    if (!valid_pid(pid)) return -1;
+    int idx = idx_from_fd(whichFd);
+    if (idx < 0 || idx >= MAX_PROCESS_FDS) return -1;
+    bound_fd_pipe[pid][idx] = pipeId; // puede ser -1 para des-enlazar
+    if (whichFd == STDIN) bound_stdin_pipe[pid] = pipeId;
+    if (whichFd == STDOUT) bound_stdout_pipe[pid] = pipeId;
     return 0;
 }
 
@@ -93,28 +105,24 @@ int fd_write(int fd, const char *buffer, uint64_t count) {
     fd_entry_t *table = get_current_table();
     int idx = idx_from_fd(fd);
     if (buffer == NULL || count == 0) return -1;
-
     int pid = scheduler_current_pid();
+
     // Si está redirigido a pipe, usar semántica parcial de pipe_write.
-    if (fd == STDOUT && valid_pid(pid) && bound_stdout_pipe[pid] >= 0) {
-        return pipe_write(bound_stdout_pipe[pid], buffer, count);
+    if (valid_pid(pid) && idx >= 0 && idx < MAX_PROCESS_FDS) {
+        int pipeId = bound_fd_pipe[pid][idx];
+        if (pipeId >= 0) {
+            return pipe_write(pipeId, buffer, count);
+        }
     }
-    if (fd == STDIN && valid_pid(pid) && bound_stdin_pipe[pid] >= 0) {
-        return pipe_write(bound_stdin_pipe[pid], buffer, count);
-    }
+
     if (table == NULL || idx < 0 || !table[idx].in_use) return -1;
+
     uint64_t written = 0;
     while (written < count) {
         if (table[idx].size == FD_BUFFER_CAPACITY) {
-            // Buffer lleno. Si ya escribimos algo, devolver parcial.
-            if (written > 0) break;
-            // Nada escrito: bloquear/yield hasta que haya espacio.
-            while (table[idx].size == FD_BUFFER_CAPACITY) {
-                scheduler_yield();
-            }
-            // continuar para escribir
+            if (written > 0) break; // parcial si ya escribimos algo
+            while (table[idx].size == FD_BUFFER_CAPACITY) { scheduler_yield(); }
         }
-        // Hay al menos 1 byte de espacio: escribir chunk.
         uint64_t remaining = count - written;
         uint32_t free_space = FD_BUFFER_CAPACITY - table[idx].size;
         uint64_t chunk = (remaining < free_space) ? remaining : free_space;
@@ -124,7 +132,6 @@ int fd_write(int fd, const char *buffer, uint64_t count) {
         }
         table[idx].size += (uint32_t)chunk;
         written += chunk;
-        // Si se llenó y quedan datos, salimos con parcial.
         if (written < count && table[idx].size == FD_BUFFER_CAPACITY) break;
     }
     return (int)written; // parcial o completo
@@ -135,25 +142,23 @@ int fd_read(int fd, char *buffer, uint64_t count) {
     int idx = idx_from_fd(fd);
     if (buffer == NULL || count == 0) return -1;
     int pid = scheduler_current_pid();
-    // Pipes ya manejan parcial.
-    if (fd == STDIN && valid_pid(pid) && bound_stdin_pipe[pid] >= 0) {
-        return pipe_read(bound_stdin_pipe[pid], buffer, count);
+
+    // Pipes ya manejan parcial: si está redirigido, leer desde la pipe
+    if (valid_pid(pid) && idx >= 0 && idx < MAX_PROCESS_FDS) {
+        int pipeId = bound_fd_pipe[pid][idx];
+        if (pipeId >= 0) {
+            return pipe_read(pipeId, buffer, count);
+        }
     }
-    if (fd == STDOUT && valid_pid(pid) && bound_stdout_pipe[pid] >= 0) {
-        return pipe_read(bound_stdout_pipe[pid], buffer, count);
-    }
+
     if (table == NULL || idx < 0 || !table[idx].in_use) return -1;
+
     uint64_t read = 0;
     while (read < count) {
         if (table[idx].size == 0) {
-            // Si ya leímos algo, devolver parcial.
-            if (read > 0) break;
-            // Bloquear/yield hasta que haya al menos 1 byte.
-            while (table[idx].size == 0) {
-                scheduler_yield();
-            }
+            if (read > 0) break; // parcial si ya leímos algo
+            while (table[idx].size == 0) { scheduler_yield(); }
         }
-        // Hay datos: leer chunk.
         uint64_t remaining = count - read;
         uint32_t available = table[idx].size;
         uint64_t chunk = (remaining < available) ? remaining : available;
@@ -163,21 +168,14 @@ int fd_read(int fd, char *buffer, uint64_t count) {
         }
         table[idx].size -= (uint32_t)chunk;
         read += chunk;
-        if (read < count && table[idx].size == 0) break; // parcial: sin más datos
+        if (read < count && table[idx].size == 0) break; // parcial
     }
     return (int)read;
 }
 
-int fd_has_data(int fd) {
-    fd_entry_t *table = get_current_table();
-    int idx = idx_from_fd(fd);
-    if (table == NULL || idx < 0 || !table[idx].in_use) return 0;
-    return table[idx].size > 0;
-}
-
 int fd_list(fd_info_t *out, int max) {
-    if (out == NULL || max <= 0) return 0;
     fd_entry_t *table = get_current_table();
+    if (out == NULL || max <= 0) return 0;
     if (table == NULL) return 0;
     int count = 0;
     for (int i = 0; i < MAX_PROCESS_FDS && count < max; i++) {
@@ -213,16 +211,27 @@ int fd_get_bound_std_pipe(int pid, int whichPipe){
 }
 
 int fd_is_read_ready(int fd){
-    int pid = scheduler_current_pid();
-    if(fd==STDIN){
-        int pipeId = fd_get_bound_std_pipe(pid,0);
-        if(pipeId>=0) return pipe_available(pipeId)>0 ? 1 : 0; // 1 listo, 0 vacío
-    } else if(fd==STDOUT){
-        int pipeId = fd_get_bound_std_pipe(pid,1);
-        if(pipeId>=0) return pipe_available(pipeId)>0 ? 1 : 0;
-    }
+    // Implementación simple: reutilizar fd_has_data
+    return fd_has_data(fd);
+}
+
+int fd_has_data(int fd){
+    // 1) Intentar interpretarlo como FD del proceso actual
     fd_entry_t *table = get_current_table();
     int idx = idx_from_fd(fd);
-    if(table==NULL || idx<0 || !table[idx].in_use) return -1; // inválido
-    return table[idx].size>0 ? 1 : 0; // 1 datos, 0 vacío
+    int pid = scheduler_current_pid();
+    if (table != NULL && valid_pid(pid) && idx >= 0 && idx < MAX_PROCESS_FDS && table[idx].in_use) {
+        int pipeId = bound_fd_pipe[pid][idx];
+        if (pipeId >= 0) {
+            int a = pipe_available(pipeId);
+            return (a > 0) ? 1 : 0;
+        }
+        return (table[idx].size > 0) ? 1 : 0;
+    }
+
+    // 2) Si no es un FD válido del proceso, probar como id de pipe del kernel
+    int avail = pipe_available(fd);
+    if (avail >= 0) return (avail > 0) ? 1 : 0;
+
+    return -1;
 }

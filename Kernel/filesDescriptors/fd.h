@@ -74,6 +74,7 @@ int fd_list_for_pid(int pid, fd_info_t *out, int max);
 //  - fd_read(whichFd) usa pipe_read(pipeId)
 //  - fd_write(whichFd) usa pipe_write(pipeId)
 // Conserva compatibilidad: para STDIN(0)/STDOUT(1) también actualiza los accesores antiguos.
+// Conserva compatibilidad: para STDIN(0)/STDOUT(1) también actualiza los accesores antiguos.
 int fd_bind_std_for_pid(int pid, int whichFd, int pipeId); // Retorna 0 si OK; -1 si pid/fd inválidos.
 
 // Obtiene la pipe actualmente asociada (redirigida) al STDIN/STDOUT del proceso.
