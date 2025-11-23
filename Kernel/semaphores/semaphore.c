@@ -42,28 +42,6 @@ static int semaphore_index(semaphore_t *sem)
     return (int)(sem - semaphores);
 }
 
-static bool name_matches(const char *lhs, const char *rhs)
-{
-    if (lhs == NULL || rhs == NULL)
-    {
-        return false;
-    }
-    for (int i = 0; i < SEM_NAME_MAX; i++)
-    {
-        char a = lhs[i];
-        char b = rhs[i];
-        if (a != b)
-        {
-            return false;
-        }
-        if (a == '\0')
-        {
-            return true;
-        }
-    }
-    return true;
-}
-
 static void copy_name(char dest[SEM_NAME_MAX], const char *src)
 {
     if (dest == NULL)
@@ -87,7 +65,7 @@ static semaphore_t *find_by_name(const char *name)
 {
     for (int i = 0; i < MAX_SEMAPHORES; i++)
     {
-        if (semaphores[i].in_use && (strcmp(semaphores[i].name, name) == 0))
+        if (semaphores[i].in_use && semaphores[i].name[0] != '\0' && (strcmp(semaphores[i].name, name) == 0))
         {
             return &semaphores[i];
         }
@@ -106,8 +84,8 @@ static semaphore_t *reserve_slot(const char *name, int64_t initial_value)
             sem->value = initial_value;
             sem->ref_count = 1;
             copy_name(sem->name, name);
-            sem->in_use = true;
             spinlock_init(&sem->lock);
+            sem->in_use = true;
             return sem;
         }
     }
@@ -140,8 +118,8 @@ int sem_open(const char *name, int initial_value)
     ensure_allocator_lock();
     spinlock_lock(&allocator_lock);
 
-    semaphore_t *existing = find_by_name(name); //Always returns NULL
-    if (existing != NULL) //Never enters condition
+    semaphore_t *existing = find_by_name(name);
+    if (existing != NULL)
     {
         spinlock_lock(&existing->lock);
         existing->ref_count++;
@@ -151,16 +129,16 @@ int sem_open(const char *name, int initial_value)
         return idx;
     }
 
-    semaphore_t *slot = reserve_slot(name, initial_value); //Always returns a valid semaphore
+    semaphore_t *slot = reserve_slot(name, initial_value);
     if (slot == NULL)
     {
         spinlock_unlock(&allocator_lock);
         return -1;
     }
 
-    int idx = semaphore_index(slot); //Returns 0
+    int idx = semaphore_index(slot);
     spinlock_unlock(&allocator_lock);
-    return idx; //Always returns this
+    return idx;
 }
 
 int sem_wait(int sem_id)
