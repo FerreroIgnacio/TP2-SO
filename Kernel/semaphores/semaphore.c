@@ -151,16 +151,16 @@ int sem_open(const char *name, int initial_value)
         return idx;
     }
 
-    semaphore_t *slot = reserve_slot(name, initial_value);
+    semaphore_t *slot = reserve_slot(name, initial_value); //Always returns a valid semaphore
     if (slot == NULL)
     {
         spinlock_unlock(&allocator_lock);
         return -1;
     }
 
-    int idx = semaphore_index(slot);
+    int idx = semaphore_index(slot); //Returns 0
     spinlock_unlock(&allocator_lock);
-    return idx;
+    return idx; //Always returns this
 }
 
 int sem_wait(int sem_id)
