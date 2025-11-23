@@ -95,8 +95,10 @@ uint64_t syscallHandler(int syscall_num, uint64_t arg1, uint64_t arg2, uint64_t 
         return 1;
     case SYSCALL_FD_OPEN: // new fd open
         return sys_fd_open((const char *)arg1);
-    case SYSCALL_FD_LIST: // list dynamic FDs
+    case SYSCALL_FD_LIST: // list current process FDs
         return sys_fd_list((fd_info_t *)arg1, (int)arg2);
+    case SYSCALL_FD_LIST_PID:
+        return sys_fd_list_pid((int)arg1, (fd_info_t *)arg2, (int)arg3);
     case SYSCALL_PIPE_CREATE:
         return sys_pipe_create();
     case SYSCALL_FD_BIND_STD:
@@ -129,8 +131,13 @@ int sys_read(int fd, char *buffer, uint64_t count)
  */
 int sys_write(int fd, const char *buffer, uint64_t count)
 {
-    if (buffer == 0 || count == 0)
-        return 0;
+    // Validaciones detalladas con códigos de error diferenciados.
+    // -1: fd inválido / fuera de rango
+    // -2: buffer nulo
+    // -3: count == 0
+    if (fd < 0) return -1;
+    if (buffer == NULL) return -2;
+    if (count == 0) return -3;
     // All descriptors treated uniformly; blocking handled in fd_write
     return fd_write(fd, buffer, count);
 }
@@ -350,6 +357,9 @@ int sys_fd_open(const char *name)
 int sys_fd_list(fd_info_t *out, int max)
 {
     return fd_list(out, max);
+}
+int sys_fd_list_pid(int pid, fd_info_t *out, int max){
+    return fd_list_for_pid(pid, out, max);
 }
 
 int sys_pipe_create(void)

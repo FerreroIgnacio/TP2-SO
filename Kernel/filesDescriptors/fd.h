@@ -65,13 +65,16 @@ int fd_has_data(int fd);
 // Lista FDs activos del proceso actual en 'out' (hasta 'max' entradas).
 // Retorno: cantidad de elementos llenados (>=0).
 int fd_list(fd_info_t *out, int max);
+// Nuevo: lista FDs del proceso indicado por pid (sin cambiar contexto). Retorna cantidad listada o 0 si pid inválido.
+int fd_list_for_pid(int pid, fd_info_t *out, int max);
 
-// Enlaza (redirige) STDIN/STDOUT del proceso 'pid' hacia la pipe 'pipeId'.
-// whichPipe: 0=STDIN, 1=STDOUT. Tras el enlace:
-//  - fd_read(fd) sobre STDIN usa pipe_read(pipeId) en vez de buffer propio.
-//  - fd_write(fd) sobre STDOUT usa pipe_write(pipeId) (útil para pipelines).
-// Permite construir cadenas procA stdout -> pipe -> procB stdin.
-int fd_bind_std_for_pid(int pid, int whichPipe, int pipeId); // Retorna 0 si OK; -1 si pid/whichPipe inválidos.
+// Enlaza (redirige) cualquier FD del proceso 'pid' hacia la pipe 'pipeId'.
+// whichFd: índice de FD (0..MAX_PROCESS_FDS-1). pipeId >=0 enlaza; pipeId==-1 des-enlaza.
+// Al estar enlazado:
+//  - fd_read(whichFd) usa pipe_read(pipeId)
+//  - fd_write(whichFd) usa pipe_write(pipeId)
+// Conserva compatibilidad: para STDIN(0)/STDOUT(1) también actualiza los accesores antiguos.
+int fd_bind_std_for_pid(int pid, int whichFd, int pipeId); // Retorna 0 si OK; -1 si pid/fd inválidos.
 
 // Obtiene la pipe actualmente asociada (redirigida) al STDIN/STDOUT del proceso.
 // whichPipe: 0=STDIN, 1=STDOUT. Retorna id de pipe o -1 si no hay redirección.

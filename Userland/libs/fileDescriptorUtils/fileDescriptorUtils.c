@@ -5,6 +5,7 @@
 // stubs de syscalls implementados en ASM (fileDescriptorUtils.asm)
 extern int asm_poll(int *fds, int count);   // rdi=fds, rsi=count
 extern int asm_select(int *fds, int count); // rdi=fds, rsi=count
+// fd_list y fd_list_pid se declaran en el header con tipos correctos; no repetir extern con tipos genericos.
 
 // borra todo el file descriptor
 void flush(int fd)
@@ -285,12 +286,14 @@ uint64_t fprintf(int fd, const char *format, ...)
                 else
                     longFlag = 1;
                 c = *format++;
+                (void)longLongFlag; // evitar warning si no se usa despues
                 break;
             default:
                 parsing = 0;
                 break;
             }
         }
+        (void)altFlag; // suprimir warning si no se activa
         switch (c)
         {
         case 'c':
@@ -432,12 +435,14 @@ uint64_t printf(const char *format, ...)
                 else
                     longFlag = 1;
                 c = *f++;
+                (void)longLongFlag;
                 break;
             default:
                 parsing = 0;
                 break;
             }
         }
+        (void)altFlag;
         switch (c)
         {
         case 'c':

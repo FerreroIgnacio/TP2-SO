@@ -63,7 +63,7 @@ static inline int idx_from_fd(int fd) {
 }
 
 int fd_bind_std_for_pid(int pid, int whichPipe, int pipeId) {
-    if (!valid_pid(pid) || (whichPipe != 0 && whichPipe != 1)) return -1; // -1 error pid/whichPipe inválidos
+    if (!valid_pid(pid)) return -1; // -1 error pid/whichPipe inválidos
     if (whichPipe == 0) bound_stdin_pipe[pid] = pipeId; else bound_stdout_pipe[pid] = pipeId; // 0 OK
     return 0;
 }
@@ -183,10 +183,24 @@ int fd_list(fd_info_t *out, int max) {
     for (int i = 0; i < MAX_PROCESS_FDS && count < max; i++) {
         if (table[i].in_use) {
             out[count].fd = FIRST_DYNAMIC_FD + i;
-            int j = 0;
-            while (j < FD_NAME_MAX - 1 && table[i].name[j]) { out[count].name[j] = table[i].name[j]; j++; }
+            int j = 0; while (j < FD_NAME_MAX - 1 && table[i].name[j]) { out[count].name[j] = table[i].name[j]; j++; }
             out[count].name[j] = '\0';
             out[count].size = table[i].size;
+            count++;
+        }
+    }
+    return count;
+}
+
+int fd_list_for_pid(int pid, fd_info_t *out, int max){
+    if(out==NULL || max<=0 || !valid_pid(pid)) return 0;
+    int count=0;
+    for(int i=0; i<MAX_PROCESS_FDS && count<max; i++){
+        if(proc_fds[pid][i].in_use){
+            out[count].fd = FIRST_DYNAMIC_FD + i;
+            int j=0; while(j<FD_NAME_MAX-1 && proc_fds[pid][i].name[j]){ out[count].name[j]=proc_fds[pid][i].name[j]; j++; }
+            out[count].name[j]='\0';
+            out[count].size = proc_fds[pid][i].size;
             count++;
         }
     }
