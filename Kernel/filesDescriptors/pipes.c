@@ -26,6 +26,10 @@ int pipe_create(void)
     {
         if (!pipes[i].in_use)
         {
+            for (int j = 0; j < PIPE_BUFFER_CAPACITY; j++)
+            {
+                pipes[i].buf[j] = 0;
+            }
             pipes[i].in_use = 1;
             pipes[i].rpos = pipes[i].wpos = pipes[i].size = 0;
             pipes[i].readers_head = pipes[i].readers_tail = NULL;

@@ -444,11 +444,22 @@ void keyPressedAction(uint8_t makecode, registers_t *regs)
                 capsLockOn = !capsLockOn;
             }
             char c = getAscii(makecode);
-            if (c != 0) {
+            if (c != 0)
+            {
+
+                if ((c == 'c' || c == 'C') && ctrlPressed)
+                {
+                    if (sys_get_pid() > 1)
+                    {
+                        sys_proc_kill(sys_get_pid());
+                    }
+                }
+
                 // NO usar pipe_write (bloqueante) dentro de la IRQ: causa bloqueo y no despierta la shell.
                 // Insertar non-blocking; read() seguirá siendo bloqueante y despertará al tener datos.
                 int r = pipe_try_kernel_nonblocking_write(0, c);
-                if (r != 1) {
+                if (r != 1)
+                {
                     // opcional: drop si lleno; nunca bloquear aquí.
                     // printf("[DBG] teclado: pipe llena, char descartado\n");
                 }

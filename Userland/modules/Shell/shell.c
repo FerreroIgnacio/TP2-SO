@@ -266,6 +266,26 @@ int main()
     {
         setFB(frame);
         handle_stdin_chunk();
+        int lctrl_c[] = {LCTRL_MKCODE, C_MKCODE};
+        int rctrl_c[] = {RCTRL_MKCODE, C_MKCODE};
+        if ((areKeysPressed(lctrl_c, 2) || areKeysPressed(rctrl_c, 2)) && get_left_fg_proc() != getpid())
+        {
+            pid_t left_fg = get_left_fg_proc();
+            pid_t rigth_fg = get_right_fg_proc();
+            if (left_fg > 1)
+            {
+                int status = kill(left_fg);
+                waitpid(left_fg, NULL, WNOHANG);
+                fd_bind_std(getpid(), STDIN, STDIN);
+                set_left_fg_proc(1);
+            }
+            if (rigth_fg > 1)
+            {
+                kill(rigth_fg);
+                waitpid(rigth_fg, NULL, WHANG);
+                set_right_fg_proc(-1);
+            }
+        }
     }
     return 0;
 }

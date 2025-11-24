@@ -26,6 +26,7 @@ void fd_init(void)
             proc_fds[p][i].read_pos = 0;
             proc_fds[p][i].write_pos = 0;
             proc_fds[p][i].size = 0;
+            spinlock_init(&proc_fds[p][i].lock);
         }
         // Initialize standard FDs 0,1,2
         proc_fds[p][0].in_use = 1;
@@ -34,7 +35,7 @@ void fd_init(void)
         strcpy(proc_fds[p][1].name, "stdout");
         proc_fds[p][2].in_use = 1;
         strcpy(proc_fds[p][2].name, "stderr");
-        // Enlazar SOLO stdin a pipe 0;
+        // Enlazar SOLO stdin a pipe 0
         bound_stdin_pipe[p] = 0;
         bound_stdout_pipe[p] = -1;
     }
@@ -51,6 +52,7 @@ void fd_reset_pid(int pid)
         proc_fds[pid][i].read_pos = 0;
         proc_fds[pid][i].write_pos = 0;
         proc_fds[pid][i].size = 0;
+        spinlock_init(&proc_fds[pid][i].lock);
     }
     proc_fds[pid][0].in_use = 1;
     strcpy(proc_fds[pid][0].name, "stdin");
@@ -58,7 +60,7 @@ void fd_reset_pid(int pid)
     strcpy(proc_fds[pid][1].name, "stdout");
     proc_fds[pid][2].in_use = 1;
     strcpy(proc_fds[pid][2].name, "stderr");
-    // Reenlazar SOLO stdin del nuevo proceso a pipe 0;
+    // Reenlazar SOLO stdin del nuevo proceso a pipe 0
     bound_stdin_pipe[pid] = 0;
     bound_stdout_pipe[pid] = -1;
 }
@@ -82,11 +84,11 @@ static inline int idx_from_fd(int fd)
 int fd_bind_std_for_pid(int pid, int whichPipe, int pipeId)
 {
     if (!valid_pid(pid) || (whichPipe != 0 && whichPipe != 1))
-        return -1; // -1 error pid/whichPipe inválidos
+        return -1;
     if (whichPipe == 0)
         bound_stdin_pipe[pid] = pipeId;
     else
-        bound_stdout_pipe[pid] = pipeId; // 0 OK
+        bound_stdout_pipe[pid] = pipeId;
     return 0;
 }
 
@@ -97,6 +99,8 @@ int fd_create(const char *name)
         return -1;
     for (int i = 0; i < MAX_PROCESS_FDS; i++)
     {
+        // Lock para verificar y marcar como en uso atómicamente
+        spinlock_lock(&table[i].lock);
         if (!table[i].in_use)
         {
             table[i].in_use = 1;
@@ -110,50 +114,73 @@ int fd_create(const char *name)
             table[i].read_pos = 0;
             table[i].write_pos = 0;
             table[i].size = 0;
+            spinlock_unlock(&table[i].lock);
             return FIRST_DYNAMIC_FD + i;
         }
+        spinlock_unlock(&table[i].lock);
     }
-    return -1; // sin espacio
+    return -1;
 }
 
 int fd_write(int fd, const char *buffer, uint64_t count)
 {
-    fd_entry_t *table = get_current_table();
-    int idx = idx_from_fd(fd);
     if (buffer == NULL || count == 0)
         return -1;
 
+    // CRÍTICO: Validar pid ANTES de usar arrays globales
     int pid = scheduler_current_pid();
-    // Si está redirigido a pipe, usar semántica parcial de pipe_write.
-    if (fd == STDOUT && valid_pid(pid) && bound_stdout_pipe[pid] >= 0)
+    if (!valid_pid(pid))
+        return -1;
+
+    // Si está redirigido a pipe, usar semántica parcial de pipe_write
+    if (fd == STDOUT && bound_stdout_pipe[pid] >= 0)
     {
         return pipe_write(bound_stdout_pipe[pid], buffer, count);
     }
-    if (fd == STDIN && valid_pid(pid) && bound_stdin_pipe[pid] >= 0)
+    if (fd == STDIN && bound_stdin_pipe[pid] >= 0)
     {
         return pipe_write(bound_stdin_pipe[pid], buffer, count);
     }
-    if (table == NULL || idx < 0 || !table[idx].in_use)
+
+    fd_entry_t *table = get_current_table();
+    int idx = idx_from_fd(fd);
+    if (table == NULL || idx < 0)
         return -1;
+
+    // Verificar que el FD esté en uso
+    spinlock_lock(&table[idx].lock);
+    if (!table[idx].in_use)
+    {
+        spinlock_unlock(&table[idx].lock);
+        return -1;
+    }
+    spinlock_unlock(&table[idx].lock);
+
     uint64_t written = 0;
     while (written < count)
     {
+        spinlock_lock(&table[idx].lock);
+
         if (table[idx].size == FD_BUFFER_CAPACITY)
         {
             // Buffer lleno. Si ya escribimos algo, devolver parcial.
             if (written > 0)
-                break;
-            // Nada escrito: bloquear/yield hasta que haya espacio.
-            while (table[idx].size == FD_BUFFER_CAPACITY)
             {
-                scheduler_yield();
+                spinlock_unlock(&table[idx].lock);
+                break;
             }
-            // continuar para escribir
+            // Nada escrito: liberar lock y yield hasta que haya espacio
+            spinlock_unlock(&table[idx].lock);
+            scheduler_yield();
+            continue; // Reintentar desde el principio del loop
         }
-        // Hay al menos 1 byte de espacio: escribir chunk.
+
+        // Hay al menos 1 byte de espacio: escribir chunk
         uint64_t remaining = count - written;
         uint32_t free_space = FD_BUFFER_CAPACITY - table[idx].size;
         uint64_t chunk = (remaining < free_space) ? remaining : free_space;
+
+        // Escribir con el lock tomado para evitar race conditions
         for (uint64_t i = 0; i < chunk; i++)
         {
             table[idx].buffer[table[idx].write_pos] = (uint8_t)buffer[written + i];
@@ -161,49 +188,81 @@ int fd_write(int fd, const char *buffer, uint64_t count)
         }
         table[idx].size += (uint32_t)chunk;
         written += chunk;
-        // Si se llenó y quedan datos, salimos con parcial.
-        if (written < count && table[idx].size == FD_BUFFER_CAPACITY)
-            break;
+
+        spinlock_unlock(&table[idx].lock);
+
+        // Si se llenó y quedan datos, salimos con parcial
+        if (written < count)
+        {
+            spinlock_lock(&table[idx].lock);
+            int is_full = (table[idx].size == FD_BUFFER_CAPACITY);
+            spinlock_unlock(&table[idx].lock);
+            if (is_full)
+                break;
+        }
     }
-    return (int)written; // parcial o completo
+    return (int)written;
 }
 
 int fd_read(int fd, char *buffer, uint64_t count)
 {
-    fd_entry_t *table = get_current_table();
-    int idx = idx_from_fd(fd);
     if (buffer == NULL || count == 0)
         return -1;
+
+    // CRÍTICO: Validar pid ANTES de usar arrays globales
     int pid = scheduler_current_pid();
-    // Pipes ya manejan parcial.
-    if (fd == STDIN && valid_pid(pid) && bound_stdin_pipe[pid] >= 0)
+    if (!valid_pid(pid))
+        return -1;
+
+    // Pipes ya manejan parcial
+    if (fd == STDIN && bound_stdin_pipe[pid] >= 0)
     {
         return pipe_read(bound_stdin_pipe[pid], buffer, count);
     }
-    if (fd == STDOUT && valid_pid(pid) && bound_stdout_pipe[pid] >= 0)
+    if (fd == STDOUT && bound_stdout_pipe[pid] >= 0)
     {
         return pipe_read(bound_stdout_pipe[pid], buffer, count);
     }
-    if (table == NULL || idx < 0 || !table[idx].in_use)
+
+    fd_entry_t *table = get_current_table();
+    int idx = idx_from_fd(fd);
+    if (table == NULL || idx < 0)
         return -1;
+
+    // Verificar que el FD esté en uso
+    spinlock_lock(&table[idx].lock);
+    if (!table[idx].in_use)
+    {
+        spinlock_unlock(&table[idx].lock);
+        return -1;
+    }
+    spinlock_unlock(&table[idx].lock);
+
     uint64_t read = 0;
     while (read < count)
     {
+        spinlock_lock(&table[idx].lock);
+
         if (table[idx].size == 0)
         {
-            // Si ya leímos algo, devolver parcial.
+            // Si ya leímos algo, devolver parcial
             if (read > 0)
-                break;
-            // Bloquear/yield hasta que haya al menos 1 byte.
-            while (table[idx].size == 0)
             {
-                scheduler_yield();
+                spinlock_unlock(&table[idx].lock);
+                break;
             }
+            // Bloquear/yield hasta que haya al menos 1 byte
+            spinlock_unlock(&table[idx].lock);
+            scheduler_yield();
+            continue; // Reintentar
         }
-        // Hay datos: leer chunk.
+
+        // Hay datos: leer chunk
         uint64_t remaining = count - read;
         uint32_t available = table[idx].size;
         uint64_t chunk = (remaining < available) ? remaining : available;
+
+        // Leer con el lock tomado
         for (uint64_t i = 0; i < chunk; i++)
         {
             buffer[read + i] = (char)table[idx].buffer[table[idx].read_pos];
@@ -211,8 +270,18 @@ int fd_read(int fd, char *buffer, uint64_t count)
         }
         table[idx].size -= (uint32_t)chunk;
         read += chunk;
-        if (read < count && table[idx].size == 0)
-            break; // parcial: sin más datos
+
+        spinlock_unlock(&table[idx].lock);
+
+        // Si se vació y quedan datos por leer, salir con parcial
+        if (read < count)
+        {
+            spinlock_lock(&table[idx].lock);
+            int is_empty = (table[idx].size == 0);
+            spinlock_unlock(&table[idx].lock);
+            if (is_empty)
+                break;
+        }
     }
     return (int)read;
 }
@@ -221,9 +290,19 @@ int fd_has_data(int fd)
 {
     fd_entry_t *table = get_current_table();
     int idx = idx_from_fd(fd);
-    if (table == NULL || idx < 0 || !table[idx].in_use)
+    if (table == NULL || idx < 0)
         return 0;
-    return table[idx].size > 0;
+
+    spinlock_lock(&table[idx].lock);
+    if (!table[idx].in_use)
+    {
+        spinlock_unlock(&table[idx].lock);
+        return 0;
+    }
+    int has_data = table[idx].size > 0;
+    spinlock_unlock(&table[idx].lock);
+
+    return has_data;
 }
 
 int fd_list(fd_info_t *out, int max)
@@ -236,6 +315,7 @@ int fd_list(fd_info_t *out, int max)
     int count = 0;
     for (int i = 0; i < MAX_PROCESS_FDS && count < max; i++)
     {
+        spinlock_lock(&table[i].lock);
         if (table[i].in_use)
         {
             out[count].fd = FIRST_DYNAMIC_FD + i;
@@ -249,6 +329,7 @@ int fd_list(fd_info_t *out, int max)
             out[count].size = table[i].size;
             count++;
         }
+        spinlock_unlock(&table[i].lock);
     }
     return count;
 }
@@ -256,18 +337,21 @@ int fd_list(fd_info_t *out, int max)
 int fd_get_bound_std_pipe(int pid, int whichPipe)
 {
     if (!valid_pid(pid) || (whichPipe != 0 && whichPipe != 1))
-        return -1;                                                            // -1 inválido
-    return (whichPipe == 0) ? bound_stdin_pipe[pid] : bound_stdout_pipe[pid]; // pipeId o -1
+        return -1;
+    return (whichPipe == 0) ? bound_stdin_pipe[pid] : bound_stdout_pipe[pid];
 }
 
 int fd_is_read_ready(int fd)
 {
     int pid = scheduler_current_pid();
+    if (!valid_pid(pid))
+        return -1;
+
     if (fd == STDIN)
     {
         int pipeId = fd_get_bound_std_pipe(pid, 0);
         if (pipeId >= 0)
-            return pipe_available(pipeId) > 0 ? 1 : 0; // 1 listo, 0 vacío
+            return pipe_available(pipeId) > 0 ? 1 : 0;
     }
     else if (fd == STDOUT)
     {
@@ -275,9 +359,20 @@ int fd_is_read_ready(int fd)
         if (pipeId >= 0)
             return pipe_available(pipeId) > 0 ? 1 : 0;
     }
+
     fd_entry_t *table = get_current_table();
     int idx = idx_from_fd(fd);
-    if (table == NULL || idx < 0 || !table[idx].in_use)
-        return -1;                      // inválido
-    return table[idx].size > 0 ? 1 : 0; // 1 datos, 0 vacío
+    if (table == NULL || idx < 0)
+        return -1;
+
+    spinlock_lock(&table[idx].lock);
+    if (!table[idx].in_use)
+    {
+        spinlock_unlock(&table[idx].lock);
+        return -1;
+    }
+    int ready = table[idx].size > 0 ? 1 : 0;
+    spinlock_unlock(&table[idx].lock);
+
+    return ready;
 }

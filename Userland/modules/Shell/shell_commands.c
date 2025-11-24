@@ -30,10 +30,10 @@ static int cmd_help()
     printf("  kill <pid>       - Mata un proceso dado su ID.\n");                                           // OK
     printf("  nice <pid> <pri> - Cambia la prioridad de un proceso dado su ID y la nueva prioridad\n");     // OK
     printf("  block <pid>      - Switch entre ready y blocked de un proceso dado su ID.\n");                // OK
-    printf("  cat              - Imprime el stdin tal como lo recibe.\n");                                  // OK: falta testear
-    printf("  wc               - Cuenta la cantidad de líneas del input\n");                                // OK: falta testear
-    printf("  filter           - Filtra las vocales del input.\n");                                         // OK: falta testear
-    printf("  mvar             - Implementa el problema de múltiples lectores\n");                          // OK: falta testear
+    printf("  cat              - Imprime el stdin tal como lo recibe.\n");                                  // TODO: EOF
+    printf("  wc               - Cuenta la cantidad de líneas del input\n");                                // TODO: EOF
+    printf("  filter           - Filtra las vocales del input.\n");                                         // TODO: EOF
+    printf("  mvar             - Implementa el problema de múltiples lectores\n");                          // TODO
 
     printf("\nTests disponibles:\n");
     printf("  test_mm <max-bytes>                     - Ejecuta stress test del manejador de memoria\n");                    // OK
@@ -53,6 +53,7 @@ static int cmd_help()
 static void cmd_clear()
 {
     clear_screen();
+    shell_print_prompt();
 }
 
 static int cmd_mem()
@@ -66,7 +67,7 @@ static int cmd_mem()
     return 0;
 }
 
-static int cmd_loop(void *argv)
+int cmd_loop(void *argv)
 {
     if (argv == NULL)
         return -1;
@@ -74,12 +75,15 @@ static int cmd_loop(void *argv)
     int segs = args[0];
     if (segs <= 0)
     {
-        printf("Uso: loop <segundos>\n");
+        printf("Uso: loop <segundos>, recibido = :%d, %d\n", ((int *)argv)[0], ((int *)argv)[1]);
         exit(0);
     }
     while (1)
     {
-        printf("Hola! soy el proceso: %d. Este mensaje aparecera cada %d segundos \n", (int)getpid(), segs);
+        printf("Hola! soy el proceso: %d. Este mensaje aparecera cada %d segundo", (int)getpid(), segs);
+        if (segs > 1)
+            printf("s");
+        printf("\n");
         sleep(segs);
     }
     // write(STDOUT, (char *)EOF, 1);
@@ -117,7 +121,16 @@ static void cmd_kill(void *argv)
     }
     int *args = (int *)argv;
     pid_t pid = args[0];
-    int status = kill(pid);
+    int status;
+    if (pid == getpid())
+    {
+        status = kill(pid);
+    }
+    else
+    {
+        status = -1;
+    }
+
     printf("Kill a proceso: %d termino con estado: %d \n", pid, status);
     // write(StdOUT, (char *)EOF, 1);
     exit(status);
@@ -387,11 +400,9 @@ static int cmd_testPriority(void *argv)
 static int cmd_testSynchro(void *argv) // TODO
 {
     int *args = (int *)argv;
-    // args[0] = iter
-    // args[1] = use_sem
 
-    const char *usage = "Uso: test_sync <end-val-for-process>"; // modificar
-    if (argv == NULL || args[0] <= 1)                           // validar parámetros
+    const char *usage = "Uso: test_sync <end-val-for-process>";
+    if (argv == NULL || args[0] <= 1)
     {
         printf("%s\n", usage);
         exit(-1);
@@ -407,7 +418,7 @@ static int cmd_testSynchro(void *argv) // TODO
 // fin comandos diponibles
 
 static void print_error(const char *msg);
-static pid_t launch_program(char *cmd, char **args);
+pid_t launch_program(char *cmd, char **args);
 
 pid_t left_fg_proc = 1;
 pid_t right_fg_proc = -1;
@@ -425,6 +436,7 @@ void set_left_fg_proc(pid_t pid)
 {
     left_fg_proc = pid;
 }
+
 void set_right_fg_proc(pid_t pid)
 {
     right_fg_proc = pid;
@@ -540,8 +552,12 @@ void execute_tokenized_command(char **tokens, int token_count, int foreground_mo
     }
 }
 
-static pid_t launch_program(char *cmd, char **args)
+int argv[2];
+pid_t launch_program(char *cmd, char **args)
 {
+    argv[0] = strtoint(args[0]);
+    argv[1] = strtoint(args[1]);
+
     if (!strcmp(cmd, "help"))
     {
         return new_proc((task_fn_t)cmd_help, NULL);
@@ -556,22 +572,18 @@ static pid_t launch_program(char *cmd, char **args)
     }
     else if (!strcmp(cmd, "loop"))
     {
-        int argv[] = {strtoint(args[0])};
         return new_proc((task_fn_t)cmd_loop, argv);
     }
     else if (!strcmp(cmd, "kill"))
     {
-        int argv[] = {strtoint(args[0])};
         return new_proc((task_fn_t)cmd_kill, argv);
     }
     else if (!strcmp(cmd, "nice"))
     {
-        int argv[] = {strtoint(args[0]), strtoint(args[1])};
         return new_proc((task_fn_t)cmd_nice, argv);
     }
     else if (!strcmp(cmd, "block"))
     {
-        int argv[] = {strtoint(args[0])};
         return new_proc((task_fn_t)cmd_block, argv);
     }
     else if (!strcmp(cmd, "cat"))
@@ -592,27 +604,22 @@ static pid_t launch_program(char *cmd, char **args)
     }
     else if (!strcmp(cmd, "test_mm"))
     {
-        int argv[] = {strtoint(args[0])};
         return new_proc((task_fn_t)cmd_testMM, argv);
     }
     else if (!strcmp(cmd, "test_processes"))
     {
-        int argv[] = {strtoint(args[0])};
         return new_proc((task_fn_t)cmd_testProcesses, argv);
     }
     else if (!strcmp(cmd, "test_priority"))
     {
-        int argv[] = {strtoint(args[0])};
         return new_proc((task_fn_t)cmd_testPriority, argv);
     }
     else if (!strcmp(cmd, "test_synchro"))
     {
-        int argv[] = {strtoint(args[0]), 1};
         return new_proc((task_fn_t)cmd_testSynchro, argv);
     }
     else if (!strcmp(cmd, "test_no_synchro"))
     {
-        int argv[] = {strtoint(args[0]), 0};
         return new_proc((task_fn_t)cmd_testSynchro, argv);
     }
     else
@@ -628,5 +635,5 @@ static void print_error(const char *msg)
 {
     shell_print_colored("Error: ", ERROR_COLOR);
     shell_print(msg);
-    shell_print("\nEscribe 'help' para ver comandos disponibles.\n");
+    printf("Escribe \"help\" para ver comandos disponibles.\n");
 }

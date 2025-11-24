@@ -8,5 +8,8 @@ int isKeyPressed(uint16_t makecode);
 // 1 si las (count) teclas de (makecode) estás presionadas, 0 si no.
 int areKeysPressed(int *makecodes, int count);
 
+#define LCTRL_MKCODE 0x1D
+#define RCTRL_MKCODE 0xE01D
+#define C_MKCODE 0x2E
 
 #endif

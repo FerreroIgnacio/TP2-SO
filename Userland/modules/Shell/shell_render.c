@@ -101,7 +101,8 @@ void shell_print_prompt()
 void clear_buffer()
 {
     buffer_pos = 0;
-    if(shell_cmd_fd >= 0){
+    if (shell_cmd_fd >= 0)
+    {
         flush(shell_cmd_fd); // vaciar contenido del FD 3
     }
 }

@@ -2,6 +2,7 @@
 #include <stdio.h>
 #include "syscall.h"
 #include "test_util.h"
+#include "../process/process.h"
 
 #define TOTAL_PROCESSES 3
 
@@ -20,8 +21,6 @@ void zero_to_max()
 
   while (value++ != max_value)
     ;
-
-  printf("PROCESS %d DONE!\n", my_getpid());
 }
 
 int test_prio(int max_val)
@@ -33,7 +32,7 @@ int test_prio(int max_val)
   if ((max_value = max_val) <= 0)
     return -1;
 
-  printf("\nSAME PRIORITY...\n");
+  printf("\nSAME PRIORITY...\n\n");
 
   for (i = 0; i < TOTAL_PROCESSES; i++)
     pids[i] = my_create_process("zero_to_max", 0, ztm_argv);
@@ -41,9 +40,12 @@ int test_prio(int max_val)
   // Expect to see them finish at the same time
 
   for (i = 0; i < TOTAL_PROCESSES; i++)
-    my_wait(pids[i]);
+  {
+    pid_t terminated = my_wait(0);
+    printf("PROCESS %d DONE!\n", terminated);
+  }
 
-  printf("\nSAME PRIORITY, THEN CHANGE IT...\n");
+  printf("\n\nSAME PRIORITY, THEN CHANGE IT...\n\n");
 
   for (i = 0; i < TOTAL_PROCESSES; i++)
   {
@@ -52,12 +54,16 @@ int test_prio(int max_val)
     printf("  PROCESS %d NEW PRIORITY: %d\n", pids[i], prio[i]);
   }
 
+  printf("\n");
   // Expect the priorities to take effect
 
   for (i = 0; i < TOTAL_PROCESSES; i++)
-    my_wait(pids[i]);
+  {
+    pid_t terminated = my_wait(0);
+    printf("PROCESS %d DONE!\n", terminated);
+  }
 
-  printf("\nSAME PRIORITY, THEN CHANGE IT WHILE BLOCKED...\n");
+  printf("\n\nSAME PRIORITY, THEN CHANGE IT WHILE BLOCKED...\n\n");
 
   for (i = 0; i < TOTAL_PROCESSES; i++)
   {
@@ -67,13 +73,17 @@ int test_prio(int max_val)
     printf("  PROCESS %d NEW PRIORITY: %d\n", pids[i], prio[i]);
   }
 
+  printf("\n");
   for (i = 0; i < TOTAL_PROCESSES; i++)
     my_unblock(pids[i]);
 
   // Expect the priorities to take effect
 
   for (i = 0; i < TOTAL_PROCESSES; i++)
-    my_wait(pids[i]);
+  {
+    pid_t terminated = my_wait(0);
+    printf("PROCESS %d DONE!\n", terminated);
+  }
 
   return 0;
 }
