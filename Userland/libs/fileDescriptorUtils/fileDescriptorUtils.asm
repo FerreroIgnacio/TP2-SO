@@ -4,9 +4,10 @@ GLOBAL fd_open
 GLOBAL fd_list
 GLOBAL pipe_create
 GLOBAL fd_bind_std
-GLOBAL pipe_sys_write
-GLOBAL pipe_sys_read
+GLOBAL pipe_write
+GLOBAL pipe_read
 GLOBAL fd_has_data
+GLOBAL pipe_available 
 
 SECTION .text
 
@@ -43,16 +44,21 @@ fd_bind_std:
     int     0x80
     ret
 
-pipe_sys_write:
+pipe_write:
     mov     rax, 0x4A    ; syscall numero 74
     int     0x80
     ret
-pipe_sys_read:
+pipe_read:
     mov     rax, 0x4B    ; syscall numero 75
     int     0x80
     ret
 
 fd_has_data:
     mov     rax, 0x4C    ; syscall numero 76
+    int     0x80
+    ret
+
+pipe_available:
+    mov     rax, 0x4D    ; syscall numero 77
     int     0x80
     ret

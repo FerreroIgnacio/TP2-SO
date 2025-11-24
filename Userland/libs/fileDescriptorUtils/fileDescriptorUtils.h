@@ -33,9 +33,11 @@ typedef struct fd_info_u
 int fd_list(fd_info_u_t *out, int max);
 
 // Pipes y redirección
-int pipe_create(void);                            // crea un pipe y retorna id
+int pipe_create(void); // crea un pipe y retorna id
+int pipe_read(int pipe_id, char *buff, uint64_t count);
 int fd_bind_std(int pid, int which, int pipe_id); // which: 0=STDIN, 1=STDOUT
 int fd_has_data(int fd);                          // retorna 1 si hay datos para leer, 0 si no
+int pipe_available(int pipe_id);
 
 // borra todo el file descriptor
 void flush(int fd);
