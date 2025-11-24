@@ -133,19 +133,19 @@ int scheduler_kill(int pid)
 
 int scheduler_kill_double(int pid1, int pid2)
 {
-    if (!(pid1 <= 1 || pid1 >= MAX_TASKS || procQueue[pid1].present == false))
+    if (pid1 > 1 && pid1 < MAX_TASKS && procQueue[pid1].present)
     {
         procQueue[pid1].is_zombie = true;
         procQueue[pid1].was_killed = true;
     }
 
-    if (!(pid2 <= 1 || pid2 >= MAX_TASKS || procQueue[pid2].present == false))
+    if (pid2 > 1 && pid2 < MAX_TASKS && procQueue[pid2].present)
     {
         procQueue[pid2].is_zombie = true;
         procQueue[pid2].was_killed = true;
     }
 
-    if (current_pid == pid1 || current_pid == pid2)
+    if ((pid1 > 0 && current_pid == pid1) || (pid2 > 0 && current_pid == pid2))
     {
         procQueue[pid1].run_tokens = 0;
         procQueue[pid2].run_tokens = 0;
@@ -224,10 +224,13 @@ static int find_next_ready_from(int start_exclusive)
 void scheduler_switch(reg_screenshot_t *regs)
 {
 
-    if (procQueue[current_pid].run_tokens > 0)
+    if (current_pid >= 0)
     {
-        --procQueue[current_pid].run_tokens;
-        interrupt_setRegisters(regs);
+        if (procQueue[current_pid].run_tokens > 0)
+        {
+            --procQueue[current_pid].run_tokens;
+            interrupt_setRegisters(regs);
+        }
     }
 
     // Elegir próximo candidato en round-robin
@@ -400,7 +403,7 @@ process_priority_t scheduler_get_priority(int pid)
 
 static void scheduler_adopt_orphans()
 {
-    for (int i = 1; i <= MAX_TASKS; i++)
+    for (int i = 1; i < MAX_TASKS; i++)
     {
         if (!procQueue[i].present)
             continue;
@@ -413,7 +416,7 @@ static void scheduler_adopt_orphans()
 
 static void scheduler_delete_orphan_zombies()
 {
-    for (int i = 1; i <= MAX_TASKS; i++)
+    for (int i = 1; i < MAX_TASKS; i++)
     {
         if (procQueue[i].present && procQueue[i].father_pid == 0 && procQueue[i].is_zombie)
         {

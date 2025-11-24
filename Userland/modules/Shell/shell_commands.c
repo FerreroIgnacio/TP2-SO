@@ -77,7 +77,7 @@ int cmd_loop(void *argv)
     int segs = args[0];
     if (segs <= 0)
     {
-        printf("Uso: loop <segundos>, recibido = :%d, %d\n", ((int *)argv)[0], ((int *)argv)[1]);
+        printf("Uso: loop <segundos>\n");
         putchar(EOT);
         exit(0);
     }
@@ -229,7 +229,8 @@ static void cmd_filter()
             break;
         }
         if (c == 'a' || c == 'e' || c == 'i' || c == 'o' || c == 'u' ||
-            c == 'A' || c == 'E' || c == 'I' || c == 'O' || c == 'U' || c == '\n' || c == ' ')
+            c == 'A' || c == 'E' || c == 'I' || c == 'O' || c == 'U' ||
+            c == '\n' || c == ' ')
         {
             putchar(c);
         }

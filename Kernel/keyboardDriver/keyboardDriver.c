@@ -455,7 +455,6 @@ void keyPressedAction(uint8_t makecode, registers_t *regs)
                     int right_pid = get_right_fg_proc();
                     set_left_fg_proc(1);
                     set_right_fg_proc(-1);
-                    // int r = pipe_try_kernel_nonblocking_write(0, EOT);
                     scheduler_kill_double(left_pid, right_pid);
                 }
 

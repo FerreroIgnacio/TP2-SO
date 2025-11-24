@@ -113,6 +113,7 @@ static void rebuild_line_visual()
 }
 
 // Maneja lectura parcial desde STDIN y actualiza FD 3
+
 static void handle_stdin_chunk()
 {
     update_cursor();
