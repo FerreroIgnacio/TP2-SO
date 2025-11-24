@@ -5,7 +5,7 @@
 #include "registerManagement.h"
 
 #ifndef MAX_TASKS
-#define MAX_TASKS 100
+#define MAX_TASKS 20
 #endif
 
 typedef enum
@@ -75,6 +75,8 @@ int scheduler_add(task_fn_t task, void *argv);
  * Uso: scheduler_kill(pid);
  */
 int scheduler_kill(int pid);
+
+int scheduler_kill_double(int pid1, int pid2);
 
 /*
  * Termina el proceso actual con estado status.
@@ -148,4 +150,10 @@ int scheduler_wait_pid(int pid, int *status, waitpid_options_t hang);
 
 // bloquea el proceso ms milisegundos
 void scheduler_sleep(int ms);
+
+int get_left_fg_proc();
+int get_right_fg_proc();
+void set_left_fg_proc(int pid);
+void set_right_fg_proc(int pid);
+
 #endif

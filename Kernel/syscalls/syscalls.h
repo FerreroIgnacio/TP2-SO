@@ -54,6 +54,12 @@
 #define SYSCALL_WAIT_PID 50
 // Dormir ms milisegundos
 #define SYSCALL_SLEEP 51
+// Obtener procesos en foreground de cada lado del pipe
+#define SYSCALL_GET_LEFT_FG_PROC 52
+#define SYSCALL_GET_RIGHT_FG_PROC 53
+// Setear procesos foreground del pipe
+#define SYSCALL_SET_LEFT_FG_PROC 54
+#define SYSCALL_SET_RIGHT_FG_PROC 55
 
 // Semáforos
 #define SYSCALL_SEM_OPEN 60
@@ -115,6 +121,10 @@ int sys_unblock_proc(int pid);
 void sys_yield(void);
 int sys_waitpid(int pid, int *status, int options);
 void sys_sleep(int ms);
+int sys_get_lfg();
+int sys_get_rfg();
+int sys_set_lfg(int pid);
+int sys_set_rfg(int pid);
 
 int sys_sem_open(const char *name, int initial_value);
 int sys_sem_wait(int sem_id);

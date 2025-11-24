@@ -5,6 +5,7 @@
 #include "../syscalls/syscalls.h"
 #include "../filesDescriptors/fd.h"
 #include "../filesDescriptors/pipes.h"
+#include "../scheduler/scheduler.h"
 
 #define KEYCODE_BUFFER_SIZE 128
 
@@ -449,10 +450,13 @@ void keyPressedAction(uint8_t makecode, registers_t *regs)
 
                 if ((c == 'c' || c == 'C') && ctrlPressed)
                 {
-                    if (sys_get_pid() > 1)
-                    {
-                        sys_proc_kill(sys_get_pid());
-                    }
+                    sys_fd_bind_std(1, STDIN, STDIN);
+                    int left_pid = get_left_fg_proc();
+                    int right_pid = get_right_fg_proc();
+                    set_left_fg_proc(1);
+                    set_right_fg_proc(-1);
+                    // int r = pipe_try_kernel_nonblocking_write(0, EOT);
+                    scheduler_kill_double(left_pid, right_pid);
                 }
 
                 if ((c == 'd' || c == 'D') && ctrlPressed)

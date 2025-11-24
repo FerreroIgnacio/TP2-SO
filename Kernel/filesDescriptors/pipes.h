@@ -52,4 +52,6 @@ int pipe_try_kernel_nonblocking_write(int pipe_id, char c);
  */
 int pipe_available(int pipe_id); // Retorna bytes disponibles (>=0). Retorna -1 si pipe_id inválido.
 
+int pflush(int id);
+
 #endif // PIPES_H

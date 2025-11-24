@@ -91,5 +91,9 @@ int unblock_proc(pid_t pid);
 void yield(void);
 pid_t waitpid(pid_t pid, int *status, waitpid_options_t options);
 void sleep(int s);
+pid_t get_left_fg_proc();
+pid_t get_right_fg_proc();
+void set_left_fg_proc(pid_t pid);
+void set_right_fg_proc(pid_t pid);
 
 #endif

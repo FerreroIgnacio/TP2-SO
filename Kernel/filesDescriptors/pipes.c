@@ -9,7 +9,6 @@ typedef struct
     unsigned int wpos;
     unsigned int size;
     int in_use;
-    // NUEVO: listas de espera
     wait_node_t *readers_head;
     wait_node_t *readers_tail;
     wait_node_t *writers_head;
@@ -212,4 +211,16 @@ int pipe_available(int id)
     int sz = (int)p->size;
     spinlock_unlock(&p->lock);
     return sz;
+}
+
+int pflush(int id)
+{
+    if (valid(id))
+    {
+        pipes[id].rpos = 0;
+        pipes[id].wpos = 0;
+        pipes[id].size = 0;
+        return 0;
+    }
+    return -1;
 }

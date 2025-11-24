@@ -10,7 +10,10 @@ GLOBAL unblock_proc
 GLOBAL yield
 GLOBAL waitpid
 GLOBAL sleep
-
+GLOBAL get_left_fg_proc
+GLOBAL get_right_fg_proc
+GLOBAL set_left_fg_proc
+GLOBAL set_right_fg_proc
 
 SECTION .text
 
@@ -71,5 +74,25 @@ waitpid:
 
 sleep:
     mov rax, 0x33
+    int 0x80 
+    ret;
+
+get_left_fg_proc:
+    mov rax, 0x34
+    int 0x80 
+    ret;
+
+get_right_fg_proc:
+    mov rax, 0x35
+    int 0x80 
+    ret;
+
+set_left_fg_proc:
+    mov rax, 0x36
+    int 0x80 
+    ret;
+
+set_right_fg_proc:
+    mov rax, 0x37
     int 0x80 
     ret;

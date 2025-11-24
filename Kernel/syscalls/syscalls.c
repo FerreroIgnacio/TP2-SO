@@ -82,6 +82,14 @@ uint64_t syscallHandler(int syscall_num, uint64_t arg1, uint64_t arg2, uint64_t 
     case SYSCALL_SLEEP:
         sys_sleep((int)(arg1));
         return 1;
+    case SYSCALL_GET_LEFT_FG_PROC:
+        return sys_get_lfg();
+    case SYSCALL_GET_RIGHT_FG_PROC:
+        return sys_get_rfg();
+    case SYSCALL_SET_LEFT_FG_PROC:
+        return sys_set_lfg((int)arg1);
+    case SYSCALL_SET_RIGHT_FG_PROC:
+        return sys_set_rfg((int)arg1);
     case SYSCALL_SEM_OPEN:
         return sys_sem_open((const char *)arg1, (int)arg2);
     case SYSCALL_SEM_WAIT:
@@ -316,6 +324,28 @@ int sys_waitpid(int pid, int *status, int options)
 void sys_sleep(int ms)
 {
     scheduler_sleep(ms);
+}
+
+int sys_get_lfg()
+{
+    return get_left_fg_proc();
+}
+
+int sys_get_rfg()
+{
+    return get_right_fg_proc();
+}
+
+int sys_set_lfg(int pid)
+{
+    set_left_fg_proc(pid);
+    return 0;
+}
+
+int sys_set_rfg(int pid)
+{
+    set_right_fg_proc(pid);
+    return 0;
 }
 
 int sys_sem_open(const char *name, int initial_value)

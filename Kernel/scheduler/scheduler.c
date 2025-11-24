@@ -131,6 +131,29 @@ int scheduler_kill(int pid)
     return 0;
 }
 
+int scheduler_kill_double(int pid1, int pid2)
+{
+    if (!(pid1 <= 1 || pid1 >= MAX_TASKS || procQueue[pid1].present == false))
+    {
+        procQueue[pid1].is_zombie = true;
+        procQueue[pid1].was_killed = true;
+    }
+
+    if (!(pid2 <= 1 || pid2 >= MAX_TASKS || procQueue[pid2].present == false))
+    {
+        procQueue[pid2].is_zombie = true;
+        procQueue[pid2].was_killed = true;
+    }
+
+    if (current_pid == pid1 || current_pid == pid2)
+    {
+        procQueue[pid1].run_tokens = 0;
+        procQueue[pid2].run_tokens = 0;
+        scheduler_switch(NULL);
+    }
+    return 0;
+}
+
 void scheduler_exit(int status)
 {
     int pid = current_pid;
@@ -314,7 +337,6 @@ int scheduler_block_pid(int pid)
     if (pid == 0 || !is_valid_pid(pid))
     {
 
-
         return -1;
     }
 
@@ -495,4 +517,24 @@ void scheduler_sleep(int secs)
     sys_getTime(NULL, NULL, &start_secs);
     procQueue[current_pid].wakeup_time = start_secs + secs;
     scheduler_yield();
+}
+
+static int left_fg_proc = 1;
+static int right_fg_proc = -1;
+
+int get_left_fg_proc()
+{
+    return left_fg_proc;
+}
+int get_right_fg_proc()
+{
+    return right_fg_proc;
+}
+void set_left_fg_proc(int pid)
+{
+    left_fg_proc = pid;
+}
+void set_right_fg_proc(int pid)
+{
+    right_fg_proc = pid;
 }

@@ -30,9 +30,9 @@ static int cmd_help()
     printf("  kill <pid>       - Mata un proceso dado su ID.\n");                                           // OK
     printf("  nice <pid> <pri> - Cambia la prioridad de un proceso dado su ID y la nueva prioridad\n");     // OK
     printf("  block <pid>      - Switch entre ready y blocked de un proceso dado su ID.\n");                // OK
-    printf("  cat              - Imprime el stdin tal como lo recibe.\n");                                  // TODO: EOF
-    printf("  wc               - Cuenta la cantidad de líneas del input\n");                                // TODO: EOF
-    printf("  filter           - Filtra las vocales del input.\n");                                         // TODO: EOF
+    printf("  cat              - Imprime el stdin tal como lo recibe.\n");                                  // OK
+    printf("  wc               - Cuenta la cantidad de líneas del input\n");                                // OK
+    printf("  filter           - Filtra las vocales del input.\n");                                         // OK
     printf("  mvar             - Implementa el problema de múltiples lectores\n");                          // TODO
 
     printf("\nTests disponibles:\n");
@@ -43,8 +43,10 @@ static int cmd_help()
     printf("  test_no_synchro <processes> <inc-dec>   - Varios procesos modifican una variable sin semaforos\n");            // OK
 
     printf("\nControles:\n");
-    printf("  Enter - Ejecutar comando\n");
-    printf("  Backspace - Borrar caracter\n");
+    printf("  comando_1 <params> | comando_2 <params> - Concatenar comandos\n");             // OK (en fg)
+    printf("  & comando                               - Ejecutar proceso en background \n"); // TODO
+    printf("  Ctrl+D                                  - Enviar EOT por STDIN\n");            // OK
+    printf("  Ctrl+C                                  - Matar proceso en foreground\n");     // TODO
     putchar(EOT);
     exit(0);
     return 0;
@@ -436,28 +438,6 @@ static int cmd_testSynchro(void *argv) // TODO
 static void print_error(const char *msg);
 pid_t launch_program(char *cmd, char **args);
 
-pid_t left_fg_proc = 1;
-pid_t right_fg_proc = -1;
-
-pid_t get_left_fg_proc()
-{
-    return left_fg_proc;
-}
-pid_t get_right_fg_proc()
-{
-    return right_fg_proc;
-}
-
-void set_left_fg_proc(pid_t pid)
-{
-    left_fg_proc = pid;
-}
-
-void set_right_fg_proc(pid_t pid)
-{
-    right_fg_proc = pid;
-}
-
 void execute_tokenized_command(char **tokens, int token_count, int foreground_mode, int left_pipe_args, int right_pipe_args)
 {
     pid_t left_pid = -1;
@@ -481,14 +461,12 @@ void execute_tokenized_command(char **tokens, int token_count, int foreground_mo
         left_pid = launch_program(tokens[left_pipe_args], &tokens[left_pipe_args + 1]);
         if (left_pid <= 1)
         {
-            print_error("No se pudo lanzar el programa izquierdo del pipe");
             return;
         }
         block_proc(left_pid);
         right_pid = launch_program(tokens[right_pipe_args], &tokens[right_pipe_args + 1]);
         if (right_pid <= 1)
         {
-            print_error("No se pudo lanzar el programa derecho del pipe");
             kill(left_pid);
             return;
         }
@@ -499,7 +477,6 @@ void execute_tokenized_command(char **tokens, int token_count, int foreground_mo
         left_pid = launch_program(tokens[left_pipe_args], &tokens[left_pipe_args + 1]);
         if (left_pid <= 1)
         {
-            print_error("No se pudo lanzar el programa");
             return;
         }
         block_proc(left_pid);
@@ -641,8 +618,10 @@ pid_t launch_program(char *cmd, char **args)
     else
     {
         shell_print_colored("Error: ", ERROR_COLOR);
-        printf("Comando desconocido '%s'\n", cmd);
-        printf("Escribe \"help\" para ver comandos disponibles.\n");
+        shell_print_colored("Comando ", FONT_COLOR);
+        shell_print_colored(cmd, FONT_COLOR);
+        shell_print_colored(" desconodido.\n", FONT_COLOR);
+        shell_print_colored("Escribe \"help\" para ver comandos disponibles.\n", FONT_COLOR);
     }
     return -1;
 }
@@ -650,6 +629,6 @@ pid_t launch_program(char *cmd, char **args)
 static void print_error(const char *msg)
 {
     shell_print_colored("Error: ", ERROR_COLOR);
-    shell_print(msg);
-    printf("Escribe \"help\" para ver comandos disponibles.\n");
+    shell_print_colored(msg, FONT_COLOR);
+    shell_print_colored("\nEscribe \"help\" para ver comandos disponibles.\n", FONT_COLOR);
 }

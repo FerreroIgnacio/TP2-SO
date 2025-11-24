@@ -186,63 +186,6 @@ static void handle_stdin_chunk()
             reset_cursor();
         }
     }
-
-    pid_t left_fg_proc = get_left_fg_proc();
-    pid_t right_fg_proc = get_right_fg_proc();
-    if (!(left_fg_proc == getpid()))
-    {
-        if (right_fg_proc == -1)
-        {
-            if (!(left_fg_proc == getpid())) // si shell es el proc en fg
-            {
-                int status;
-                if (waitpid(left_fg_proc, &status, WNOHANG) > 0)
-                {
-                    fd_bind_std(getpid(), STDIN, STDIN); // shell toma nuevamente el control de la shell
-                    set_left_fg_proc(getpid());
-                    printf("\nProceso %d finalizado con estado %d\n", left_fg_proc, status);
-                    shell_print_prompt();
-                    rebuild_line_visual();
-                }
-            }
-        }
-        else if (left_fg_proc > 1)
-        {
-
-            int status_left, status_right;
-            int left_done = waitpid(left_fg_proc, &status_left, WNOHANG) > 0;
-            int right_done = waitpid(right_fg_proc, &status_right, WNOHANG) > 0;
-            if (get_left_fg_proc() == -1)
-            {
-                left_done = 1;
-            }
-
-            if (right_done && !(left_done))
-            {
-                fd_bind_std(getpid(), STDIN, STDIN);
-                kill(left_fg_proc);
-                waitpid(left_fg_proc, NULL, WNOHANG);
-                set_left_fg_proc(getpid());
-                set_right_fg_proc(-1);
-                printf("\nProceso %d finalizado con estado %d\n", right_fg_proc, status_right);
-                shell_print_prompt();
-                rebuild_line_visual();
-            }
-            else if (left_done && !(right_done))
-            {
-                set_left_fg_proc(-1);
-            }
-            else if (right_done && left_done)
-            {
-                fd_bind_std(getpid(), STDIN, STDIN);
-                set_left_fg_proc(getpid());
-                set_right_fg_proc(-1);
-                printf("\nProceso %d finalizado con estado %d\n", right_fg_proc, status_right);
-                shell_print_prompt();
-                rebuild_line_visual();
-            }
-        }
-    }
 }
 
 static void shell_welcome()
@@ -277,24 +220,52 @@ int main()
     {
         setFB(frame);
         handle_stdin_chunk();
-        int lctrl_c[] = {LCTRL_MKCODE, C_MKCODE};
-        int rctrl_c[] = {RCTRL_MKCODE, C_MKCODE};
-        if ((areKeysPressed(lctrl_c, 2) || areKeysPressed(rctrl_c, 2)) && get_left_fg_proc() != getpid())
+        pid_t left_fg_proc = get_left_fg_proc();
+        pid_t right_fg_proc = get_right_fg_proc();
+
+        if (!(left_fg_proc == getpid()))
         {
-            pid_t left_fg = get_left_fg_proc();
-            pid_t rigth_fg = get_right_fg_proc();
-            if (left_fg > 1)
+            if (right_fg_proc <= 1)
             {
-                int status = kill(left_fg);
-                waitpid(left_fg, NULL, WNOHANG);
-                fd_bind_std(getpid(), STDIN, STDIN);
-                set_left_fg_proc(1);
+                int status;
+                if (waitpid(left_fg_proc, &status, WNOHANG) > 0)
+                {
+                    fd_bind_std(getpid(), STDIN, STDIN); // shell toma nuevamente el control de la shell
+                    set_left_fg_proc(getpid());
+                    printf("\nProceso %d finalizado con estado %d\n", left_fg_proc, status);
+                    shell_print_prompt();
+                    rebuild_line_visual();
+                }
             }
-            if (rigth_fg > 1)
+            else
             {
-                kill(rigth_fg);
-                waitpid(rigth_fg, NULL, WHANG);
-                set_right_fg_proc(-1);
+                int status_left, status_right;
+                int left_done = waitpid(left_fg_proc, &status_left, WNOHANG) > 0;
+                int right_done = waitpid(right_fg_proc, &status_right, WNOHANG) > 0;
+
+                if (left_done && right_done)
+                {
+                    fd_bind_std(getpid(), STDIN, STDIN);
+                    set_left_fg_proc(getpid());
+                    set_right_fg_proc(-1);
+                    printf("\nProceso %d finalizado con estado %d\n", right_fg_proc, status_right);
+                    shell_print_prompt();
+                    rebuild_line_visual();
+                }
+                else if (!left_done && right_done)
+                {
+                    kill(left_fg_proc);
+                    fd_bind_std(getpid(), STDIN, STDIN);
+                    set_left_fg_proc(getpid());
+                    set_right_fg_proc(-1);
+                    printf("\nProceso %d finalizado con estado %d\n", right_fg_proc, status_right);
+                    shell_print_prompt();
+                    rebuild_line_visual();
+                }
+                else if (left_done && !right_done)
+                {
+                    set_left_fg_proc(-1);
+                }
             }
         }
     }
