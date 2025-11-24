@@ -26,6 +26,9 @@ static int cursor_drawn = 0;
 // Función para imprimir un carácter
 void shell_putchar(unsigned char c)
 {
+    if (c == EOT)
+        return;
+
     if (c == '\n')
     {
         shell_newline();

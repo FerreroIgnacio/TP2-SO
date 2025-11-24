@@ -3,6 +3,8 @@
 #define KEYBOARD_DRIVER_H
 #include <stdint.h>
 
+#define EOT 0x04
+
 int isKeyPressed(uint16_t makeCode);
 int areKeysPressed(uint16_t *makeCodeVec);
 void setKeyPressed(uint8_t makeCode);

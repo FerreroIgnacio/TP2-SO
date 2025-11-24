@@ -455,6 +455,11 @@ void keyPressedAction(uint8_t makecode, registers_t *regs)
                     }
                 }
 
+                if ((c == 'd' || c == 'D') && ctrlPressed)
+                {
+                    c = EOT;
+                }
+
                 // NO usar pipe_write (bloqueante) dentro de la IRQ: causa bloqueo y no despierta la shell.
                 // Insertar non-blocking; read() seguirá siendo bloqueante y despertará al tener datos.
                 int r = pipe_try_kernel_nonblocking_write(0, c);

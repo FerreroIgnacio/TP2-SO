@@ -16,6 +16,10 @@
 #define EOF (-1)
 #endif
 
+#ifndef EOT
+#define EOT 0x04
+#endif
+
 /* UTILIDADES FILE DESCRIPTORS */
 // Escribir (count) caracteres de (buf) en el file descriptor (fd).
 int write(int fd, const char *buff, unsigned long count);

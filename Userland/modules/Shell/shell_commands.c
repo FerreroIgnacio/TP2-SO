@@ -45,7 +45,7 @@ static int cmd_help()
     printf("\nControles:\n");
     printf("  Enter - Ejecutar comando\n");
     printf("  Backspace - Borrar caracter\n");
-    // write(STDOUT, (char)EOF, 1);
+    putchar(EOT);
     exit(0);
     return 0;
 }
@@ -62,7 +62,7 @@ static int cmd_mem()
     getMemInfo(&total, &used, &free);
     printf("Estado de la memoria:\n");
     printf("TOTAL: %d   USADO: %d   LIBRE: %d\n", total, used, free);
-    // write(STDOUT, (char *)EOF, 1);
+    putchar(EOT);
     exit(0);
     return 0;
 }
@@ -76,6 +76,7 @@ int cmd_loop(void *argv)
     if (segs <= 0)
     {
         printf("Uso: loop <segundos>, recibido = :%d, %d\n", ((int *)argv)[0], ((int *)argv)[1]);
+        putchar(EOT);
         exit(0);
     }
     while (1)
@@ -86,7 +87,7 @@ int cmd_loop(void *argv)
         printf("\n");
         sleep(segs);
     }
-    // write(STDOUT, (char *)EOF, 1);
+    putchar(EOT);
     exit(0);
     return 0;
 }
@@ -108,7 +109,7 @@ static int cmd_ps()
             p->is_zombie,
             p->status);
     }
-    // write(STDOUT, (char *)EOF, 1);
+    putchar(EOT);
     exit(0);
     return 0;
 }
@@ -117,6 +118,7 @@ static void cmd_kill(void *argv)
 {
     if (argv == NULL)
     {
+        putchar(EOT);
         exit(-1);
     }
     int *args = (int *)argv;
@@ -132,7 +134,7 @@ static void cmd_kill(void *argv)
     }
 
     printf("Kill a proceso: %d termino con estado: %d \n", pid, status);
-    // write(StdOUT, (char *)EOF, 1);
+    putchar(EOT);
     exit(status);
 }
 
@@ -140,6 +142,7 @@ static void cmd_nice(void *argv)
 {
     if (argv == NULL)
     {
+        putchar(EOT);
         exit(-1);
     }
     int *args = (int *)argv;
@@ -148,11 +151,12 @@ static void cmd_nice(void *argv)
     if (prio < PRIORITY_LOW || prio > PRIORITY_HIGH)
     {
         printf("Error, prioridades disponibles:\nLOW : %d\nNORMAL : %d\nHIGH: %d\n", PRIORITY_LOW, PRIORITY_NORMAL, PRIORITY_HIGH);
+        putchar(EOT);
         exit(-1);
     }
     printf("cambiando la prioridad del proceso: %d a %d\n", pid, prio);
     int status = set_priority(pid, prio);
-    // write(StdOUT, (char *)EOF, 1);
+    putchar(EOT);
     exit(status);
 }
 
@@ -160,6 +164,7 @@ static void cmd_block(void *argv)
 {
     if (argv == NULL)
     {
+        putchar(EOT);
         exit(-1);
     }
     int *args = (int *)argv;
@@ -168,10 +173,11 @@ static void cmd_block(void *argv)
     if (block_proc(pid) == 0)
     {
         printf("bloqueando el proceso: %d", pid);
+        putchar(EOT);
         exit(0);
     }
     printf("desbloqueando el proceso: %d", pid);
-    // write(StdOUT, (char *)EOF, 1);
+    putchar(EOT);
     exit(unblock_proc(pid));
 }
 
@@ -180,14 +186,14 @@ static void cmd_cat()
     while (1)
     {
         unsigned char c = getchar();
-        if (c == 'A')
+        if (c == EOT)
         {
             printf("\n");
             break;
         }
         putchar(c);
     }
-    // write(StdOUT, (char *)EOF, 1);
+    putchar(EOT);
     exit(0);
 }
 
@@ -197,7 +203,7 @@ static void cmd_wc()
     while (1)
     {
         unsigned char c = getchar();
-        if (c == EOF)
+        if (c == EOT)
         {
             break;
         }
@@ -207,7 +213,7 @@ static void cmd_wc()
         }
     }
     printf("Lineas: %d\n", count);
-    // write(StdOUT, (char *)EOF, 1);
+    putchar(EOT);
     exit(count);
 }
 
@@ -216,7 +222,7 @@ static void cmd_filter()
     while (1)
     {
         unsigned char c = getchar();
-        if (c == EOF)
+        if (c == EOT)
         {
             break;
         }
@@ -226,7 +232,7 @@ static void cmd_filter()
             putchar(c);
         }
     }
-    // write(StdOUT, (char *)EOF, 1);
+    putchar(EOT);
     exit(0);
 }
 
@@ -244,11 +250,13 @@ static void cmd_mvar()
     if (shared_mm == NULL)
     {
         printf("Error al reservar memoria compartida\n");
+        putchar(EOT);
         exit(-1);
     }
     if ((print_sem_id = sem_open(print_sem_name, 0)) == -1)
     {
         printf("Error al crear semáforo en mvar\n");
+        putchar(EOT);
         exit(-1);
     }
 
@@ -259,6 +267,7 @@ static void cmd_mvar()
         if (proc_pipes[i] == -1)
         {
             printf("Error al crear pipe para el proceso %d\n", i);
+            putchar(EOT);
             exit(-1);
         }
         proc_pids[i] = new_proc((task_fn_t)mvar_proc, (void *)argv);
@@ -272,7 +281,7 @@ static void cmd_mvar()
         unsigned char buffer[STD_BUFF_SIZE];
         for (int i = 1; i <= 3; i++)
         {
-            if (!fd_has_data(proc_pipes[next]))
+            if (!pipe_available(proc_pipes[next]))
             {
                 next = (i + 1) % 3;
                 continue;
@@ -290,7 +299,7 @@ static void cmd_mvar()
             }
         }
     }
-    // write(StdOUT, (char *)EOF, 1);
+    putchar(EOT);
     exit(0);
 }
 
@@ -298,6 +307,7 @@ static void mvar_proc(void *argv)
 {
     if (argv == NULL)
     {
+        putchar(EOT);
         exit(-1);
     }
     char **args = (char **)argv;
@@ -306,6 +316,7 @@ static void mvar_proc(void *argv)
     char *print_sem_name = args[2];
     if (shared_mm == NULL || mutex_sem_name == NULL || print_sem_name == NULL)
     {
+        putchar(EOT);
         exit(-1);
     }
 
@@ -314,6 +325,7 @@ static void mvar_proc(void *argv)
 
     if (mutex_sem_id == -1 || print_sem_id == -1)
     {
+        putchar(EOT);
         exit(-1);
     }
 
@@ -341,7 +353,7 @@ static void mvar_proc(void *argv)
         sem_post(print_sem_id); // notificar cambios en stdout
         sem_post(mutex_sem_id);
     }
-    // write(STDOUT, (char *)EOF, 1);
+    putchar(EOT);
     exit(0);
 }
 
@@ -352,12 +364,13 @@ static int cmd_testMM(void *argv)
     if (argv == NULL || args[0] <= 1)
     {
         printf("%s\n", usage);
+        putchar(EOT);
         exit(-1);
     }
     printf("Iniciando testMM con %d bytes\n", args[0]);
     int result = test_mm(args[0]);
     printf("testMM finalizado con codigo %d\n", result);
-    // write(STDOUT, (char *)EOF, 1);
+    putchar(EOT);
     exit(result);
     return result;
 }
@@ -369,13 +382,14 @@ static int cmd_testProcesses(void *argv)
     if (argv == NULL || args[0] <= 1)
     {
         printf("%s\n", usage);
+        putchar(EOT);
         exit(-1);
     }
 
     printf("Iniciando testProcesses con max %d procesos...\n", args[0]);
     int result = test_processes(args[0]);
     printf("testProcesses finalizado con codigo %d\n", result);
-    // write(STDOUT, (char *)EOF, 1);
+    putchar(EOT);
     exit(result);
     return result;
 }
@@ -387,12 +401,13 @@ static int cmd_testPriority(void *argv)
     if (argv == NULL || args[0] <= 1)
     {
         printf("%s\n", usage);
+        putchar(EOT);
         exit(-1);
     }
     printf("Iniciando testPriority con max_val %d ...\n", args[0]);
     int result = test_prio(args[0]);
     printf("testPriority finalizado con codigo %d\n", result);
-    // write(STDOUT, (char *)EOF, 1);
+    putchar(EOT);
     exit(result);
     return result;
 }
@@ -405,12 +420,13 @@ static int cmd_testSynchro(void *argv) // TODO
     if (argv == NULL || args[0] <= 1)
     {
         printf("%s\n", usage);
+        putchar(EOT);
         exit(-1);
     }
     printf("Iniciando testPriority con max_val %d ...\n", args[0]); // modificar
     int result = test_sync(args[0], args[1]);
     printf("testPriority finalizado con codigo %d\n", result); // modificar
-    // write(STDOUT, (char *)EOF, 1);
+    putchar(EOT);
     exit(result);
     return result;
 }

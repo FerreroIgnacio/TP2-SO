@@ -121,6 +121,17 @@ static void handle_stdin_chunk()
     if (n <= 0)
         return;
 
+    // eliminar el EOT
+    int w = 0;
+    for (int r = 0; r < n; r++)
+    {
+        if (inbuf[r] != EOT)
+        {
+            inbuf[w++] = inbuf[r];
+        }
+    }
+    n = w;
+
     for (int i = 0; i < n; i++)
     {
         unsigned char c = inbuf[i];
