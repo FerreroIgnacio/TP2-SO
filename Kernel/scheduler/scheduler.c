@@ -145,10 +145,12 @@ int scheduler_kill_double(int pid1, int pid2)
         procQueue[pid2].was_killed = true;
     }
 
-    if ((pid1 > 0 && current_pid == pid1) || (pid2 > 0 && current_pid == pid2))
+    if ((pid1 > 1 && current_pid == pid1) || (pid2 > 1 && current_pid == pid2))
     {
-        procQueue[pid1].run_tokens = 0;
-        procQueue[pid2].run_tokens = 0;
+        if (pid1 > 1)
+            procQueue[pid1].run_tokens = 0;
+        if (pid2 > 1)
+            procQueue[pid2].run_tokens = 0;
         scheduler_switch(NULL);
     }
     return 0;

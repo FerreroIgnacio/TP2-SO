@@ -21,7 +21,7 @@ int cursor_x = 0;
 int cursor_y = 0;
 static char firstEntry = 1;
 int shell_cmd_fd = -1; // FD dinamico usado como buffer de linea (>=3), expuesto para clear_buffer
-int pipes_to_print[MAX_PROC] = {0};
+int pipes_to_print[MAX_PROC + 1] = {0};
 int pipes_present[MAX_PROC] = {0};
 
 // Prototipos
@@ -229,9 +229,10 @@ int get_shell_stdout_pipe()
     return -1;
 }
 
+int last_readed_pipe = 0;
 int main()
 {
-    int last_readed_pipe = 0;
+
     if (firstEntry)
     {
         frame = getFB();
@@ -255,11 +256,16 @@ int main()
             pipes_to_print[i] = pipe_create();
             pipes_present[i] = 0;
         }
+        pipes_to_print[MAX_PROC] = pipe_create();
+        if (pipes_to_print[MAX_PROC] > 0)
+        {
+            fd_bind_std(getpid(), STDOUT, pipes_to_print[MAX_PROC]);
+        }
     }
     while (1)
     {
         setFB(frame);
-        int pipe_to_print = select(pipes_to_print, last_readed_pipe, MAX_PROC);
+        int pipe_to_print = select(pipes_to_print, last_readed_pipe, MAX_PROC + 1);
         char buffer[STD_BUFF_SIZE];
         if (pipe_to_print > 0)
         {
@@ -291,7 +297,7 @@ int main()
         pid_t left_fg_proc = get_left_fg_proc();
         pid_t right_fg_proc = get_right_fg_proc();
 
-        if (!(left_fg_proc == getpid()))
+        if (left_fg_proc != getpid())
         {
             if (right_fg_proc <= 1)
             {
@@ -337,7 +343,7 @@ int main()
                 }
             }
         }
-        yield();
+        yield(); // permite que corra el resto de procesos.
     }
     return 0;
 }

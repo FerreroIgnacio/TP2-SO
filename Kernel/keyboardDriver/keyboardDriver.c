@@ -456,6 +456,7 @@ void keyPressedAction(uint8_t makecode, registers_t *regs)
                     set_left_fg_proc(1);
                     set_right_fg_proc(-1);
                     scheduler_kill_double(left_pid, right_pid);
+                    return;
                 }
 
                 if ((c == 'd' || c == 'D') && ctrlPressed)
