@@ -3,7 +3,7 @@
 #include <stdint.h>
 
 // Numero maximo de pipes de kernel disponibles simultaneamente
-#define MAX_PIPES 100
+#define MAX_PIPES 500
 // Capacidad del buffer interno de cada pipe (en bytes, ring buffer)
 #define PIPE_BUFFER_CAPACITY 4096
 // ID reservado sugerido para pipe de teclado (opcional, puede no usarse)
