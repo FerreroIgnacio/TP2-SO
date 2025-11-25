@@ -288,6 +288,8 @@ void cmd_mvar(void *argv)
     int writers_count = args[0];
     int readers_count = args[1];
     int mvar_pipes[MVAR_MAX_PROC] = {0};
+    int writer_to_kill;
+    int reader_to_kill;
 
     if (writers_count < 1 || readers_count < 1 || writers_count > MVAR_MAX_PROC || readers_count > MVAR_MAX_PROC)
     {
@@ -324,6 +326,9 @@ void cmd_mvar(void *argv)
         if (pid <= 1)
             break;
         fd_bind_std(pid, STDOUT, mvar_pipes[i]);
+        if (i == 0)
+            reader_to_kill = pid;
+
         yield();
     }
 
@@ -334,12 +339,38 @@ void cmd_mvar(void *argv)
         int pid = new_proc((task_fn_t)mvar_writer, mvar_argv);
         if (pid <= 1)
             break;
+        if (i == 0)
+            writer_to_kill = pid;
         yield();
     }
 
-    printf("Inicializacion completa\n");
+    printf("Escritores: A , B ...\n");
+    printf("Lectores: 1 , 2 ...\n");
+    printf("Cuando se lee, se elimina el valor en la memoria compartida. \n");
+    printf("Presione 'w' para matar a un escritor y 'r' para matar a un lector. \n");
+
     while (1)
     {
+        if (writer_to_kill || reader_to_kill)
+        {
+            if (pipe_available(STDIN))
+            {
+                char c = getchar();
+                if ((c == 'w' || c == 'W') && writer_to_kill)
+                {
+                    kill(writer_to_kill);
+                    writer_to_kill = 0;
+                    printf("\nEscritor A eliminado.\n");
+                }
+                if ((c == 'r' || c == 'R') && reader_to_kill)
+                {
+                    kill(reader_to_kill);
+                    reader_to_kill = 0;
+                    printf("\nLector 0 eliminado.\n");
+                }
+            }
+        }
+
         for (int i = 0; i < readers_count; i++)
         {
             if (pipe_available(mvar_pipes[i]) > 0)
@@ -353,6 +384,7 @@ void cmd_mvar(void *argv)
                 }
             }
         }
+
         yield();
     }
 }
