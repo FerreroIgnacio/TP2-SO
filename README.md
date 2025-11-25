@@ -28,7 +28,7 @@ Cantidad de procesos en simultáneo: debido a la poca memoria disponible, dar la
 
 ## Instrucciones de replicación
 
-Comandos implementados:
+#### Comandos implementados:
 
 - `help`             : muestra los comandos disponibles
 - `clear`            : limpia la pantalla
@@ -43,23 +43,23 @@ Comandos implementados:
 - `filter`           : filtra las vocales del input
 - `mvar`             : implementa el problema de múltiples lectores
 
-Tests disponibles:
+#### Tests disponibles:
 - `test_mm <max-bytes>`                  : ejecuta stress test del manejador de memoria 
 - `test_processes <max-processes>`       : crea, bloquea, desbloquea y mata procesos aleatoriamente 
 - `test_priority <end-val-for-process>`  : 3 procesos se ejecutan con misma prioridad y luego con distinta (recomen)
-- `test_synchro <processes> <inc-dec>`   : varios procesos modifican 1 variable usando semáforos
-- `test_no_synchro <processes> <inc-dec>`: varios procesos modifican una variable sin semáforos
+- `test_synchro <max-val>`               : varios procesos modifican 1 variable usando semáforos
+- `test_no_synchro <max-val>`            : varios procesos modifican una variable sin semáforos
 
-Controles especiales:
+#### Controles especiales:
 - `comando_1 <params> | comando_2 <params>` : concatenar comandos con pipe
 - `& comando`                               : ejecutar proceso en background
 - `Ctrl+D`                                  : enviar EOT por STDIN
 - `Ctrl+C`                                  : matar proceso en foreground
 
-Aclaraciones: 
+### Aclaraciones: 
 - En nuestro sistema operativo decidimos implementar las prioridades dejando que cada proceso corra más o menos tiempo DENTRO DE SU CICLO, es decir, la cantidad de switches a ese proceso permanece constante en un sistema round-robin. En este caso, se pierde la noción de prioridad cuando los procesos no son CPU-Bound como en `mvar`. Es por esto que decidimos no agregar el cambio de prioridades durante la ejecución en este comando, ya que no modifica el resultado. Si se implementó el kill a escritores y lectores mediante las teclas 'W' y 'R'.
-- El uso de prioridades tiene un mejor efecto en `test_priority`, se recomienda ejecutarlo con el valor 500000000. un valor menor premite que los procesos corran en un ciclo, perdiendose el efecto, un valor mayor hace muy lenta la ejecución.
-- Tener en cuenta las limitaciones mencionadas en la sección anterior para test_processes, max-processes no debe superar los 20 procesos (incluyendo los creados previamente) en caso de hacerlo terminará (correctamente) con errores al no poder crear todos los procesos.
+- Para ver mejor el uso de prioridades en `test_priority`, se recomienda ejecutarlo con el valor 500000000. un valor menor premite que los procesos corran en un ciclo, perdiendose el efecto, un valor mayor hace muy lenta la ejecución.
+- Tener en cuenta las limitaciones mencionadas en la sección anterior para `test_processes`, `<max-processes>` no debe superar los 20 procesos (incluyendo los creados previamente) en caso de hacerlo terminará (correctamente) con errores al no poder crear todos los procesos.
 
 
 ## Uso de IA
