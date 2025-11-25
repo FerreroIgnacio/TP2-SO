@@ -90,7 +90,7 @@ int block_proc(pid_t pid);
 int unblock_proc(pid_t pid);
 void yield(void);
 pid_t waitpid(pid_t pid, int *status, waitpid_options_t options);
-void sleep(int s);
+void sleep(int ms); // duerme ms milisegundos
 pid_t get_left_fg_proc();
 pid_t get_right_fg_proc();
 void set_left_fg_proc(pid_t pid);

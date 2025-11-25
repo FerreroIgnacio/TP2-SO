@@ -199,19 +199,20 @@ int scheduler_list(proc_info_t *out, int max)
  */
 static int find_next_ready_from(int start_exclusive)
 {
-    uint8_t current_secs;
-    sys_getTime(NULL, NULL, &current_secs);
+    // Tiempo monotónico en milisegundos desde el boot
+    uint64_t now_ms = getSysTicks() * 55ULL;
     for (int step = 1; step <= MAX_TASKS; step++)
     {
-
         int idx = (start_exclusive + step) % MAX_TASKS;
+        // Procesos explícitamente bloqueados no están listos
         if (procQueue[idx].waiting)
         {
             procQueue[idx].ready = 0;
         }
         else
         {
-            procQueue[idx].ready = (procQueue[idx].wakeup_time <= current_secs ? 1 : 0);
+            // Si nunca se durmió (wakeup_time==0) o ya pasó su tiempo de despertar, está ready
+            procQueue[idx].ready = (procQueue[idx].wakeup_time == 0 || procQueue[idx].wakeup_time <= now_ms) ? 1 : 0;
         }
 
         if (procQueue[idx].present == true && procQueue[idx].ready && !procQueue[idx].is_zombie)
@@ -516,11 +517,12 @@ void scheduler_start()
     }
 }
 
-void scheduler_sleep(int secs)
+void scheduler_sleep(int ms)
 {
-    uint8_t start_secs;
-    sys_getTime(NULL, NULL, &start_secs);
-    procQueue[current_pid].wakeup_time = start_secs + secs;
+    // Dormir usando reloj monotónico en milisegundos basado en ticks de timer
+    uint64_t now_ms = getSysTicks() * 55ULL;
+    uint64_t delta = (ms <= 0) ? 0ULL : (uint64_t)ms;
+    procQueue[current_pid].wakeup_time = now_ms + delta;
     scheduler_yield();
 }
 

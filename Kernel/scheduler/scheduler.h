@@ -45,7 +45,8 @@ typedef struct
     struct wait_node *waiting_node;
     int wait_status;
 
-    int wakeup_time; // si un proceso duerme, guarda el tiempo en el que debe despertar
+    // Momento (monotónico) en milisegundos desde el boot en el que debe despertar
+    uint64_t wakeup_time;
 
     int priority;
     int run_tokens; // 1 token = 1 quantum de cpu, a mayor prioridad, mayor tiempo de cpu.
@@ -148,7 +149,7 @@ int scheduler_unblock_pid(int pid);
 // si hang == WHANG, espera bloqueante, si hang == WNOHANG, no bloquea si el hijo no terminó
 int scheduler_wait_pid(int pid, int *status, waitpid_options_t hang);
 
-// bloquea el proceso ms milisegundos
+// bloquea el proceso por ms milisegundos (medido con reloj monotónico)
 void scheduler_sleep(int ms);
 
 int get_left_fg_proc();
