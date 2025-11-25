@@ -459,7 +459,7 @@ static int cmd_testNoSynchro(void *argv)
 // fin comandos diponibles
 
 static void print_error(const char *msg);
-pid_t launch_program(char *cmd, char **args);
+static pid_t launch_program(char *cmd, char **args, int side);
 
 void execute_tokenized_command(char **tokens, int token_count, int foreground_mode, int left_pipe_args, int right_pipe_args)
 {
@@ -482,13 +482,13 @@ void execute_tokenized_command(char **tokens, int token_count, int foreground_mo
     // creación de procesos
     if (right_pipe_args >= 0)
     {
-        left_pid = launch_program(tokens[left_pipe_args], &tokens[left_pipe_args + 1]);
+        left_pid = launch_program(tokens[0], &tokens[1], 1);
         if (left_pid <= 1)
         {
             return;
         }
         block_proc(left_pid);
-        right_pid = launch_program(tokens[right_pipe_args], &tokens[right_pipe_args + 1]);
+        right_pid = launch_program(tokens[right_pipe_args], &tokens[right_pipe_args + 1], 0);
         if (right_pid <= 1)
         {
             kill(left_pid);
@@ -498,7 +498,7 @@ void execute_tokenized_command(char **tokens, int token_count, int foreground_mo
     }
     else
     {
-        left_pid = launch_program(tokens[left_pipe_args], &tokens[left_pipe_args + 1]);
+        left_pid = launch_program(tokens[0], &tokens[1], 1);
         if (left_pid <= 1)
         {
             return;
@@ -547,64 +547,28 @@ void execute_tokenized_command(char **tokens, int token_count, int foreground_mo
     }
     unblock_proc(left_pid);
     unblock_proc(right_pid);
-    /*
+}
 
+// fix temporal
+int argv_l[2];
+int argv_r[2];
 
-    if (foreground_mode)
+static pid_t launch_program(char *cmd, char **args, int side)
+{
+    // fix temporal
+    int *argv;
+    if (side)
     {
-        if (right_pid > 1)
-        {
-            int shell_pipe = pipe_create();
-            if (shell_pipe == -1)
-            {
-                print_error("No se pudo crear pipe entre shell y proceso");
-                kill(left_pid);
-                kill(right_pid);
-                return;
-            }
-            fd_bind_std(left_pid, STDIN, STDIN);        // stdin de la shell
-            fd_bind_std(right_pid, STDOUT, shell_pipe); // salida a shell
-            fd_bind_std(getpid(), STDIN, shell_pipe);   // stdin de la shell
-            unblock_proc(left_pid);
-            unblock_proc(right_pid);
-
-            set_left_fg_proc(left_pid);
-            set_right_fg_proc(right_pid);
-        }
-        else
-        {
-            int shell_pipe = pipe_create();
-            if (shell_pipe == -1)
-            {
-                print_error("No se pudo crear pipe entre shell y proceso");
-                kill(left_pid);
-                return;
-            }
-            fd_bind_std(left_pid, STDIN, STDIN);       // salida a shell
-            fd_bind_std(left_pid, STDOUT, shell_pipe); // salida a shell
-            fd_bind_std(getpid(), STDIN, shell_pipe);  // stdin de la shell
-            unblock_proc(left_pid);
-            set_left_fg_proc(left_pid);
-            set_right_fg_proc(-1);
-        }
+        argv_l[0] = strtoint(args[0]);
+        argv_l[1] = strtoint(args[1]);
+        argv = argv_l;
     }
     else
     {
-        if (right_pid > 1)
-        {
-            unblock_proc(right_pid);
-        }
-        unblock_proc(left_pid);
+        argv_r[0] = strtoint(args[0]);
+        argv_r[1] = strtoint(args[1]);
+        argv = argv_r;
     }
-    */
-}
-
-int argv[2];
-pid_t launch_program(char *cmd, char **args)
-{
-    argv[0] = strtoint(args[0]);
-    argv[1] = strtoint(args[1]);
-
     if (!strcmp(cmd, "help"))
     {
         return new_proc((task_fn_t)cmd_help, NULL);
