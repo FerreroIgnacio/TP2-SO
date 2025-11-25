@@ -46,7 +46,7 @@ typedef struct fd_entry
     uint32_t write_pos;
     uint32_t size;
     uint8_t in_use;
-    spinlock_t lock; // Protección contra accesos concurrentes
+    // spinlock_t lock; // Protección contra accesos concurrentes (removed for single-threaded)
 } fd_entry_t;
 
 // Public info for listing FDs
@@ -106,3 +106,4 @@ int fd_get_bound_std_pipe(int pid, int whichPipe);
 int fd_is_read_ready(int fd);
 
 #endif // FD_H
+

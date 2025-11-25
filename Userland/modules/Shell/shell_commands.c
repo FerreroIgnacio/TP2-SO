@@ -86,8 +86,9 @@ static int cmd_loop(void *argv)
         printf("Hola! soy el proceso: %d. Este mensaje aparecera cada %d segundo", (int)getpid(), segs);
         if (segs > 1)
             printf("s");
-        printf("\n");
+        printf("\nme dormi");
         sleep(segs);
+        printf("\nme desperte!\n");
     }
     putchar(EOT);
     exit(0);

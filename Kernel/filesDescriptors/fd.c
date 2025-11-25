@@ -26,7 +26,6 @@ void fd_init(void)
             proc_fds[p][i].read_pos = 0;
             proc_fds[p][i].write_pos = 0;
             proc_fds[p][i].size = 0;
-            spinlock_init(&proc_fds[p][i].lock);
         }
         // Initialize standard FDs 0,1,2
         proc_fds[p][0].in_use = 1;
@@ -52,7 +51,6 @@ void fd_reset_pid(int pid)
         proc_fds[pid][i].read_pos = 0;
         proc_fds[pid][i].write_pos = 0;
         proc_fds[pid][i].size = 0;
-        spinlock_init(&proc_fds[pid][i].lock);
     }
     proc_fds[pid][0].in_use = 1;
     strcpy(proc_fds[pid][0].name, "stdin");
@@ -99,8 +97,6 @@ int fd_create(const char *name)
         return -1;
     for (int i = 0; i < MAX_PROCESS_FDS; i++)
     {
-        // Lock para verificar y marcar como en uso atómicamente
-        spinlock_lock(&table[i].lock);
         if (!table[i].in_use)
         {
             table[i].in_use = 1;
@@ -114,10 +110,8 @@ int fd_create(const char *name)
             table[i].read_pos = 0;
             table[i].write_pos = 0;
             table[i].size = 0;
-            spinlock_unlock(&table[i].lock);
             return FIRST_DYNAMIC_FD + i;
         }
-        spinlock_unlock(&table[i].lock);
     }
     return -1;
 }
@@ -148,29 +142,23 @@ int fd_write(int fd, const char *buffer, uint64_t count)
         return -1;
 
     // Verificar que el FD esté en uso
-    spinlock_lock(&table[idx].lock);
     if (!table[idx].in_use)
     {
-        spinlock_unlock(&table[idx].lock);
         return -1;
     }
-    spinlock_unlock(&table[idx].lock);
 
     uint64_t written = 0;
     while (written < count)
     {
-        spinlock_lock(&table[idx].lock);
 
         if (table[idx].size == FD_BUFFER_CAPACITY)
         {
             // Buffer lleno. Si ya escribimos algo, devolver parcial.
             if (written > 0)
             {
-                spinlock_unlock(&table[idx].lock);
                 break;
             }
-            // Nada escrito: liberar lock y yield hasta que haya espacio
-            spinlock_unlock(&table[idx].lock);
+            // Nada escrito: yield hasta que haya espacio
             scheduler_yield();
             continue; // Reintentar desde el principio del loop
         }
@@ -180,7 +168,6 @@ int fd_write(int fd, const char *buffer, uint64_t count)
         uint32_t free_space = FD_BUFFER_CAPACITY - table[idx].size;
         uint64_t chunk = (remaining < free_space) ? remaining : free_space;
 
-        // Escribir con el lock tomado para evitar race conditions
         for (uint64_t i = 0; i < chunk; i++)
         {
             table[idx].buffer[table[idx].write_pos] = (uint8_t)buffer[written + i];
@@ -189,16 +176,10 @@ int fd_write(int fd, const char *buffer, uint64_t count)
         table[idx].size += (uint32_t)chunk;
         written += chunk;
 
-        spinlock_unlock(&table[idx].lock);
-
         // Si se llenó y quedan datos, salimos con parcial
-        if (written < count)
+        if (written < count && table[idx].size == FD_BUFFER_CAPACITY)
         {
-            spinlock_lock(&table[idx].lock);
-            int is_full = (table[idx].size == FD_BUFFER_CAPACITY);
-            spinlock_unlock(&table[idx].lock);
-            if (is_full)
-                break;
+            break;
         }
     }
     return (int)written;
@@ -229,29 +210,23 @@ int fd_read(int fd, char *buffer, uint64_t count)
         return -1;
 
     // Verificar que el FD esté en uso
-    spinlock_lock(&table[idx].lock);
     if (!table[idx].in_use)
     {
-        spinlock_unlock(&table[idx].lock);
         return -1;
     }
-    spinlock_unlock(&table[idx].lock);
 
     uint64_t read = 0;
     while (read < count)
     {
-        spinlock_lock(&table[idx].lock);
 
         if (table[idx].size == 0)
         {
             // Si ya leímos algo, devolver parcial
             if (read > 0)
             {
-                spinlock_unlock(&table[idx].lock);
                 break;
             }
             // Bloquear/yield hasta que haya al menos 1 byte
-            spinlock_unlock(&table[idx].lock);
             scheduler_yield();
             continue; // Reintentar
         }
@@ -261,7 +236,6 @@ int fd_read(int fd, char *buffer, uint64_t count)
         uint32_t available = table[idx].size;
         uint64_t chunk = (remaining < available) ? remaining : available;
 
-        // Leer con el lock tomado
         for (uint64_t i = 0; i < chunk; i++)
         {
             buffer[read + i] = (char)table[idx].buffer[table[idx].read_pos];
@@ -270,16 +244,10 @@ int fd_read(int fd, char *buffer, uint64_t count)
         table[idx].size -= (uint32_t)chunk;
         read += chunk;
 
-        spinlock_unlock(&table[idx].lock);
-
         // Si se vació y quedan datos por leer, salir con parcial
-        if (read < count)
+        if (read < count && table[idx].size == 0)
         {
-            spinlock_lock(&table[idx].lock);
-            int is_empty = (table[idx].size == 0);
-            spinlock_unlock(&table[idx].lock);
-            if (is_empty)
-                break;
+            break;
         }
     }
     return (int)read;
@@ -292,14 +260,11 @@ int fd_has_data(int fd)
     if (table == NULL || idx < 0)
         return 0;
 
-    spinlock_lock(&table[idx].lock);
     if (!table[idx].in_use)
     {
-        spinlock_unlock(&table[idx].lock);
         return 0;
     }
     int has_data = table[idx].size > 0;
-    spinlock_unlock(&table[idx].lock);
 
     return has_data;
 }
@@ -314,7 +279,6 @@ int fd_list(fd_info_t *out, int max)
     int count = 0;
     for (int i = 0; i < MAX_PROCESS_FDS && count < max; i++)
     {
-        spinlock_lock(&table[i].lock);
         if (table[i].in_use)
         {
             out[count].fd = FIRST_DYNAMIC_FD + i;
@@ -328,7 +292,6 @@ int fd_list(fd_info_t *out, int max)
             out[count].size = table[i].size;
             count++;
         }
-        spinlock_unlock(&table[i].lock);
     }
     return count;
 }
@@ -364,14 +327,11 @@ int fd_is_read_ready(int fd)
     if (table == NULL || idx < 0)
         return -1;
 
-    spinlock_lock(&table[idx].lock);
     if (!table[idx].in_use)
     {
-        spinlock_unlock(&table[idx].lock);
         return -1;
     }
     int ready = table[idx].size > 0 ? 1 : 0;
-    spinlock_unlock(&table[idx].lock);
 
     return ready;
 }
