@@ -117,6 +117,8 @@ uint64_t syscallHandler(int syscall_num, uint64_t arg1, uint64_t arg2, uint64_t 
         return sys_fd_has_data((int)arg1);
     case SYSCALL_PIPE_HAS_DATA:
         return sys_pipe_has_data((int)arg1);
+    case SYSCALL_PIPE_CLOSE:
+        return sys_pipe_close((int)arg1);
     default:
         return -1;
     }
@@ -412,4 +414,9 @@ int sys_fd_has_data(int fd)
 int sys_pipe_has_data(int pipe_id)
 {
     return pipe_available(pipe_id);
+}
+
+int sys_pipe_close(int pipe_id)
+{
+    return pipe_close(pipe_id);
 }

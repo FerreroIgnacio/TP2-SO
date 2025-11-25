@@ -42,6 +42,7 @@ int pipe_read(int pipe_id, char *buff, uint64_t count);
 int fd_bind_std(int pid, int which, int pipe_id); // which: 0=STDIN, 1=STDOUT
 int fd_has_data(int fd);                          // retorna 1 si hay datos para leer, 0 si no
 int pipe_available(int pipe_id);
+int pipe_close(int pipe_id);
 
 // borra todo el file descriptor
 void flush(int fd);

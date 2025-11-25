@@ -8,6 +8,7 @@ GLOBAL pipe_write
 GLOBAL pipe_read
 GLOBAL fd_has_data
 GLOBAL pipe_available 
+GLOBAL pipe_close
 
 SECTION .text
 
@@ -60,5 +61,10 @@ fd_has_data:
 
 pipe_available:
     mov     rax, 0x4D    ; syscall numero 77
+    int     0x80
+    ret
+
+pipe_close:
+    mov     rax, 0x4E    ; syscall numero 78
     int     0x80
     ret

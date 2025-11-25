@@ -202,3 +202,32 @@ int pflush(int id)
     }
     return -1;
 }
+
+int pipe_close(int id)
+{
+    if (!valid(id))
+        return -1;
+    pipe_t *p = &pipes[id];
+
+    // Desbloquear potenciales waiters con error
+    if (p->reader_waiter)
+    {
+        wait_node_t *rd = p->reader_waiter;
+        p->reader_waiter = NULL;
+        scheduler_unblock(rd->pid, rd, -1);
+    }
+    if (p->writer_waiter)
+    {
+        wait_node_t *wr = p->writer_waiter;
+        p->writer_waiter = NULL;
+        scheduler_unblock(wr->pid, wr, -1);
+    }
+
+    // Resetear buffer y marcar libre
+    p->rpos = 0;
+    p->wpos = 0;
+    p->size = 0;
+    p->in_use = 0;
+
+    return 0;
+}

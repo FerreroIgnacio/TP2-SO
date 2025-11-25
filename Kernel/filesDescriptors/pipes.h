@@ -54,4 +54,10 @@ int pipe_available(int pipe_id); // Retorna bytes disponibles (>=0). Retorna -1 
 
 int pflush(int id);
 
+/*
+ * Cierra una pipe del kernel, liberando su slot. Si hay lectores/escritores bloqueados,
+ * los desbloquea con error. Retorna 0 si OK, -1 si pipe_id invalido o no en uso.
+ */
+int pipe_close(int id);
+
 #endif // PIPES_H
