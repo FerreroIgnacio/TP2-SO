@@ -415,20 +415,39 @@ static int cmd_testPriority(void *argv)
     return result;
 }
 
-static int cmd_testSynchro(void *argv) // TODO
+static int cmd_testSynchro(void *argv)
 {
     int *args = (int *)argv;
 
-    const char *usage = "Uso: test_sync <end-val-for-process>";
+    const char *usage = "Uso: test_sync <max-val>";
     if (argv == NULL || args[0] <= 1)
     {
         printf("%s\n", usage);
         putchar(EOT);
         exit(-1);
     }
-    printf("Iniciando testPriority con max_val %d ...\n", args[0]); // modificar
-    int result = test_sync(args[0], args[1]);
-    printf("testPriority finalizado con codigo %d\n", result); // modificar
+    printf("Iniciando test CON semaforos     max-val: %d\n", args[0]);
+    int result = test_sync(args[0], 1);
+    printf("testSynchro finalizado con codigo %d\n", result);
+    putchar(EOT);
+    exit(result);
+    return result;
+}
+
+static int cmd_testNoSynchro(void *argv)
+{
+    int *args = (int *)argv;
+
+    const char *usage = "Uso: test_no_synchro <max-val>";
+    if (argv == NULL || args[0] <= 1)
+    {
+        printf("%s\n", usage);
+        putchar(EOT);
+        exit(-1);
+    }
+    printf("Iniciando test SIN semaforos     max-val: %d\n", args[0]);
+    int result = test_sync(args[0], 0);
+    printf("testNoSynchro finalizado con codigo %d\n", result);
     putchar(EOT);
     exit(result);
     return result;
@@ -614,7 +633,7 @@ pid_t launch_program(char *cmd, char **args)
     }
     else if (!strcmp(cmd, "test_no_synchro"))
     {
-        return new_proc((task_fn_t)cmd_testSynchro, argv);
+        return new_proc((task_fn_t)cmd_testNoSynchro, argv);
     }
     else
     {

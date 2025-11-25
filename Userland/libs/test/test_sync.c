@@ -26,7 +26,7 @@ uint64_t my_process_inc(uint64_t argc, char *argv[])
   int8_t use_sem;
   int64_t ret_wait = 0, ret_post = 0;
   int64_t proc_id;
-  int64_t sem_open = -1;
+  int64_t sem_open = 0;
 
   if (argc != 3)
     return -1;
@@ -55,7 +55,7 @@ uint64_t my_process_inc(uint64_t argc, char *argv[])
       ret_wait = my_sem_wait(SEM_ID);
     }
     slowInc(&global, inc);
-    printf("pid: %d | iter: %d | global: %d | inc: %d | wait: %d | ", proc_id, i, global, inc, ret_wait);
+    printf("pid: %d | iter: %d | global: %d | inc: %d | wait: %d | ", proc_id, i+1, global, inc, ret_wait);
     if (use_sem)
     {
       ret_post = my_sem_post(SEM_ID);
@@ -76,9 +76,7 @@ uint64_t my_process_inc(uint64_t argc, char *argv[])
 int test_sync(int iter, int use_sem)
 {
   uint64_t pids[2 * TOTAL_PAIR_PROCESSES];
-  int pipes[2 * TOTAL_PAIR_PROCESSES];
-  int proc_running = 0;
-
+  
   // Duplicar argumentos para que los hijos no lean memoria de stack modificada
   char *n_copy = itoa_malloc(iter);
   char *use_sem_copy = itoa_malloc(use_sem);
@@ -93,10 +91,11 @@ int test_sync(int iter, int use_sem)
   char *argvInc[] = {n_copy, "1", use_sem_copy, NULL};
 
   global = 0;
-  uint64_t i;
 
   // crear pipes
-  for (i = 0; i < TOTAL_PAIR_PROCESSES; i++)
+  int pipes[2 * TOTAL_PAIR_PROCESSES];
+  int proc_running = 0;
+  for (int i = 0; i < TOTAL_PAIR_PROCESSES; i++)
   {
     pipes[i] = pipe_create();
     pipes[i + TOTAL_PAIR_PROCESSES] = pipe_create();
@@ -111,7 +110,7 @@ int test_sync(int iter, int use_sem)
   }
 
   // crear procesos y enlazar su stdout a un pipe
-  for (i = 0; i < TOTAL_PAIR_PROCESSES; i++)
+  for (int i = 0; i < TOTAL_PAIR_PROCESSES; i++)
   {
     pids[i] = my_create_process("my_process_inc", 3, argvDec);
     if (pids[i] <= 1)
@@ -135,7 +134,6 @@ int test_sync(int iter, int use_sem)
       free(use_sem_copy);
       return -1;
     }
-
     if (fd_bind_std(pids[i + TOTAL_PAIR_PROCESSES], STDOUT, pipes[i + TOTAL_PAIR_PROCESSES]) < 0)
     {
       printf("ERROR BINDING STDOUT proceso %d\n", pids[i + TOTAL_PAIR_PROCESSES]);
@@ -144,10 +142,10 @@ int test_sync(int iter, int use_sem)
   }
 
   // loop de lectura de los pipes
-  while (proc_running > 1)
+  while (proc_running >= 1)
   {
     // Leer de todos los pipes que tengan datos
-    for (i = 0; i < TOTAL_PAIR_PROCESSES * 2; i++)
+    for (int i = 0; i < TOTAL_PAIR_PROCESSES * 2; i++)
     {
       if (pipe_available(pipes[i]) > 0)
       {
