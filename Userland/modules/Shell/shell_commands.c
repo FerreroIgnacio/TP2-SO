@@ -126,7 +126,8 @@ static void cmd_kill(void *argv)
     int *args = (int *)argv;
     pid_t pid = args[0];
     int status;
-    if (pid == getpid())
+
+    if (pid != getpid())
     {
         status = kill(pid);
     }
