@@ -18,7 +18,7 @@ void flush(int fd)
 unsigned char getchar()
 {
     unsigned char c = 0;
-    int count;
+    //int count;
     read(STDIN, &c, 1);
     return c;
 }

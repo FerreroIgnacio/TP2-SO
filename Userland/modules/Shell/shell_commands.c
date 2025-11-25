@@ -22,25 +22,25 @@ extern int get_shell_stdout_pipe();
 static int cmd_help()
 {
     printf("Comandos disponibles:\n");
-    printf("  help             - Mostrar comandos disponibles\n");                                          // OK
-    printf("  clear            - Limpiar pantalla\n");                                                      // OK
-    printf("  mem              - Imprime el estado de la memoria\n");                                       // OK
-    printf("  ps               - Imprime la lista de todos los procesos\n");                                // OK
-    printf("  loop <segundos>  - Imprime su ID con un saludo cada una determinada cantidad de segundos\n"); // OK
-    printf("  kill <pid>       - Mata un proceso dado su ID.\n");                                           // OK
-    printf("  nice <pid> <pri> - Cambia la prioridad de un proceso dado su ID y la nueva prioridad\n");     // OK
-    printf("  block <pid>      - Switch entre ready y blocked de un proceso dado su ID.\n");                // OK
-    printf("  cat              - Imprime el stdin tal como lo recibe.\n");                                  // OK
-    printf("  wc               - Cuenta la cantidad de líneas del input\n");                                // OK
-    printf("  filter           - Filtra las vocales del input.\n");                                         // OK
-    printf("  mvar             - Implementa el problema de múltiples lectores\n");                          // OK
+    printf("  help              - Mostrar comandos disponibles\n");                                          // OK
+    printf("  clear             - Limpiar pantalla\n");                                                      // OK
+    printf("  mem               - Imprime el estado de la memoria\n");                                       // OK
+    printf("  ps                - Imprime la lista de todos los procesos\n");                                // OK
+    printf("  loop <segundos>   - Imprime su ID con un saludo cada una determinada cantidad de segundos\n"); // OK
+    printf("  kill <pid>        - Mata un proceso dado su ID.\n");                                           // OK
+    printf("  nice <pid> <pri>  - Cambia la prioridad de un proceso dado su ID y la nueva prioridad\n");     // OK
+    printf("  block <pid>       - Switch entre ready y blocked de un proceso dado su ID.\n");                // OK
+    printf("  cat               - Imprime el stdin tal como lo recibe.\n");                                  // OK
+    printf("  wc                - Cuenta la cantidad de líneas del input\n");                                // OK
+    printf("  filter            - Filtra las vocales del input.\n");                                         // OK
+    printf("  mvar <W> <R>      - Implementa el problema de múltiples lectores\n");                          // OK
 
     printf("\nTests disponibles:\n");
     printf("  test_mm <max-bytes>                     - Ejecuta stress test del manejador de memoria\n");                    // OK
     printf("  test_processes <max-processes>          - Crea, bloquea, desbloquea y mata procesos aleatoriamente.\n");       // OK
     printf("  test_priority <end-val-for-process>     - 3 procesos se ejecutan con misma prioridad y luego con distinta\n"); // OK
-    printf("  test_synchro <processes> <inc-dec>      - Varios procesos modifican 1 variable usando semaforos\n");           // OK
-    printf("  test_no_synchro <processes> <inc-dec>   - Varios procesos modifican una variable sin semaforos\n");            // OK
+    printf("  test_synchro <max-val>                  - Varios procesos modifican 1 variable usando semaforos\n");           // OK
+    printf("  test_no_synchro <max-val>               - Varios procesos modifican una variable sin semaforos\n");            // OK
 
     printf("\nControles:\n");
     printf("  comando_1 <params> | comando_2 <params> - Concatenar comandos\n");             // OK
@@ -392,16 +392,16 @@ void cmd_mvar(void *argv)
 static int cmd_testMM(void *argv)
 {
     int *args = (int *)argv;
-    const char *usage = "Uso: testMM <bytes>";
+    const char *usage = "Uso: test_mm <bytes>";
     if (argv == NULL || args[0] <= 1)
     {
         printf("%s\n", usage);
         putchar(EOT);
         exit(-1);
     }
-    printf("Iniciando testMM con %d bytes\n", args[0]);
+    printf("Iniciando test_mm con maximo %d bytes\n", args[0]);
     int result = test_mm(args[0]);
-    printf("testMM finalizado con codigo %d\n", result);
+    printf("test_mm finalizado con codigo %d\n", result);
     putchar(EOT);
     exit(result);
     return result;
@@ -418,9 +418,9 @@ static int cmd_testProcesses(void *argv)
         exit(-1);
     }
 
-    printf("Iniciando testProcesses con max %d procesos...\n", args[0]);
+    printf("Iniciando test_processes con max %d procesos...\n", args[0]);
     int result = test_processes(args[0]);
-    printf("testProcesses finalizado con codigo %d\n", result);
+    printf("test_processes finalizado con codigo %d\n", result);
     putchar(EOT);
     exit(result);
     return result;
@@ -436,9 +436,9 @@ static int cmd_testPriority(void *argv)
         putchar(EOT);
         exit(-1);
     }
-    printf("Iniciando testPriority con max_val %d ...\n", args[0]);
+    printf("Iniciando test_priority con end-val-for-process: %d\n", args[0]);
     int result = test_prio(args[0]);
-    printf("testPriority finalizado con codigo %d\n", result);
+    printf("test_priority finalizado con codigo %d\n", result);
     putchar(EOT);
     exit(result);
     return result;
@@ -448,7 +448,7 @@ static int cmd_testSynchro(void *argv)
 {
     int *args = (int *)argv;
 
-    const char *usage = "Uso: test_sync <max-val>";
+    const char *usage = "Uso: test_synchro <max-val>";
     if (argv == NULL || args[0] <= 1)
     {
         printf("%s\n", usage);
@@ -457,7 +457,7 @@ static int cmd_testSynchro(void *argv)
     }
     printf("Iniciando test CON semaforos     max-val: %d\n", args[0]);
     int result = test_sync(args[0], 1);
-    printf("testSynchro finalizado con codigo %d\n", result);
+    printf("test_synchro finalizado con codigo %d\n", result);
     putchar(EOT);
     exit(result);
     return result;
@@ -476,7 +476,7 @@ static int cmd_testNoSynchro(void *argv)
     }
     printf("Iniciando test SIN semaforos     max-val: %d\n", args[0]);
     int result = test_sync(args[0], 0);
-    printf("testNoSynchro finalizado con codigo %d\n", result);
+    printf("test_no_synchro finalizado con codigo %d\n", result);
     putchar(EOT);
     exit(result);
     return result;

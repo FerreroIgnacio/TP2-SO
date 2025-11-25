@@ -24,9 +24,9 @@ uint64_t my_process_inc(uint64_t argc, char *argv[])
   uint64_t n;
   int8_t inc;
   int8_t use_sem;
-  int64_t ret_wait = 0, ret_post = 0;
+  int64_t ret_wait;
   int64_t proc_id;
-  int64_t sem_open = 0;
+  int64_t sem_open;
 
   if (argc != 3)
     return -1;
@@ -37,15 +37,17 @@ uint64_t my_process_inc(uint64_t argc, char *argv[])
   if ((use_sem = satoi(argv[2])) < 0)
     return -1;
 
-  if (use_sem)
+  proc_id = getpid();
+  if (use_sem) {
     if ((sem_open = my_sem_open(SEM_ID, 1)) < 0)
     {
       printf("test_sync: ERROR opening semaphore\n");
       return -1;
     }
-
-  proc_id = my_getpid();
-  printf("pid: %d | Open: %d\n", proc_id, sem_open);
+    printf("pid: %d | Open: %d\n", proc_id, sem_open);
+  }
+  
+  
 
   uint64_t i;
   for (i = 0; i < n; i++)
@@ -55,13 +57,11 @@ uint64_t my_process_inc(uint64_t argc, char *argv[])
       ret_wait = my_sem_wait(SEM_ID);
     }
     slowInc(&global, inc);
-    printf("pid: %d | iter: %d | global: %d | inc: %d | wait: %d | ", proc_id, i+1, global, inc, ret_wait);
+    printf("pid: %d | iter: %d | global: %d | inc: %d", proc_id, i+1, global, inc);
     if (use_sem)
     {
-      ret_post = my_sem_post(SEM_ID);
-      printf("post: %d\n", ret_post);
-    }
-    else
+      printf(" | wait: %d | post: %d\n", ret_wait, my_sem_post(SEM_ID));
+    } else
     {
       printf("\n");
     }
