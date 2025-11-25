@@ -86,9 +86,8 @@ static int cmd_loop(void *argv)
         printf("Hola! soy el proceso: %d. Este mensaje aparecera cada %d segundo", (int)getpid(), segs);
         if (segs > 1)
             printf("s");
-        printf("\nme dormi");
-        sleep(segs);
-        printf("\nme desperte!\n");
+        printf("\n");
+        sleep(segs * 1000);
     }
     putchar(EOT);
     exit(0);
@@ -176,11 +175,11 @@ static void cmd_block(void *argv)
 
     if (block_proc(pid) == 0)
     {
-        printf("bloqueando el proceso: %d", pid);
+        printf("bloqueando el proceso: %d.", pid);
         putchar(EOT);
         exit(0);
     }
-    printf("desbloqueando el proceso: %d", pid);
+    printf("desbloqueando el proceso: %d.", pid);
     putchar(EOT);
     exit(unblock_proc(pid));
 }
@@ -216,7 +215,7 @@ static void cmd_wc()
             count++;
         }
     }
-    printf("Lineas: %d\n", count);
+    printf("Se recibieron %d lineas.\n", count);
     putchar(EOT);
     exit(count);
 }

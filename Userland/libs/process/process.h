@@ -67,8 +67,7 @@ typedef struct
     int waiting;
     struct wait_node *waiting_node;
     int wait_status;
-
-    int wakeup_time; // si un proceso duerme, guarda el tiempo en el que debe despertar
+    uint64_t wakeup_time;
 
     int priority;
     int run_tokens; // 1 token = 1 quantum de cpu, a mayor prioridad, mayor tiempo de cpu.
