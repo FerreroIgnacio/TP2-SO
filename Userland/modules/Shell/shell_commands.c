@@ -241,125 +241,120 @@ static void cmd_filter()
     exit(0);
 }
 
-static void mvar_proc(void *argv);
-
-static void cmd_mvar()
+#define MVAR_MAX_PROC 6
+void mvar_reader(void *argv)
 {
-    char *shared_mm = (char *)calloc(1000, sizeof(char));
-    char *mutex_sem_name = "mvar_mutex";
-    char *print_sem_name = "mvar_print";
-    int print_sem_id;
-    int proc_pipes[3];
-    pid_t proc_pids[3];
+    char **args = (char **)argv;
+    char *name = args[0];
+    char *shared = args[1];
 
-    if (shared_mm == NULL)
+    int write_sem_id = sem_open("mvar_write", 1);
+    int read_sem_id = sem_open("mvar_read", 0);
+    while (1)
+    {
+        sem_wait(read_sem_id);
+        char readed = *shared;
+        *shared = 0;
+        sem_post(write_sem_id);
+        printf("(%s%c) ", name, readed);
+        yield();
+    }
+}
+
+void mvar_writer(void *argv)
+{
+    char **args = (char **)argv;
+    char *name = args[0];
+    char *shared = args[1];
+
+    int write_sem_id = sem_open("mvar_write", 1);
+    int read_sem_id = sem_open("mvar_read", 0);
+    while (1)
+    {
+        sem_wait(write_sem_id);
+        *shared = *name;
+        sem_post(read_sem_id);
+        yield();
+    }
+}
+
+char *mvar_argv[2];
+char *readers_names[] = {"0", "1", "2", "3", "4", "5", "6", "7", "8", "9"};
+char *writers_names[] = {"A", "B", "C", "D", "E", "F", "G", "H", "I", "J"};
+
+void cmd_mvar(void *argv)
+{
+    int *args = (int *)argv;
+    int writers_count = args[0];
+    int readers_count = args[1];
+    int mvar_pipes[MVAR_MAX_PROC] = {0};
+
+    if (writers_count < 1 || readers_count < 1 || writers_count > MVAR_MAX_PROC || readers_count > MVAR_MAX_PROC)
+    {
+        printf("Error: solo se permiten solamente entre 2 y %d escritores / lectores.\n", MVAR_MAX_PROC);
+        putchar(EOT);
+        exit(-1);
+    }
+    char *shared = malloc(1);
+    if (shared == NULL)
     {
         printf("Error al reservar memoria compartida\n");
         putchar(EOT);
         exit(-1);
     }
-    if ((print_sem_id = sem_open(print_sem_name, 0)) == -1)
+    int write_sem_id = sem_open("mvar_write", 1);
+    int read_sem_id = sem_open("mvar_read", 0);
+    if (write_sem_id < 0 || read_sem_id < 0)
     {
-        printf("Error al crear semáforo en mvar\n");
+        printf("Error al crear los semáforos\n");
         putchar(EOT);
         exit(-1);
     }
 
-    char *argv[] = {shared_mm, mutex_sem_name, print_sem_name};
-    for (int i = 0; i < 3; i++)
+    printf("Iniciando mvar con %d escritores y %d lectores...\n", writers_count, readers_count);
+
+    for (int i = 0; i < readers_count; i++)
     {
-        proc_pipes[i] = pipe_create();
-        if (proc_pipes[i] == -1)
-        {
-            printf("Error al crear pipe para el proceso %d\n", i);
-            putchar(EOT);
-            exit(-1);
-        }
-        proc_pids[i] = new_proc((task_fn_t)mvar_proc, (void *)argv);
-        fd_bind_std(proc_pids[i], 1, proc_pipes[i]);
+        mvar_pipes[i] = pipe_create();
+        if (mvar_pipes[i] < 0)
+            break;
+        mvar_argv[0] = readers_names[i];
+        mvar_argv[1] = shared;
+        int pid = new_proc((task_fn_t)mvar_reader, mvar_argv);
+        if (pid <= 1)
+            break;
+        fd_bind_std(pid, STDOUT, mvar_pipes[i]);
+        yield();
     }
 
-    int next = 0;
+    for (int i = 0; i < writers_count; i++)
+    {
+        mvar_argv[0] = writers_names[i];
+        mvar_argv[1] = shared;
+        int pid = new_proc((task_fn_t)mvar_writer, mvar_argv);
+        if (pid <= 1)
+            break;
+        yield();
+    }
+
+    printf("Inicializacion completa\n");
     while (1)
     {
-        sem_wait(print_sem_id);
-        unsigned char buffer[STD_BUFF_SIZE];
-        for (int i = 1; i <= 3; i++)
+        for (int i = 0; i < readers_count; i++)
         {
-            if (!pipe_available(proc_pipes[next]))
+            if (pipe_available(mvar_pipes[i]) > 0)
             {
-                next = (i + 1) % 3;
-                continue;
-            }
-            else
-            {
-                int n = read(proc_pipes[next], buffer, STD_BUFF_SIZE - 1);
-                if (n > 0)
+                unsigned char buffer[STD_BUFF_SIZE];
+                int bytes_read = pipe_read(mvar_pipes[i], (char *)buffer, STD_BUFF_SIZE - 1);
+                if (bytes_read > 0)
                 {
-                    buffer[n] = '\0';
+                    buffer[bytes_read] = '\0';
                     printf("%s", buffer);
                 }
-                next = (i + 1) % 3;
-                break;
             }
         }
+        yield();
     }
-    putchar(EOT);
-    exit(0);
-}
-
-static void mvar_proc(void *argv)
-{
-    if (argv == NULL)
-    {
-        putchar(EOT);
-        exit(-1);
-    }
-    char **args = (char **)argv;
-    char *shared_mm = args[0];
-    char *mutex_sem_name = args[1];
-    char *print_sem_name = args[2];
-    if (shared_mm == NULL || mutex_sem_name == NULL || print_sem_name == NULL)
-    {
-        putchar(EOT);
-        exit(-1);
-    }
-
-    int mutex_sem_id = sem_open(mutex_sem_name, 1);
-    int print_sem_id = sem_open(print_sem_name, 0);
-
-    if (mutex_sem_id == -1 || print_sem_id == -1)
-    {
-        putchar(EOT);
-        exit(-1);
-    }
-
-    while (1)
-    {
-        sem_wait(mutex_sem_id);
-        printf("Proceso %d accediendo a la memoria compartida\n", (int)getpid());
-        sleep(1); // simula tiempo de procesamiento para evitar la ejecución en un quantum.
-        printf("Proceso %d leyendo del contenido de la memoria compartida: %s\n", (int)getpid(), shared_mm);
-        sleep(1);
-        printf("Proceso %d escribiendo en la memoria compartida\n", (int)getpid());
-
-        strcpy(shared_mm, "El proceso: ");
-        char *pid_str = itoa_malloc((int)getpid());
-        if (pid_str != NULL)
-        {
-            strcpy(shared_mm + strlen(shared_mm), pid_str);
-            free(pid_str);
-        }
-        else
-        {
-            strcpy(shared_mm + strlen(shared_mm), "unknown PID ");
-        }
-        strcpy(shared_mm + strlen(shared_mm), "Estuvo aqui.\n");
-        sem_post(print_sem_id); // notificar cambios en stdout
-        sem_post(mutex_sem_id);
-    }
-    putchar(EOT);
-    exit(0);
 }
 
 static int cmd_testMM(void *argv)
@@ -610,7 +605,7 @@ static pid_t launch_program(char *cmd, char **args, int side)
     }
     else if (!strcmp(cmd, "mvar"))
     {
-        return new_proc((task_fn_t)cmd_mvar, NULL);
+        return new_proc((task_fn_t)cmd_mvar, argv);
     }
     else if (!strcmp(cmd, "test_mm"))
     {
