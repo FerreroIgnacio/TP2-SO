@@ -19,10 +19,7 @@ unsigned char getchar()
 {
     unsigned char c = 0;
     int count;
-    do
-    {
-        count = read(STDIN, &c, 1);
-    } while (count <= 0);
+    read(STDIN, &c, 1);
     return c;
 }
 

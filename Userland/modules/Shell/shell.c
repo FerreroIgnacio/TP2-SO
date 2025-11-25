@@ -27,7 +27,7 @@ int pipes_present[MAX_PROC] = {0};
 // Prototipos
 static void execute_command_line(const char *line);
 static void handle_stdin_chunk();
-static void rebuild_line_visual();
+void rebuild_line_visual();
 static int read_fd_size(int fd);
 static int read_fd_snapshot(int fd, unsigned char *buf, int max);
 
@@ -103,7 +103,7 @@ static void execute_command_line(const char *line)
 }
 
 // Reconstruye visualmente la linea actual leyendo FD 3
-static void rebuild_line_visual()
+void rebuild_line_visual()
 {
     font_info_t currentFont = fontmanager_get_current_font();
     int char_width = FONT_SIZE * currentFont.width;
@@ -281,12 +281,11 @@ int main()
                     break;
                 }
             }
-            /* versión 2, se evita el for:
-            if (buffer[readed - 1] == EOT)
+            if (pipe_to_print == MAX_PROC)
             {
-                pipes_present[pipe_to_print] = 0;
+                shell_print_prompt();
+                rebuild_line_visual();
             }
-            */
         }
         else if (pipe_to_print == STDIN && get_left_fg_proc() == getpid())
         {
@@ -308,8 +307,6 @@ int main()
 
                     set_left_fg_proc(getpid());
                     printf("\nProceso %d finalizado con estado %d\n", left_fg_proc, status);
-                    shell_print_prompt();
-                    rebuild_line_visual();
                 }
             }
             else
@@ -324,8 +321,6 @@ int main()
                     set_left_fg_proc(getpid());
                     set_right_fg_proc(-1);
                     printf("\nProceso %d finalizado con estado %d\n", right_fg_proc, status_right);
-                    shell_print_prompt();
-                    rebuild_line_visual();
                 }
                 else if (!left_done && right_done)
                 {
@@ -334,14 +329,18 @@ int main()
                     set_left_fg_proc(getpid());
                     set_right_fg_proc(-1);
                     printf("\nProceso %d finalizado con estado %d\n", right_fg_proc, status_right);
-                    shell_print_prompt();
-                    rebuild_line_visual();
                 }
                 else if (left_done && !right_done)
                 {
                     set_left_fg_proc(-1);
                 }
             }
+        }
+
+        if (get_left_fg_proc() == 1 && get_right_fg_proc() == -1)
+        {
+            while (waitpid(0, NULL, WNOHANG))
+                ;
         }
         yield(); // permite que corra el resto de procesos.
     }

@@ -209,7 +209,6 @@ int fd_read(int fd, char *buffer, uint64_t count)
     if (buffer == NULL || count == 0)
         return -1;
 
-    // CRÍTICO: Validar pid ANTES de usar arrays globales
     int pid = scheduler_current_pid();
     if (!valid_pid(pid))
         return -1;

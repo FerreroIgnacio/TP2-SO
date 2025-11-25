@@ -15,6 +15,7 @@
 #include "./shell_render.h"
 #include <stdarg.h>
 
+extern void rebuild_line_visual();
 extern int get_shell_stdout_pipe();
 
 // Comandos disponibles
@@ -68,7 +69,7 @@ static int cmd_mem()
     return 0;
 }
 
-int cmd_loop(void *argv)
+static int cmd_loop(void *argv)
 {
     if (argv == NULL)
         return -1;
@@ -189,11 +190,11 @@ static void cmd_cat()
         unsigned char c = getchar();
         if (c == EOT)
         {
-            printf("\n");
             break;
         }
         putchar(c);
     }
+    printf("\n");
     putchar(EOT);
     exit(0);
 }
@@ -234,6 +235,7 @@ static void cmd_filter()
             putchar(c);
         }
     }
+    printf("\n");
     putchar(EOT);
     exit(0);
 }
@@ -672,6 +674,8 @@ pid_t launch_program(char *cmd, char **args)
         shell_print_colored(cmd, FONT_COLOR);
         shell_print_colored(" desconodido.\n", FONT_COLOR);
         shell_print_colored("Escribe \"help\" para ver comandos disponibles.\n", FONT_COLOR);
+        shell_print_prompt();
+        rebuild_line_visual();
     }
     return -1;
 }
