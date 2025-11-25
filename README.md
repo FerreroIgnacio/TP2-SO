@@ -24,26 +24,43 @@ En caso de querer compilarlo de vuelta, es conveniente borrar los archivos de la
 `make clean`
 
 ## Limitaciones
-El trabajo presenta grandes limitaciones debido a las funcionalidades que no llegamos a implementar. Nuestro objetivo de esta entrega es recibir correcciones sobre aquello que sí pudimos implementar y consideramos que funciona correctamente. Las funcionalidades que presentan errores son (por ahora):
-- El Buddy memory manager no pasa el test de memoria (freelist sí los pasa).
-- El pasaje de parámetros en la creación de procesos no funciona: un proceso sin parámetros se crea correctamente desde shell, pero si se quiere que ese proceso reciba parámetros, no se puede en la versión actual. Este es el principal limitante a la hora de implementar funcionalidades de shell. Es por esto que prácticamente todos los comandos (si es que están implementados) tienen valores hardcodeado o no corren como procesos (corren como función dentro de shell).
-
+Cantidad de procesos en simultáneo: debido a la poca memoria disponible, dar la posibilidad de tener una gran cantidad de procesos induce errores en el sistema, la memoria se termina pisando y se obtienen constantemente excepciones de instrucción inválida, determinamos que 20 procesos son más que suficientes para mostrar las funcionalidades implementadas. Esto debe ser tenido en cuenta a la hora de correr test como test_processes, que detecta (correctamente) como error la negativa del kernel a crear un proceso con un pid mayor a 20.
 
 ## Instrucciones de replicación
 
 Comandos implementados:
+
 - `help`             : muestra los comandos disponibles
 - `clear`            : limpia la pantalla
-- `mem`              : muestra el estado de la memoria
-- `ps`               : lista todos los procesos (también se lista a sí mismo)
-- `loop <segs>`      : crea un proceso que envía un mensaje cada segs segundos (hardcodeado a 5 segs)
-- `kill <pid>`       : mata el proceso pid (built-in, no crea un proceso)
-- `block <pid>`      : bloquea el proceso pid (built-in, no crea un proceso)
-- `test_mm <max_mem>`: test del memory manager (hardcodeado a 10000000 bytes)
+- `mem`              : imprime el estado de la memoria
+- `ps`               : imprime la lista de todos los procesos
+- `loop <segundos>`  : imprime su ID con un saludo cada una determinada cantidad de segundos
+- `kill <pid>`       : mata un proceso dado su ID
+- `nice <pid> <pri>` : cambia la prioridad de un proceso dado su ID y la nueva prioridad
+- `block <pid>`      : switch entre ready y blocked de un proceso dado su ID
+- `cat`              : imprime el stdin tal como lo recibe
+- `wc`               : cuenta la cantidad de líneas del input
+- `filter`           : filtra las vocales del input
+- `mvar`             : implementa el problema de múltiples lectores
 
-- Falta implementar los test de procesos, prioridad y sincronización
-- Faltan funcionalidades de shell: Pipear comandos, atajos (ctrl+d y ctrl+c), Elección de background o foreground (&)  
-- Faltan los comandos de shell: `nice`, `cat`, `wc`, `filter`, `mvar` y comandos de test.
+Tests disponibles:
+- `test_mm <max-bytes>`                  : ejecuta stress test del manejador de memoria 
+- `test_processes <max-processes>`       : crea, bloquea, desbloquea y mata procesos aleatoriamente 
+- `test_priority <end-val-for-process>`  : 3 procesos se ejecutan con misma prioridad y luego con distinta (recomen)
+- `test_synchro <processes> <inc-dec>`   : varios procesos modifican 1 variable usando semáforos
+- `test_no_synchro <processes> <inc-dec>`: varios procesos modifican una variable sin semáforos
+
+Controles especiales:
+- `comando_1 <params> | comando_2 <params>` : concatenar comandos con pipe
+- `& comando`                               : ejecutar proceso en background
+- `Ctrl+D`                                  : enviar EOT por STDIN
+- `Ctrl+C`                                  : matar proceso en foreground
+
+Aclaraciones: 
+- En nuestro sistema operativo decidimos implementar las prioridades dejando que cada proceso corra más o menos tiempo DENTRO DE SU CICLO, es decir, la cantidad de switches a ese proceso permanece constante en un sistema round-robin. En este caso, se pierde la noción de prioridad cuando los procesos no son CPU-Bound como en `mvar`. Es por esto que decidimos no agregar el cambio de prioridades durante la ejecución en este comando, ya que no modifica el resultado. Si se implementó el kill a escritores y lectores mediante las teclas 'W' y 'R'.
+- El uso de prioridades tiene un mejor efecto en `test_priority`, se recomienda ejecutarlo con el valor 500000000. un valor menor premite que los procesos corran en un ciclo, perdiendose el efecto, un valor mayor hace muy lenta la ejecución.
+- Tener en cuenta las limitaciones mencionadas en la sección anterior para test_processes, max-processes no debe superar los 20 procesos (incluyendo los creados previamente) en caso de hacerlo terminará (correctamente) con errores al no poder crear todos los procesos.
+
 
 ## Uso de IA
 La inteligencia artificial fue una herramienta fundamental para el desarrollo de nuestro proyecto. Esta nos permitió resolver dudas específicas teniendo nuestro proyecto como contexto, algo que sería imposible con Google/StackOverflow. Era capaz de analizar errores y revisar cientos de líneas de código en minutos para proporcionar posibles soluciones a nuestro problema. Esto nos acotó el tiempo de debugging significativamente. Además, el poder crear funciones enteras solo especificando el funcionamiento de las mismas nos permitió dedicarle el tiempo a pensar las funciones de una forma más abstracta. Sin embargo, la IA era incapaz de implementar por sí misma funcionalidades completas. Al no ser específico, esta interpretaba mal las funcionalidades e implementaba algo diferente a lo que uno quería o directamente con suficientes errores como para que convenga implementarlo a mano. Por otro lado, varias veces era incapaz de diagnosticar correctamente la causa de los errores, por lo cual uno debía hacer seguimiento de las funciones que fallaban a ojo. En conclusión, si bien la IA fue una herramienta increíblemente útil para acotar el tiempo dedicado a cosas frívolas, su incapacidad de razonar hizo que tuviéramos que relegar en la nuestra para obtener un proyecto funcional.

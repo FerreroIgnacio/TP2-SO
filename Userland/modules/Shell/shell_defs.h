@@ -21,7 +21,7 @@
 #define TAB_MAKECODE 0x0F
 #define ESC_MAKECODE 0x01
 
-#define MAX_PROC 20
+#define MAX_PROC 100
 
 typedef int (*EntryPoint)();
 

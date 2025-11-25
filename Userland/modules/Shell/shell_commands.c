@@ -33,7 +33,7 @@ static int cmd_help()
     printf("  cat              - Imprime el stdin tal como lo recibe.\n");                                  // OK
     printf("  wc               - Cuenta la cantidad de líneas del input\n");                                // OK
     printf("  filter           - Filtra las vocales del input.\n");                                         // OK
-    printf("  mvar             - Implementa el problema de múltiples lectores\n");                          // TODO
+    printf("  mvar             - Implementa el problema de múltiples lectores\n");                          // OK
 
     printf("\nTests disponibles:\n");
     printf("  test_mm <max-bytes>                     - Ejecuta stress test del manejador de memoria\n");                    // OK
@@ -43,10 +43,10 @@ static int cmd_help()
     printf("  test_no_synchro <processes> <inc-dec>   - Varios procesos modifican una variable sin semaforos\n");            // OK
 
     printf("\nControles:\n");
-    printf("  comando_1 <params> | comando_2 <params> - Concatenar comandos\n");             // OK (en fg)
-    printf("  & comando                               - Ejecutar proceso en background \n"); // TODO
+    printf("  comando_1 <params> | comando_2 <params> - Concatenar comandos\n");             // OK
+    printf("  & comando                               - Ejecutar proceso en background \n"); // OK
     printf("  Ctrl+D                                  - Enviar EOT por STDIN\n");            // OK
-    printf("  Ctrl+C                                  - Matar proceso en foreground\n");     // TODO
+    printf("  Ctrl+C                                  - Matar proceso en foreground\n");     // OK
     putchar(EOT);
     exit(0);
     return 0;
