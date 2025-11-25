@@ -15,8 +15,7 @@
 #include "./shell_render.h"
 #include <stdarg.h>
 
-#define MAX_PROCESS 100
-// static void *const pongisgolfModuleAddress = (void *)0x11000000;
+extern int get_shell_stdout_pipe();
 
 // Comandos disponibles
 static int cmd_help()
@@ -96,8 +95,8 @@ int cmd_loop(void *argv)
 
 static int cmd_ps()
 {
-    proc_info_t proc_list[MAX_PROCESS];
-    int count = get_proc_list(proc_list, MAX_PROCESS);
+    proc_info_t proc_list[MAX_PROC];
+    int count = get_proc_list(proc_list, MAX_PROC);
     for (int i = 0; i < count; i++)
     {
         proc_info_t *p = &proc_list[i];
@@ -475,6 +474,7 @@ void execute_tokenized_command(char **tokens, int token_count, int foreground_mo
         cmd_clear();
         return;
     }
+
     // creación de procesos
     if (right_pipe_args >= 0)
     {
@@ -516,6 +516,35 @@ void execute_tokenized_command(char **tokens, int token_count, int foreground_mo
         fd_bind_std(left_pid, STDOUT, proc_pipe);
         fd_bind_std(right_pid, STDIN, proc_pipe);
     }
+
+    int pipe_stdout = get_shell_stdout_pipe();
+    if (pipe_stdout <= 0)
+    {
+        print_error("No se pudo crear pipe entre los procesos");
+        kill(left_pid);
+        kill(right_pid);
+        return;
+    }
+
+    if (right_pid > 1)
+    {
+        fd_bind_std(right_pid, STDOUT, pipe_stdout);
+    }
+    else
+    {
+        fd_bind_std(left_pid, STDOUT, pipe_stdout);
+    }
+
+    if (foreground_mode)
+    {
+        fd_bind_std(left_pid, STDIN, STDIN);
+        set_left_fg_proc(left_pid);
+        right_pid > 1 ? set_right_fg_proc(right_pid) : set_right_fg_proc(-1);
+    }
+    unblock_proc(left_pid);
+    unblock_proc(right_pid);
+    /*
+
 
     if (foreground_mode)
     {
@@ -563,6 +592,7 @@ void execute_tokenized_command(char **tokens, int token_count, int foreground_mo
         }
         unblock_proc(left_pid);
     }
+    */
 }
 
 int argv[2];

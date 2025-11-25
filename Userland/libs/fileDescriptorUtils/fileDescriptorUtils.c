@@ -538,3 +538,20 @@ uint64_t printf(const char *format, ...)
     va_end(ap);
     return out;
 }
+
+int select(int *pipes, int start_from, int count)
+{
+    if (pipes == NULL || start_from < 0 || count < 1)
+    {
+        return -1;
+    }
+    for (int i = 0; i < count; i++)
+    {
+        int to_check = (start_from + i) % count;
+        if (pipe_available(pipes[to_check]))
+        {
+            return to_check;
+        }
+    }
+    return -1;
+}

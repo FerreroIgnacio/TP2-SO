@@ -62,4 +62,6 @@ void puthexupper(uint64_t value); // %X %P
 // void putdouble(double value, int precision); //%f
 uint64_t printf(const char *format, ...);
 
+int select(int *pipes, int start_from, int count);
+
 #endif

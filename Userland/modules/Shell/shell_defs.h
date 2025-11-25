@@ -14,13 +14,14 @@
 #define PROMPT_COLOR 0x44AAA4
 #define CURSOR_BLINK_INTERVAL 150 // en ticks
 
-
 #define LSHIFT_MAKECODE 0x2A
 #define RSHIFT_MAKECODE 0x36
 #define LCTRL_MAKECODE 0x1D
 #define LALT_MAKECODE 0x38
 #define TAB_MAKECODE 0x0F
 #define ESC_MAKECODE 0x01
+
+#define MAX_PROC 20
 
 typedef int (*EntryPoint)();
 

@@ -21,6 +21,8 @@ int cursor_x = 0;
 int cursor_y = 0;
 static char firstEntry = 1;
 int shell_cmd_fd = -1; // FD dinamico usado como buffer de linea (>=3), expuesto para clear_buffer
+int pipes_to_print[MAX_PROC] = {0};
+int pipes_present[MAX_PROC] = {0};
 
 // Prototipos
 static void execute_command_line(const char *line);
@@ -28,6 +30,27 @@ static void handle_stdin_chunk();
 static void rebuild_line_visual();
 static int read_fd_size(int fd);
 static int read_fd_snapshot(int fd, unsigned char *buf, int max);
+
+static void clean_EOT(char *string)
+{
+    if (string == NULL)
+        return;
+
+    int read_pos = 0;
+    int write_pos = 0;
+
+    while (string[read_pos] != '\0')
+    {
+        if (string[read_pos] != EOT)
+        {
+            string[write_pos] = string[read_pos];
+            write_pos++;
+        }
+        read_pos++;
+    }
+
+    string[write_pos] = '\0';
+}
 
 // Ejecutar comando dado un string completo
 static void execute_command_line(const char *line)
@@ -114,11 +137,10 @@ static void rebuild_line_visual()
 
 // Maneja lectura parcial desde STDIN y actualiza FD 3
 
-static void handle_stdin_chunk()
+static void handle_stdin_chunk(char *inbuf, int size)
 {
     update_cursor();
-    unsigned char inbuf[STD_BUFF_SIZE];
-    int n = read(STDIN, inbuf, sizeof(inbuf));
+    int n = size;
     if (n <= 0)
         return;
 
@@ -151,10 +173,7 @@ static void handle_stdin_chunk()
             buffer_pos = 0; // FD quedo vacio
             shell_newline();
 
-            if (get_left_fg_proc() == getpid()) // si shell es el proc en fg
-            {
-                execute_command_line((char *)linebuf);
-            }
+            execute_command_line((char *)linebuf);
 
             reset_cursor();
             continue;
@@ -197,8 +216,22 @@ static void shell_welcome()
     shell_print("Escribe 'help' para ver comandos disponibles.\n\n");
 }
 
+int get_shell_stdout_pipe()
+{
+    for (int i = 1; i < MAX_PROC; i++)
+    {
+        if (!pipes_present[i])
+        {
+            pipes_present[i] = 1;
+            return pipes_to_print[i];
+        }
+    }
+    return -1;
+}
+
 int main()
 {
+    int last_readed_pipe = 0;
     if (firstEntry)
     {
         frame = getFB();
@@ -216,11 +249,45 @@ int main()
         }
         firstEntry = 0;
         buffer_pos = 0;
+
+        for (int i = 1; i < MAX_PROC; i++)
+        {
+            pipes_to_print[i] = pipe_create();
+            pipes_present[i] = 0;
+        }
     }
     while (1)
     {
         setFB(frame);
-        handle_stdin_chunk();
+        int pipe_to_print = select(pipes_to_print, last_readed_pipe, MAX_PROC);
+        char buffer[STD_BUFF_SIZE];
+        if (pipe_to_print > 0)
+        {
+            int readed = pipe_read(pipes_to_print[pipe_to_print], buffer, STD_BUFF_SIZE);
+            buffer[readed] = '\0';
+            clean_EOT(buffer);
+            shell_print(buffer);
+            for (int i = 0; i < readed; i++)
+            {
+                if (buffer[i] == EOT)
+                {
+                    pipes_present[pipe_to_print] = 0;
+                    break;
+                }
+            }
+            /* versión 2, se evita el for:
+            if (buffer[readed - 1] == EOT)
+            {
+                pipes_present[pipe_to_print] = 0;
+            }
+            */
+        }
+        else if (pipe_to_print == STDIN && get_left_fg_proc() == getpid())
+        {
+            int readed = pipe_read(pipe_to_print, buffer, STD_BUFF_SIZE);
+            handle_stdin_chunk(buffer, readed);
+        }
+
         pid_t left_fg_proc = get_left_fg_proc();
         pid_t right_fg_proc = get_right_fg_proc();
 
@@ -232,6 +299,7 @@ int main()
                 if (waitpid(left_fg_proc, &status, WNOHANG) > 0)
                 {
                     fd_bind_std(getpid(), STDIN, STDIN); // shell toma nuevamente el control de la shell
+
                     set_left_fg_proc(getpid());
                     printf("\nProceso %d finalizado con estado %d\n", left_fg_proc, status);
                     shell_print_prompt();
@@ -269,6 +337,7 @@ int main()
                 }
             }
         }
+        yield();
     }
     return 0;
 }
