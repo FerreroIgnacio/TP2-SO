@@ -46,9 +46,9 @@ Cantidad de procesos en simultáneo: debido a la poca memoria disponible, dar la
 #### Tests disponibles:
 - `test_mm <max-bytes>`                  : ejecuta stress test del manejador de memoria 
 - `test_processes <max-processes>`       : crea, bloquea, desbloquea y mata procesos aleatoriamente 
-- `test_priority <end-val-for-process>`  : 3 procesos se ejecutan con misma prioridad y luego con distinta (recomen)
+- `test_priority <end-val-for-process>`  : 3 procesos se ejecutan con misma prioridad y luego con distinta
 - `test_synchro <max-val>`               : varios procesos modifican 1 variable usando semáforos
-- `test_no_synchro <max-val>`            : varios procesos modifican una variable sin semáforos
+- `test_no_synchro <max-val>`            : varios procesos modifican una variable sin usar semáforos
 
 #### Controles especiales:
 - `comando_1 <params> | comando_2 <params>` : concatenar comandos con pipe
