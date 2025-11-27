@@ -19,7 +19,10 @@ else
     XHOST_CMD := @echo "Asegúrate de tener un servidor X11 corriendo (VcXsrv o similar)"
 endif
 
-all:  bootloader kernel userland image
+all:  toolchain bootloader kernel userland image
+
+toolchain:
+	cd Toolchain; $(MAKE) all
 
 bootloader:
 	cd Bootloader; $(MAKE) all
@@ -30,7 +33,7 @@ kernel:
 userland:
 	cd Userland; $(MAKE) all
 
-image: kernel bootloader userland
+image: kernel bootloader userland toolchain
 	cd Image; $(MAKE) all
 
 buddy:
@@ -41,6 +44,7 @@ clean:
 	cd Image; $(MAKE) clean
 	cd Kernel; $(MAKE) clean
 	cd Userland; $(MAKE) clean
+	cd Toolchain; $(MAKE) clean
 
 docker-pull:
 	docker pull agodio/itba-so-multi-platform:3.0
@@ -61,4 +65,4 @@ docker-display:
 		agodio/itba-so-multi-platform:3.0 \
 		/bin/bash -c "cd /root/workspace && qemu-system-x86_64 -hda Image/x64BareBonesImage.qcow2 -m 512M"
 
-.PHONY: bootloader image collections kernel userland all clean buddy docker-pull docker-run docker-display
+.PHONY: bootloader image collections kernel userland toolchain all clean buddy docker-pull docker-run docker-display
